@@ -1,0 +1,23 @@
+argparse
+diffrax
+haiku
+jax==0.4.8 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+jaxlib==0.4.7 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+jupyter
+matplotlib==3.6.0
+networkx
+numpy
+optax==0.1.4
+pandas
+plotly.express
+pyvis
+scipy
+seaborn
+six
+tensorflow
+tensorflow-probability==0.16.0
+torch
+torchvision
+tqdm
+umap-learn
+wandb
