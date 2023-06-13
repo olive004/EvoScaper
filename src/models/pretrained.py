@@ -23,11 +23,11 @@ import tqdm
 from botocore import UNSIGNED
 from botocore.config import Config
 
-from nucleotide_transformer.model import (
+from src.models.nucleotide_transformer import (
     NucleotideTransformerConfig,
     build_nucleotide_transformer_fn,
 )
-from nucleotide_transformer.tokenizers import FixedSizeNucleotidesKmersTokenizer
+from src.models.tokenizers import FixedSizeNucleotidesKmersTokenizer
 
 ENV_XDG_CACHE_HOME = "XDG_CACHE_HOME"
 DEFAULT_CACHE_DIR = "~/.cache"
