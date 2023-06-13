@@ -6,7 +6,22 @@ CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(CURRENT_DIR, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
     
+
+    
 # https://godatadriven.com/blog/a-practical-guide-to-using-setup-py/
+ 
+# https://www.tensorflow.org/install/pip#linux_setup
+# conda install -c conda-forge cudatoolkit=11.8.0
+# python3 -m pip install nvidia-cudnn-cu11==8.9.2.26 tensorflow==2.12.*
+# mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+# echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+# echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/:$CUDNN_PATH/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+# source $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+ 
+# activate env
+# python3 -m pip install nvidia-cudnn-cu11==8.9.2.26 tensorflow==2.12.*
+# echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $VIRTUAL_ENV/bin/activate
+# echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VIRTUAL_ENV/lib/:$CUDNN_PATH/lib' >> $VIRTUAL_ENV/bin/activate
 
 setup(
     author="Olivia Gallup",

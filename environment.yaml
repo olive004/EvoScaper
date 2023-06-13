@@ -1,0 +1,31 @@
+name: env_evoscaper3
+channels:
+  - conda-forge
+  - pytorch
+dependencies:
+  - conda-forge::python>=3.8
+  - conda-forge::cudatoolkit
+  - conda-forge::cuda-nvcc
+  - conda-forge::cudnn
+  - conda-forge::graphviz
+  - conda-forge::jax
+  - conda-forge::jaxlib=*=*cuda*
+  - conda-forge::pandas
+  - conda-forge::pip
+  - conda-forge::pytest
+  - conda-forge::setuptools
+  # - conda-forge::tensorflow=2.11.*
+  - pytorch::pytorch
+  - pip:
+      - dm-tree
+      - dm-haiku
+      - ipykernel
+      # - jax==0.4.1
+      # - jaxlib==0.4.1+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+      - numpy
+      - scipy
+      - tqdm
+      - tensorflow
+      - transformers
+      - typing-extensions
+      - wandb
