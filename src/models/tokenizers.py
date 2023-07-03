@@ -18,10 +18,10 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import regex as re
 
-from src.models.constants import EXTRA_NUCLEOTIDES, NUCLEOTIDES
+from src.models.constants import EXTRA_NUCLEOTIDES, NUCLEOTIDES, NUCLEOTIDES_RNA
 
 
-def _compute_k_mers(k: int) -> List[str]:
+def _compute_k_mers(k: int, nucleotide_type: str = "DNA") -> List[str]:
     """
     Generates all the different k-mers for nucleotides given a value of k.
 
@@ -31,7 +31,13 @@ def _compute_k_mers(k: int) -> List[str]:
     Returns:
         All the different k-mers.
     """
-    return ["".join(elt) for elt in product(NUCLEOTIDES, repeat=k)]
+    nucs = NUCLEOTIDES 
+    if nucleotide_type != 'DNA':
+        if nucleotide_type == 'RNA': 
+            nucs = NUCLEOTIDES_RNA
+        else:
+            raise ValueError(f'Unrecognised nucleotide option {nucleotide_type}')
+    return ["".join(elt) for elt in product(nucs, repeat=k)]
 
 
 class StandardTokenizer:
@@ -253,7 +259,7 @@ class StandardTokenizer:
         except KeyError:
             raise KeyError(f"Token {token} not found in vocabulary")
 
-    def tokenize(self, sequence: str) -> Tuple[List[str], List[int]]:
+    def tokenize(self, sequences: List[str]) -> Tuple[List[str], List[int]]:
         """
         Tokenizes a sequence and returns the list of tokens as well
         as the list of their IDs. Any character found in the sequence that does not
@@ -266,21 +272,25 @@ class StandardTokenizer:
             List of tokens.
             List of token ids.
         """
-        tokens: List[str] = self._compiled_regex.findall(sequence)
-        tokens = [
-            tok if tok in self._tokens_to_ids.keys() else self._unk_token
-            for tok in tokens
-        ]
-        if self._prepend_cls_token:
-            tokens = [self._class_token] + tokens
+        tokens_all = []
+        for i, s in enumerate(sequences):
+            tokens: List[str] = self._compiled_regex.findall(s)
+            tokens = [
+                tok if tok in self._tokens_to_ids.keys() else self._unk_token
+                for tok in tokens
+            ]
+            if self._prepend_cls_token:
+                tokens = [self._class_token] + tokens
 
-        if self._prepend_bos_token:
-            tokens = [self._bos_token] + tokens
+            if self._prepend_bos_token:
+                tokens = [self._bos_token] + tokens
 
-        if self._append_eos_token:
-            tokens.append(self._eos_token)
+            if self._append_eos_token:
+                tokens.append(self._eos_token)
+                
+            tokens_all = tokens_all + tokens
 
-        tokens_ids = [self.token_to_id(tok) for tok in tokens]
+        tokens_ids = [self.token_to_id(tok) for tok in tokens_all]
 
         return tokens, tokens_ids
 
@@ -352,6 +362,7 @@ class NucleotidesKmersTokenizer(StandardTokenizer):
         prepend_cls_token: bool = False,
         append_eos_token: bool = False,
         tokens_to_ids: Optional[Dict[str, int]] = None,
+        nucleotide_type: str = "DNA"
     ):
         """
         Instantiates a FixedSizeNucleotideKmersTokenizer.
@@ -376,7 +387,7 @@ class NucleotidesKmersTokenizer(StandardTokenizer):
                 not specified, then ids are attributed automatically by the tokenizer
                 during initialization.
         """
-        kmers_tokens = _compute_k_mers(k_mers)
+        kmers_tokens = _compute_k_mers(k_mers, nucleotide_type=nucleotide_type)
         standard_tokens = kmers_tokens + NUCLEOTIDES + EXTRA_NUCLEOTIDES
 
         StandardTokenizer.__init__(
@@ -396,7 +407,7 @@ class NucleotidesKmersTokenizer(StandardTokenizer):
 
         self._k_mers = k_mers
 
-    def tokenize(self, sequence: str) -> Tuple[List[str], List[int]]:
+    def tokenize(self, sequences: str) -> Tuple[List[str], List[int]]:
         """
         Tokenizes a sequence and returns the list of tokens as well
         as the list of their IDs. The tokenization algorithm first splits up the
@@ -421,11 +432,11 @@ class NucleotidesKmersTokenizer(StandardTokenizer):
 
             ATCGAATNGGCGATGCAC -> ATCGA A T N GGCGA TGCAC
         """
-        splitted_seq = sequence.split("N")
-        len_splitted = len(splitted_seq)
+        
+        len_seqs = len(sequences)
         tokens: List[str] = []
 
-        for i, split in enumerate(splitted_seq):
+        for i, split in enumerate(sequences):
             chunks = [
                 split[i * self._k_mers : (i + 1) * self._k_mers]
                 for i in range(len(split) // self._k_mers)
@@ -439,17 +450,18 @@ class NucleotidesKmersTokenizer(StandardTokenizer):
                 else:
                     for nucl in chunk:
                         tokens.append(nucl)
-            if i < len_splitted - 1:
+            if i < len_seqs - 1:
                 tokens.append("N")
+
+            if self._append_eos_token:
+                tokens.append(self._eos_token)
+
 
         if self._prepend_cls_token:
             tokens = [self._class_token] + tokens
 
         if self._prepend_bos_token:
             tokens = [self._bos_token] + tokens
-
-        if self._append_eos_token:
-            tokens.append(self._eos_token)
 
         tokens_ids = [self.token_to_id(tok) for tok in tokens]
 
@@ -478,6 +490,7 @@ class FixedSizeNucleotidesKmersTokenizer(NucleotidesKmersTokenizer):
         prepend_cls_token: bool = False,
         append_eos_token: bool = False,
         tokens_to_ids: Optional[Dict[str, int]] = None,
+        **kwargs
     ):
         """
         Instantiates a FixedSizeNucleotideKmersTokenizer.
@@ -508,6 +521,7 @@ class FixedSizeNucleotidesKmersTokenizer(NucleotidesKmersTokenizer):
             append_eos_token=append_eos_token,
             k_mers=k_mers,
             tokens_to_ids=tokens_to_ids,
+            **kwargs
         )
         self._fixed_length = fixed_length
 
@@ -551,3 +565,51 @@ class FixedSizeNucleotidesKmersTokenizer(NucleotidesKmersTokenizer):
         return [
             (toks, toks_ids) for toks, toks_ids in zip(padded_tokens, padded_tokens_ids)
         ]
+
+
+class PropertyTokenizer(StandardTokenizer):
+    """ From XLNet (https://github.com/IBM/regression-transformer/)
+    Run a property tokenization. 
+    For turning floating point numbers into tokens. """
+
+    def __init__(self) -> None:
+        """Constructs a PropertyTokenizer."""
+        self.regex = re.compile(r"\s*(<\w+>)\s*?(\+|-)?(\d+)(\.)?(\d+)?\s*")
+
+    def tokenize(self, text: str) -> List[str]:
+        """Tokenization of a property.
+
+        Args:
+            text: text to tokenize.
+
+        Returns:
+            extracted tokens.
+        """
+        tokens = []
+        matched = self.regex.match(text)
+        if matched:
+            property_name, sign, units, dot, decimals = matched.groups()
+            tokens = [property_name]
+            if sign:
+                tokens += [f"_{sign}_"]
+            tokens += [
+                f"_{number}_{position}_" for position, number in enumerate(units[::-1])
+            ][::-1]
+            if dot:
+                tokens += [f"_{dot}_"]
+            if decimals:
+                tokens += [
+                    f"_{number}_-{position}_"
+                    for position, number in enumerate(decimals, 1)
+                ]
+        return tokens
+    
+    
+class LogPropertyTokenizer(PropertyTokenizer):
+    """ For tokenising floating point numbers on the log scale """
+    
+    def __init__(self) -> None:
+        super().__init__()
+        
+    def tokenize(self, text: str) -> List[str]:
+        return super().tokenize(text)

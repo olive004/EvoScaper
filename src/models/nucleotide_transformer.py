@@ -136,9 +136,9 @@ class NucleotideTransformer(hk.Module):
 
         self._embed_layer = hk.Embed(self._config.alphabet_size, self._config.embed_dim)
 
-        self._pos_embed_layer = ESMLearnedPositionalEmbeddings(
-            config.max_positions, config.embed_dim, config.pad_token_id
-        )
+        # self._pos_embed_layer = ESMLearnedPositionalEmbeddings(
+        #     config.max_positions, config.embed_dim, config.pad_token_id
+        # )
 
         self._lm_head = RobertaLMHead(
             embed_dim=self._config.embed_dim,
@@ -157,10 +157,7 @@ class NucleotideTransformer(hk.Module):
         # Process attention maps to save requirement into more suitable format
         attention_maps_to_save = config.attention_maps_to_save
         self._attention_layers_to_save = list({t[0] for t in attention_maps_to_save})
-        self._attention_maps_per_layer_to_save = {
-            layer: [t[1] for t in attention_maps_to_save if t[0] == layer]
-            for layer in self._attention_layers_to_save
-        }
+        self._attention_maps_per_layer_to_save = {t[0]: list(t[1:]) for t in attention_maps_to_save}
 
         # Checking user request can be executed, raise error otherwise
         max_layer = max(self._attention_layers_to_save + [0])
@@ -281,8 +278,9 @@ class NucleotideTransformer(hk.Module):
             f"it: {self._config.max_positions}"
         )
 
+        # !! Removed pos emb
         # Positional Embedding
-        x = x + self._pos_embed_layer(tokens)
+        # x = x + self._pos_embed_layer(tokens)
 
         if self._config.emb_layer_norm_before:
             x = self.emb_ln_before(x)

@@ -13,5 +13,6 @@
 # limitations under the License.
 
 NUCLEOTIDES = ["A", "T", "C", "G"]
+NUCLEOTIDES_RNA = ["A", "U", "C", "G"]
 VALID_EXTRA_NUCLEOTIDES = ["N", "M", "Y", "B", "S", "W", "K", "H", "D", "V", "R"]
 EXTRA_NUCLEOTIDES = ["N"]
