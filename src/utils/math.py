@@ -56,4 +56,4 @@ def scientific_notation(value: Number) -> Tuple[Number, int]:
 
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
-    return base_num * np.power(10, exponent)
+    return base_num * np.power(10.0, exponent)

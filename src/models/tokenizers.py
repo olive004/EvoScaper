@@ -14,13 +14,11 @@
 
 from itertools import product
 from typing import Dict, List, Optional, Tuple
-from numbers import Number
 
 import numpy as np
 import regex as re
 
 from src.models.constants import EXTRA_NUCLEOTIDES, NUCLEOTIDES, NUCLEOTIDES_RNA
-from src.utils.math import take_closest, scientific_notation, recombine_dec_exponent
 
 
 def _compute_k_mers(k: int, nucleotide_type: str = "DNA") -> List[str]:
@@ -567,100 +565,3 @@ class FixedSizeNucleotidesKmersTokenizer(NucleotidesKmersTokenizer):
         return [
             (toks, toks_ids) for toks, toks_ids in zip(padded_tokens, padded_tokens_ids)
         ]
-
-
-class PropertyTokenizer(StandardTokenizer):
-    """ From XLNet (https://github.com/IBM/regression-transformer/)
-    Run a property tokenization. 
-    For turning floating point numbers into tokens. """
-
-    def __init__(self) -> None:
-        """Constructs a PropertyTokenizer."""
-        self.regex = re.compile(r"\s*(<\w+>)\s*?(\+|-)?(\d+)(\.)?(\d+)?\s*")
-
-    def tokenize(self, text: str) -> List[str]:
-        """Tokenization of a property.
-
-        Args:
-            text: text to tokenize.
-
-        Returns:
-            extracted tokens.
-        """
-        tokens = []
-        matched = self.regex.match(text)
-        if matched:
-            property_name, sign, units, dot, decimals = matched.groups()
-            tokens = [property_name]
-            if sign:
-                tokens += [f"_{sign}_"]
-            tokens += [
-                f"_{number}_{position}_" for position, number in enumerate(units[::-1])
-            ][::-1]
-            if dot:
-                tokens += [f"_{dot}_"]
-            if decimals:
-                tokens += [
-                    f"_{number}_-{position}_"
-                    for position, number in enumerate(decimals, 1)
-                ]
-        return tokens
-    
-    def batch_tokenize(self, sequences: List[str]) -> List[Tuple[List[str], List[int]]]:
-        return super().batch_tokenize(sequences)
-    
-    
-class LogTokenizer:
-    """ For tokenising floating point numbers on the log scale """
-    
-    def __init__(self,
-                 granularity: int,
-                 max_dec_exponent: int,
-                 min_dec_exponent: int) -> None:
-        """_summary_
-
-        Args:
-            granularity (int): The level of discretisation of the log scale
-                taken as granularity per decimal exponent. A granularity of 2 
-                would therefore mean each decimal point range would be split 
-                into 2 bins.
-            max_dec_exponent (int): Maximum range for decimal exponents. A 
-                max_dec_exponent of 6 would mean input numbers max out at 10^6.
-            min_dec_exponent (int): Minimum range for decimal exponents. A 
-                min_dec_exponent of -6 means numbers cannot be less than 10^(-6).
-        """
-        
-        super().__init__()
-        
-        self.granularity = granularity
-        self.max_dec_exponent = max_dec_exponent
-        self.min_dec_exponent = min_dec_exponent
-        self.granularity_list = np.arange(0, 10, 10/granularity)
-        standard_tokens = compute_log_tokens(granularity)
-        
-        StandardTokenizer.__init__(
-            self,
-            standard_tokens=standard_tokens
-            # unk_token=unk_token,
-            # pad_token=pad_token,
-            # mask_token=mask_token,
-            # class_token=class_token,
-            # eos_token=eos_token,
-            # bos_token=bos_token,
-            # prepend_bos_token=prepend_bos_token,
-            # prepend_cls_token=prepend_cls_token,
-            # append_eos_token=append_eos_token,
-            # tokens_to_ids=tokens_to_ids,
-        )
-
-    def tokenize(self, val: Number) -> List[str]:
-        val = np.log(val)
-        raw_base_val, exponent = scientific_notation(val)
-        base_val = take_closest(self.granularity_list, raw_base_val)
-        exponent = np.min([np.max([exponent, self.min_dec_exponent]), self.max_dec_exponent])
-        
-        return recombine_dec_exponent(base_val, exponent)
-
-    def compute_log_tokens(granularity: int): 
-        granularity / 10
-    
