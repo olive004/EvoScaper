@@ -47,10 +47,7 @@ def scientific_notation(value: Number) -> Tuple[Number, int]:
     """
 
     exponent = scientific_exponent(value)
-    if exponent > 0:
-        numerical_value = value / (10 ** exponent)
-    else:
-        numerical_value = value * (10 ** exponent)
+    numerical_value = value / (10 ** exponent)
 
     return numerical_value, exponent
 

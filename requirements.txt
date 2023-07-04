@@ -4,23 +4,24 @@ biopython
 -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@a3b65d09c22475c5346beec8c180ba6d5c76f866#egg=bioreaction
 boto3
 celluloid==0.2.0
-chex==0.1.5
+# chex==0.1.81
+git+https://github.com/deepmind/chex.git
 corner==2.2.1
 diffrax==0.2.2
 dm-haiku==0.0.9
-dm-tree==0.1.7
+# dm-tree==0.1.7
 equinox==0.9.2
 graphviz==0.20.1
 ipykernel==6.17.1
 jax==0.4.12
 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
-jaxlib==0.4.12+cuda11.cudnn86
+# jaxlib==0.4.12+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 jupyter==1.0.0
 matplotlib
 networkx==2.8.8
 notebook==6.5.2
-numpy==1.23.5
-nvidia-cudnn-cu11==8.9.2.26
+# numpy==1.23.5
+# nvidia-cudnn-cu11==8.9.2.26
 optax==0.1.4
 pandas==1.5.2
 pyvis==0.3.1
@@ -28,6 +29,7 @@ regex
 scikit-learn==1.2.2
 scipy==1.10.1
 seaborn==0.12.1
+-i https://test.pypi.org/simple/ synbio-morpher
 tensorflow==2.12.0
 torch
 tqdm==4.65.0

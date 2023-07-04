@@ -139,7 +139,7 @@ class StandardTokenizer:
             self._tokens_to_ids = {tok: i for i, tok in enumerate(self._all_tokens)}
 
         self._ids_to_tokens = {i: tok for tok, i in self._tokens_to_ids.items()}
-        self._compiled_regex = re.compile("|".join(self._all_tokens + [r"\S"]))  # noqa
+        self._compiled_regex = re.compile("|".join([str(i) for i in self._all_tokens] + [r"\S"]))  # noqa
 
     @property
     def vocabulary(self) -> List[str]:
