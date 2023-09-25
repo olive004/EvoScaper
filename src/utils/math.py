@@ -54,3 +54,11 @@ def scientific_notation(value: Number) -> Tuple[Number, int]:
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
     return base_num * np.power(10.0, exponent)
+
+
+def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
+    return int((input_size - kernel_size + 2 * padding) // stride + 1)
+
+
+def convert_to_scientific_exponent(x): 
+    return int(f'{x:.0e}'.split('e')[1])
