@@ -1,0 +1,34 @@
+{
+    "batch_size": {
+        "_type":"choice", 
+        "_value":[32, 64, 128]
+    },
+    "seed": {
+        "_type":"choice",
+        "_value":[0, 1, 2]
+    },
+    "steps": {
+        "_type":"choice",
+        "_value":[1000, 10000]
+    },
+    "n_batches": {
+        "_type":"choice",
+        "_value":[10000, 100000]
+    },
+    "linear_out1": {
+        "_type":"choice",
+        "_value":[128, 256, 512, 1024]
+    },
+    "linear_out2": {
+        "_type":"choice",
+        "_value":[128, 256, 512]
+    },
+    "conv2d_ks": {
+        "_type":"choice",
+        "_value":[1, 2, 3]
+    },
+    "conv2d_out_channels": {
+        "_type":"choice",
+        "_value":[1, 3]
+    }
+}

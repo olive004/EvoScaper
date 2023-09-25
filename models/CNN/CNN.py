@@ -4,6 +4,32 @@ Script mirroring the `01_simple_fcn.ipynb`
 
 """
 
+from src.utils.math import calculate_conv_output, convert_to_scientific_exponent
+from synbio_morpher.utils.parameter_inference.interpolation_grid import create_parameter_range
+from synbio_morpher.utils.results.analytics.naming import get_true_names_analytics, get_true_interaction_cols
+from synbio_morpher.utils.misc.type_handling import flatten_listlike
+from synbio_morpher.utils.misc.string_handling import convert_liststr_to_list
+from synbio_morpher.utils.misc.numerical import make_symmetrical_matrix_from_sequence
+from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
+import matplotlib.pyplot as plt
+import seaborn as sns
+import wandb
+import equinox as eqx
+from sklearn.manifold import TSNE
+# https://github.com/google/jaxtyping
+from jaxtyping import Array, Float, Int, PyTree
+from tensorboard.plugins import projector
+import tensorflow as tf
+import torchvision  # https://pytorch.org
+import torch  # https://pytorch.org
+import optax  # https://github.com/deepmind/optax
+import pandas as pd
+import numpy as np
+import jax.numpy as jnp
+import jax
+import haiku as hk
+from dataclasses import dataclass
+from typing import Optional, List, Callable, Dict, Any, Tuple
 import os
 import argparse
 import logging
@@ -16,40 +42,6 @@ from nni.utils import merge_parameter
 from torchvision import datasets, transforms
 
 logger = logging.getLogger('mnist_AutoML')
-
-from typing import Optional, List, Callable, Dict, Any, Tuple
-from dataclasses import dataclass
-import os
-
-import haiku as hk
-import jax
-import jax.numpy as jnp
-import numpy as np
-import pandas as pd
-import optax  # https://github.com/deepmind/optax
-import torch  # https://pytorch.org
-import torchvision  # https://pytorch.org
-import tensorflow as tf
-from tensorboard.plugins import projector
-from jaxtyping import Array, Float, Int, PyTree  # https://github.com/google/jaxtyping
-from sklearn.manifold import TSNE
-
-import equinox as eqx
-import wandb
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-jax.config.update('jax_platform_name', 'cpu')
-
-from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
-from synbio_morpher.utils.misc.numerical import make_symmetrical_matrix_from_sequence
-from synbio_morpher.utils.misc.string_handling import convert_liststr_to_list
-from synbio_morpher.utils.misc.type_handling import flatten_listlike
-from synbio_morpher.utils.results.analytics.naming import get_true_names_analytics, get_true_interaction_cols
-from synbio_morpher.utils.parameter_inference.interpolation_grid import create_parameter_range
-
-from src.utils.math import calculate_conv_output, convert_to_scientific_exponent
 
 jax.devices()
 
@@ -70,7 +62,8 @@ class CNN(eqx.Module):
         # 2D
         # conv_out = (in_dim1 - kernel_size + 2 * 0) // 1 + 1
         out1 = calculate_conv_output(in_dim1, kernel_size, padding=0, stride=1)
-        out2 = calculate_conv_output(out1, max_pool_kernel_size, padding=0, stride=1)
+        out2 = calculate_conv_output(
+            out1, max_pool_kernel_size, padding=0, stride=1)
 
         self.layers = [
             eqx.nn.Conv2d(in_channels=n_channels, out_channels=out_channels,
@@ -78,7 +71,7 @@ class CNN(eqx.Module):
             eqx.nn.MaxPool2d(kernel_size=max_pool_kernel_size, stride=1),
             jax.nn.relu,
             jnp.ravel,
-            eqx.nn.Linear(np.power(out2, 2) * out_channels, 
+            eqx.nn.Linear(np.power(out2, 2) * out_channels,
                           np.power(out2, 2) * out_channels * 4, key=key2),
             jax.nn.sigmoid,
             eqx.nn.Linear(np.power(out2, 2) * out_channels * 4,
@@ -95,11 +88,11 @@ class CNN(eqx.Module):
                 'inference': inference, 'key': jax.random.PRNGKey(0)}
 
             x = layer(x, **kwargs)
-            
+
             # wandb.log({f'emb_{i}_{type(layer)}': x})
         return x
-    
-    
+
+
 def loss(
     model: CNN, x: Float[Array, "batch 1 28 28"], y: Int[Array, " batch"]
 ) -> Float[Array, ""]:
@@ -133,6 +126,7 @@ def compute_accuracy(
     pred_y = jnp.argmax(pred_y, axis=1)
     return jnp.mean(y == pred_y)
 
+
 def evaluate(model: CNN, testloader: torch.utils.data.DataLoader):
     """This function evaluates the model on the test dataset,
     computing both the average loss and the average accuracy.
@@ -151,8 +145,8 @@ def evaluate(model: CNN, testloader: torch.utils.data.DataLoader):
 
 def train(
     model: CNN,
-    trainloader: torch.utils.data.DataLoader,
-    testloader: torch.utils.data.DataLoader,
+    train_data: torch.utils.data.DataLoader,
+    test_data: torch.utils.data.DataLoader,
     optim: optax.GradientTransformation,
     steps: int,
     print_every: int,
@@ -179,31 +173,41 @@ def train(
     # Loop over our training dataset as many times as we need.
     def infinite_trainloader():
         while True:
-            yield from trainloader
+            yield from train_data
 
     saves = {}
-    for step, (x, y) in zip(range(steps), infinite_trainloader()):
-    # for step, (x, y) in zip(range(steps), trainloader):
+    # for step, (x, y) in zip(range(steps), infinite_trainloader()):
+    for step, (x, y) in zip(range(steps), train_data):
         # PyTorch dataloaders give PyTorch tensors by default,
         # so convert them to NumPy arrays.
         # x = x.numpy()
         # y = y.numpy()
         model, opt_state, train_loss = make_step(model, opt_state, x, y)
         if (step % print_every) == 0 or (step == steps - 1):
-            test_loss, test_accuracy = evaluate(model, testloader)
+            test_loss, test_accuracy = evaluate(model, test_data)
             # print(
             #     f"{step=}, train_loss={train_loss.item()}, "
             #     f"test_loss={test_loss.item()}, test_accuracy={test_accuracy.item()}"
             # )
             logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                step, step * len(x), len(trainloader.dataset),
-                100. * step / len(trainloader), loss.item()))
+                step, step * len(x), len(train_data),
+                100. * step / len(train_data), loss.item()))
             saves[step] = {
                 'opt_state': opt_state,
                 'train_loss': train_loss,
                 'test_loss': test_loss,
                 'test_accuracy': test_accuracy
             }
+            nni.report_intermediate_result({
+                'train_loss': train_loss,
+                'test_loss': test_loss,
+                'default': test_accuracy
+            })
+    nni.report_final_result({
+        'train_loss': train_loss,
+        'test_loss': test_loss,
+        'default': test_accuracy
+    })
     return model, saves
 
 
@@ -240,118 +244,81 @@ def load_data(filepath_data):
 
 def main(args):
     
-    BATCH_SIZE = 128
-    N_BATCHES = 10000
+    BATCH_SIZE = args['batch_size']
+    N_BATCHES = args['n_batches']
+    STEPS = args['steps']
+    SEED = args['seed']
     TRAIN_SPLIT = int(0.8 * N_BATCHES)
     TEST_SPLIT = N_BATCHES - TRAIN_SPLIT
-    LEARNING_RATE = 3e-4
-    STEPS = 10000
+    LEARNING_RATE = 1e-4
     PRINT_EVERY = 100
-    SEED = 5678
     TOTAL_DS = BATCH_SIZE * N_BATCHES
 
     # Architecture
     N_CHANNELS = 1
-    OUT_CHANNELS = 3
-    KERNEL_SIZE = 1
     MAX_POOL_KERNEL_SIZE = 1
-    
-    
-    data = load_data(args['filepath_data'])
-    n_samples = len(data['sample_name'].unique())
+
+    # Set gpu and seed
+    use_cuda = not args['no_cuda'] and torch.cuda.is_available()
+    torch.manual_seed(args['seed'])
+    jax.config.update('jax_platform_name', 'gpu' if use_cuda else 'cpu')
 
     key = jax.random.PRNGKey(SEED)
     key, subkey = jax.random.split(key, 2)
 
-    x = data[get_true_interaction_cols(data, 'binding_rates_dissociation', remove_symmetrical=True)].iloc[:TOTAL_DS].values
-    x = np.expand_dims(np.array([make_symmetrical_matrix_from_sequence(xx, n_samples) for xx in x]), axis=1)
+    # Load data
+    data = load_data(args['filepath_data'])
+    n_samples = len(data['sample_name'].unique())
+
+    x = data[get_true_interaction_cols(
+        data, 'binding_rates_dissociation', remove_symmetrical=True)].iloc[:TOTAL_DS].values
+    x = np.expand_dims(np.array(
+        [make_symmetrical_matrix_from_sequence(xx, n_samples) for xx in x]), axis=1)
 
     y = data['sensitivity_wrt_species-6'].iloc[:TOTAL_DS].to_numpy()
-    y = np.array([convert_to_scientific_exponent(yy) for yy in y])[None, :] * -1
+    y = np.array([convert_to_scientific_exponent(yy)
+                 for yy in y])[None, :] * -1
 
     N_HEAD = len(np.unique(y))
-    
-    ######### Make sure things work
-    
-    model = CNN(subkey, n_channels=N_CHANNELS, out_channels=OUT_CHANNELS, n_head=N_HEAD, kernel_size=KERNEL_SIZE, max_pool_kernel_size=MAX_POOL_KERNEL_SIZE)
-    
+
+    # Make sure things work
+    model = CNN(subkey, n_channels=N_CHANNELS, out_channels=args['conv2d_out_channels'], n_head=N_HEAD,
+                kernel_size=args['conv2d_ks'], max_pool_kernel_size=MAX_POOL_KERNEL_SIZE,
+                linear_out1=args['linear_out1'], linear_out2=args['linear_out2'])
+
     # Example loss
-    loss_value = loss(model, x[:10], y[:10])
-    print(loss_value.shape)  # scalar loss
-    # Example inference
-    output = jax.vmap(model)(x[:10])
-    print(output.shape)  # batch of predictions
-    
-    params, static = eqx.partition(model, eqx.is_array)
+    # loss_value = loss(model, x[:10], y[:10])
+    # print(loss_value.shape)  # scalar loss
+    # # Example inference
+    # output = jax.vmap(model)(x[:10])
+    # print(output.shape)  # batch of predictions
 
-    def loss2(params, static, x, y):
-        model = eqx.combine(params, static)
-        return loss(model, x, y)
+    # params, static = eqx.partition(model, eqx.is_array)
 
-    loss_value, grads = jax.value_and_grad(loss2)(params, static, x[:5], y[:5])
-    print(loss_value)
-    
+    # def loss2(params, static, x, y):
+    #     model = eqx.combine(params, static)
+    #     return loss(model, x, y)
+
+    # loss_value, grads = jax.value_and_grad(loss2)(params, static, x[:5], y[:5])
+    # print(loss_value)
+
     ##########
 
     loss = eqx.filter_jit(loss)  # JIT our loss function from earlier!
 
-    dataloader = (x.reshape(*[N_BATCHES, BATCH_SIZE] + list(x.shape[1:])), y.reshape(N_BATCHES, BATCH_SIZE, 1))
-    evaluate(model, dataloader)
-    
+    combined_data = (x.reshape(*[N_BATCHES, BATCH_SIZE] +
+                  list(x.shape[1:])), y.reshape(N_BATCHES, BATCH_SIZE, 1))
+    # evaluate(model, dataloader)
+
     optim = optax.adamw(LEARNING_RATE)
-    
+
     #########
-    
-    trainloader = zip(dataloader[0][:TRAIN_SPLIT], dataloader[1][:TRAIN_SPLIT])
-    testloader = (dataloader[0][:TEST_SPLIT], dataloader[1][:TEST_SPLIT])
-    
-    model, saves = train(model, trainloader, testloader, optim, STEPS, PRINT_EVERY)
-    
-    ##############################################3
-    
-    use_cuda = not args['no_cuda'] and torch.cuda.is_available()
 
-    torch.manual_seed(args['seed'])
+    train_data = zip(combined_data[0][:TRAIN_SPLIT], combined_data[1][:TRAIN_SPLIT])
+    test_data = (combined_data[0][:TEST_SPLIT], combined_data[1][:TEST_SPLIT])
 
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-
-    data_dir = args['data_dir']
-
-    train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(data_dir, train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args['batch_size'], shuffle=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(data_dir, train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
-        batch_size=1000, shuffle=True, **kwargs)
-
-    hidden_size = args['hidden_size']
-
-    model = Net(hidden_size=hidden_size).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=args['lr'],
-                          momentum=args['momentum'])
-
-    for epoch in range(1, args['epochs'] + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
-        test_acc = test(args, model, device, test_loader)
-
-        # report intermediate result
-        nni.report_intermediate_result(test_acc)
-        logger.debug('test accuracy %g', test_acc)
-        logger.debug('Pipe send intermediate result done.')
-
-    # report final result
-    nni.report_final_result(test_acc)
-    logger.debug('Final result is %g', test_acc)
-    logger.debug('Send final result done.')
+    model, saves = train(model, train_data, test_data,
+                         optim, STEPS, PRINT_EVERY)
 
 
 def get_params():
@@ -376,7 +343,6 @@ def get_params():
                         help='disables CUDA training')
     parser.add_argument('--log_interval', type=int, default=1000, metavar='N',
                         help='how many batches to wait before logging training status')
-
 
     args, _ = parser.parse_known_args()
     return args
