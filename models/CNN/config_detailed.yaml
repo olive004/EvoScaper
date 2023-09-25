@@ -28,7 +28,7 @@ trialCodeDirectory: .           # The path of trial code. By default it's ".", w
 trialGpuNumber: 0               # How many GPUs should each trial use. CUDA is required when it's greater than zero.
 
 trialConcurrency: 1             # Run 4 trials concurrently.
-maxTrialNumber: 10              # Generate at most 10 trials.
+# maxTrialNumber: 10              # Generate at most 10 trials.
 maxExperimentDuration: 1h       # Stop generating trials after 1 hour.
 
 tuner:                          # Configure the tuning algorithm.

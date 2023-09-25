@@ -14,6 +14,7 @@ from sklearn.manifold import TSNE
 # https://github.com/google/jaxtyping
 from jaxtyping import Array, Float, Int, PyTree
 from tensorboard.plugins import projector
+import os
 import torch  # https://pytorch.org
 import optax  # https://github.com/deepmind/optax
 import pandas as pd
@@ -29,8 +30,6 @@ import torch.nn.functional as F
 from nni.utils import merge_parameter
 
 logger = logging.getLogger('mnist_AutoML')
-
-jax.devices()
 
 
 def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
@@ -188,14 +187,14 @@ def train(
                 'test_accuracy': test_accuracy
             }
             nni.report_intermediate_result({
-                'train_loss': train_loss,
-                'test_loss': test_loss,
-                'default': test_accuracy
+                'train_loss': np.float32(train_loss),
+                'test_loss': np.float32(test_loss),
+                'default': np.float32(test_accuracy)
             })
     nni.report_final_result({
-        'train_loss': train_loss,
-        'test_loss': test_loss,
-        'default': test_accuracy
+        'train_loss': np.float32(train_loss),
+        'test_loss': np.float32(test_loss),
+        'default': np.float32(test_accuracy)
     })
     return model, saves
 
@@ -209,48 +208,45 @@ def load_data(filepath_data):
 
 def main(args):
 
-    args = {
-        "filepath_data": {
-            "_type": "choice",
-            "_value": ["data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv"]
-        },
-        "batch_size": {
-            "_type": "choice",
-            "_value": [32, 64, 128]
-        },
-        "seed": {
-            "_type": "choice",
-            "_value": [0, 1, 2]
-        },
-        "steps": {
-            "_type": "choice",
-            "_value": [1000, 10000]
-        },
-        "n_batches": {
-            "_type": "choice",
-            "_value": [10000, 100000]
-        },
-        "linear_out1": {
-            "_type": "choice",
-            "_value": [128, 256, 512, 1024]
-        },
-        "linear_out2": {
-            "_type": "choice",
-            "_value": [128, 256, 512]
-        },
-        "conv2d_ks": {
-            "_type": "choice",
-            "_value": [1, 2, 3]
-        },
-        "conv2d_out_channels": {
-            "_type": "choice",
-            "_value": [1, 3]
-        },
-        "no_cuda": {
-            '_value': [True]
-        }
-    }
-    args = {k: v['_value'][0] for k, v in args.items()}
+    # args = {
+    #     "filepath_data": {
+    #         "_type": "choice",
+    #         "_value": ["data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv"]
+    #     },
+    #     "batch_size": {
+    #         "_type": "choice",
+    #         "_value": [32, 64, 128]
+    #     },
+    #     "seed": {
+    #         "_type": "choice",
+    #         "_value": [0, 1, 2]
+    #     },
+    #     "steps": {
+    #         "_type": "choice",
+    #         "_value": [1000, 5000]
+    #     },
+    #     "n_batches": {
+    #         "_type": "choice",
+    #         "_value": [1000, 10000]
+    #     },
+    #     "linear_out1": {
+    #         "_type": "choice",
+    #         "_value": [128, 256, 512, 1024]
+    #     },
+    #     "linear_out2": {
+    #         "_type": "choice",
+    #         "_value": [128, 256, 512]
+    #     },
+    #     "conv2d_ks": {
+    #         "_type": "choice",
+    #         "_value": [1, 2, 3]
+    #     },
+    #     "conv2d_out_channels": {
+    #         "_type": "choice",
+    #         "_value": [1, 3]
+    #     }
+    # }
+    # args = {k: v['_value'][0] for k, v in args.items()}
 
     BATCH_SIZE = args['batch_size']
     N_BATCHES = args['n_batches']
@@ -267,7 +263,7 @@ def main(args):
     MAX_POOL_KERNEL_SIZE = 1
 
     # Set gpu and seed
-    use_cuda = not args['no_cuda'] and torch.cuda.is_available()
+    use_cuda = False  # not args['no_cuda'] and torch.cuda.is_available()
     torch.manual_seed(args['seed'])
     jax.config.update('jax_platform_name', 'gpu' if use_cuda else 'cpu')
 
@@ -306,9 +302,9 @@ def main(args):
     #########
 
     train_data = list(zip(combined_data[0][:TRAIN_SPLIT],
-                     combined_data[1][:TRAIN_SPLIT]))
+                          combined_data[1][:TRAIN_SPLIT]))
     test_data = list(zip(combined_data[0][:TEST_SPLIT],
-                    combined_data[1][:TEST_SPLIT]))
+                         combined_data[1][:TEST_SPLIT]))
 
     model, saves = train(model, train_data, test_data,
                          optim, STEPS, PRINT_EVERY)
@@ -317,31 +313,36 @@ def main(args):
 def get_params():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument("--data_dir", type=str,
-                        default='./data', help="data directory")
     parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument("--batch_num", type=int, default=None)
-    parser.add_argument("--hidden_size", type=int, default=512, metavar='N',
-                        help='hidden layer size (default: 512)')
+    parser.add_argument("--n_batches", type=int, default=None)
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                        help='SGD momentum (default: 0.5)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
     parser.add_argument('--no_cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--log_interval', type=int, default=1000, metavar='N',
                         help='how many batches to wait before logging training status')
+    parser.add_argument('--filepath_data', type=str, default='',
+                        help='File path to a data summary table.')
+    parser.add_argument('--steps', type=int, default=1000, metavar='N',
+                        help='Total number of steps or epochs to run training for')
+    parser.add_argument('--linear_out1', type=int, default=None,
+                        help='Architecural parameter. Size of output of first linear layer')
+    parser.add_argument('--linear_out2', type=int, default=None,
+                        help='Architecural parameter. Size of output of second linear layer')
+    parser.add_argument('--conv2d_ks', type=int, default=1,
+                        help='Kernel size for Conv 2d layer')
+    parser.add_argument('--conv2d_out_channels', type=int, default=1,
+                        help='Number of output channels of Conv 2d layer')
 
     args, _ = parser.parse_known_args()
     return args
 
 
 if __name__ == '__main__':
+    # Go to http://127.0.0.1:8080
     try:
         # get parameters form tuner
         tuner_params = nni.get_next_parameter()

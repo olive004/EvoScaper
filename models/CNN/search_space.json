@@ -13,11 +13,11 @@
     },
     "steps": {
         "_type":"choice",
-        "_value":[1000, 10000]
+        "_value":[1000, 5000]
     },
     "n_batches": {
         "_type":"choice",
-        "_value":[10000, 100000]
+        "_value":[1000, 10000]
     },
     "linear_out1": {
         "_type":"choice",
