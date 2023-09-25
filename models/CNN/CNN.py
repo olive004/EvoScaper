@@ -4,13 +4,8 @@ Script mirroring the `01_simple_fcn.ipynb`
 
 """
 
-from src.utils.math import calculate_conv_output, convert_to_scientific_exponent
-from synbio_morpher.utils.parameter_inference.interpolation_grid import create_parameter_range
-from synbio_morpher.utils.results.analytics.naming import get_true_names_analytics, get_true_interaction_cols
-from synbio_morpher.utils.misc.type_handling import flatten_listlike
-from synbio_morpher.utils.misc.string_handling import convert_liststr_to_list
+from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from synbio_morpher.utils.misc.numerical import make_symmetrical_matrix_from_sequence
-from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 import matplotlib.pyplot as plt
 import seaborn as sns
 import wandb
@@ -19,8 +14,6 @@ from sklearn.manifold import TSNE
 # https://github.com/google/jaxtyping
 from jaxtyping import Array, Float, Int, PyTree
 from tensorboard.plugins import projector
-import tensorflow as tf
-import torchvision  # https://pytorch.org
 import torch  # https://pytorch.org
 import optax  # https://github.com/deepmind/optax
 import pandas as pd
@@ -28,22 +21,24 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 import haiku as hk
-from dataclasses import dataclass
-from typing import Optional, List, Callable, Dict, Any, Tuple
-import os
 import argparse
 import logging
 import nni
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 from nni.utils import merge_parameter
-from torchvision import datasets, transforms
 
 logger = logging.getLogger('mnist_AutoML')
 
 jax.devices()
+
+
+def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
+    return int((input_size - kernel_size + 2 * padding) // stride + 1)
+
+
+def convert_to_scientific_exponent(x):
+    return int(f'{x:.0e}'.split('e')[1])
 
 
 class CNN(eqx.Module):
@@ -51,7 +46,8 @@ class CNN(eqx.Module):
 
     def __init__(self, key, n_channels: int, out_channels: int, n_head: int,
                  kernel_size: int = 3, in_dim1: int = 3,
-                 max_pool_kernel_size: int = 2):
+                 max_pool_kernel_size: int = 2,
+                 linear_out1: int = None, linear_out2: int = None):
         key1, key2, key3, key4 = jax.random.split(key, 4)
         # Standard CNN setup: convolutional layer, followed by flattening,
         # with a small MLP on top.
@@ -64,6 +60,10 @@ class CNN(eqx.Module):
         out1 = calculate_conv_output(in_dim1, kernel_size, padding=0, stride=1)
         out2 = calculate_conv_output(
             out1, max_pool_kernel_size, padding=0, stride=1)
+        linear_out1 = linear_out1 if linear_out1 is not None else np.power(
+            out2, 2) * out_channels * 4
+        linear_out2 = linear_out2 if linear_out2 is not None else np.power(
+            out2, 2) * out_channels
 
         self.layers = [
             eqx.nn.Conv2d(in_channels=n_channels, out_channels=out_channels,
@@ -72,13 +72,13 @@ class CNN(eqx.Module):
             jax.nn.relu,
             jnp.ravel,
             eqx.nn.Linear(np.power(out2, 2) * out_channels,
-                          np.power(out2, 2) * out_channels * 4, key=key2),
+                          linear_out1, key=key2),
             jax.nn.sigmoid,
-            eqx.nn.Linear(np.power(out2, 2) * out_channels * 4,
-                          np.power(out2, 2) * out_channels, key=key3),
+            eqx.nn.Linear(linear_out1,
+                          linear_out2, key=key3),
             jax.nn.relu,
             # eqx.nn.Dropout(p=0.4),
-            eqx.nn.Linear(np.power(out2, 2) * out_channels, n_head, key=key4),
+            eqx.nn.Linear(linear_out2, n_head, key=key4),
             jax.nn.log_softmax
         ]
 
@@ -103,6 +103,9 @@ def loss(
     # leading (batch) axis.
     pred_y = jax.vmap(model)(x)
     return cross_entropy(y, pred_y)
+
+
+loss = eqx.filter_jit(loss)
 
 
 def cross_entropy(
@@ -133,9 +136,7 @@ def evaluate(model: CNN, testloader: torch.utils.data.DataLoader):
     """
     avg_loss = 0
     avg_acc = 0
-    for x, y in zip(*testloader):
-        # x = x.numpy()
-        # y = y.numpy()
+    for x, y in testloader:
         # Note that all the JAX operations happen inside `loss` and `compute_accuracy`,
         # and both have JIT wrappers, so this is fast.
         avg_loss += loss(model, x, y)
@@ -170,28 +171,16 @@ def train(
         model = eqx.apply_updates(model, updates)
         return model, opt_state, loss_value
 
-    # Loop over our training dataset as many times as we need.
-    def infinite_trainloader():
-        while True:
-            yield from train_data
-
     saves = {}
     # for step, (x, y) in zip(range(steps), infinite_trainloader()):
     for step, (x, y) in zip(range(steps), train_data):
-        # PyTorch dataloaders give PyTorch tensors by default,
-        # so convert them to NumPy arrays.
-        # x = x.numpy()
-        # y = y.numpy()
         model, opt_state, train_loss = make_step(model, opt_state, x, y)
         if (step % print_every) == 0 or (step == steps - 1):
             test_loss, test_accuracy = evaluate(model, test_data)
-            # print(
-            #     f"{step=}, train_loss={train_loss.item()}, "
-            #     f"test_loss={test_loss.item()}, test_accuracy={test_accuracy.item()}"
-            # )
-            logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                step, step * len(x), len(train_data),
-                100. * step / len(train_data), loss.item()))
+            logger.info(
+                f"{step=}, train_loss={train_loss.item()}, "
+                f"test_loss={test_loss.item()}, test_accuracy={test_accuracy.item()}"
+            )
             saves[step] = {
                 'opt_state': opt_state,
                 'train_loss': train_loss,
@@ -211,39 +200,58 @@ def train(
     return model, saves
 
 
-def test(args, model, device, test_loader):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            # sum up batch loss
-            test_loss += F.nll_loss(output, target, reduction='sum').item()
-            # get the index of the max log-probability
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader.dataset)
-
-    accuracy = 100. * correct / len(test_loader.dataset)
-
-    logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), accuracy))
-
-    return accuracy
-
-
 def load_data(filepath_data):
     """ The file path could be something like 
     'data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv'
     """
-    data = pd.read_csv(filepath_data)
+    return pd.read_csv(filepath_data)
 
 
 def main(args):
-    
+
+    args = {
+        "filepath_data": {
+            "_type": "choice",
+            "_value": ["data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv"]
+        },
+        "batch_size": {
+            "_type": "choice",
+            "_value": [32, 64, 128]
+        },
+        "seed": {
+            "_type": "choice",
+            "_value": [0, 1, 2]
+        },
+        "steps": {
+            "_type": "choice",
+            "_value": [1000, 10000]
+        },
+        "n_batches": {
+            "_type": "choice",
+            "_value": [10000, 100000]
+        },
+        "linear_out1": {
+            "_type": "choice",
+            "_value": [128, 256, 512, 1024]
+        },
+        "linear_out2": {
+            "_type": "choice",
+            "_value": [128, 256, 512]
+        },
+        "conv2d_ks": {
+            "_type": "choice",
+            "_value": [1, 2, 3]
+        },
+        "conv2d_out_channels": {
+            "_type": "choice",
+            "_value": [1, 3]
+        },
+        "no_cuda": {
+            '_value': [True]
+        }
+    }
+    args = {k: v['_value'][0] for k, v in args.items()}
+
     BATCH_SIZE = args['batch_size']
     N_BATCHES = args['n_batches']
     STEPS = args['steps']
@@ -286,36 +294,21 @@ def main(args):
                 kernel_size=args['conv2d_ks'], max_pool_kernel_size=MAX_POOL_KERNEL_SIZE,
                 linear_out1=args['linear_out1'], linear_out2=args['linear_out2'])
 
-    # Example loss
-    # loss_value = loss(model, x[:10], y[:10])
-    # print(loss_value.shape)  # scalar loss
-    # # Example inference
-    # output = jax.vmap(model)(x[:10])
-    # print(output.shape)  # batch of predictions
-
-    # params, static = eqx.partition(model, eqx.is_array)
-
-    # def loss2(params, static, x, y):
-    #     model = eqx.combine(params, static)
-    #     return loss(model, x, y)
-
-    # loss_value, grads = jax.value_and_grad(loss2)(params, static, x[:5], y[:5])
-    # print(loss_value)
-
     ##########
 
-    loss = eqx.filter_jit(loss)  # JIT our loss function from earlier!
+    # loss = eqx.filter_jit(loss)  # JIT our loss function from earlier!
 
     combined_data = (x.reshape(*[N_BATCHES, BATCH_SIZE] +
-                  list(x.shape[1:])), y.reshape(N_BATCHES, BATCH_SIZE, 1))
-    # evaluate(model, dataloader)
+                               list(x.shape[1:])), y.reshape(N_BATCHES, BATCH_SIZE, 1))
 
     optim = optax.adamw(LEARNING_RATE)
 
     #########
 
-    train_data = zip(combined_data[0][:TRAIN_SPLIT], combined_data[1][:TRAIN_SPLIT])
-    test_data = (combined_data[0][:TEST_SPLIT], combined_data[1][:TEST_SPLIT])
+    train_data = list(zip(combined_data[0][:TRAIN_SPLIT],
+                     combined_data[1][:TRAIN_SPLIT]))
+    test_data = list(zip(combined_data[0][:TEST_SPLIT],
+                    combined_data[1][:TEST_SPLIT]))
 
     model, saves = train(model, train_data, test_data,
                          optim, STEPS, PRINT_EVERY)

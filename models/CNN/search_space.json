@@ -1,4 +1,8 @@
 {
+    "filepath_data": {
+        "_type":"choice", 
+        "_value":["../../data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv"]
+    },
     "batch_size": {
         "_type":"choice", 
         "_value":[32, 64, 128]
