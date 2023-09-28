@@ -108,7 +108,7 @@ def l2_loss(weights, alpha):
 
 
 def cross_entropy(y: Int[Array, " batch"], pred_y: Float[Array, "batch 10"], num_classes: int):
-    one_hot_actual = jax.nn.one_hot(y, num_classes=num_classes)
+    one_hot_actual = jax.nn.one_hot(-y, num_classes=num_classes)
     return optax.softmax_cross_entropy(pred_y, one_hot_actual).sum()
 
 
@@ -165,8 +165,9 @@ def train(params, rng, model, x_train, y_train, x_val, y_val,
             # Single batch of data
             x_batch, y_batch = x_train[start:end], y_train[start:end]
 
-            params, train_loss, grads = train_step(
-                params, rng, model, x_batch, y_batch, optimiser, optimiser_state, l2_reg_alpha)
+            if len(x_batch) and len(y_batch):
+                params, train_loss, grads = train_step(
+                    params, rng, model, x_batch, y_batch, optimiser, optimiser_state, l2_reg_alpha)
 
         val_acc, val_loss = eval_step(
             params, rng, model, x_val, y_val, l2_reg_alpha)
@@ -179,7 +180,7 @@ def train(params, rng, model, x_train, y_train, x_val, y_val,
                 'val_loss': val_loss,
                 'val_accuracy': val_acc
             }
-            logging.info(
+            print(
                 f'Epoch {e} / {epochs} -\t Train loss: {train_loss}\tVal loss: {val_loss}\tVal accuracy: {val_acc}')
     return params, saves
 
@@ -207,8 +208,8 @@ if __name__ == '__main__':
     TRAIN_SPLIT = int(0.8 * TOTAL_DS)
     TEST_SPLIT = TOTAL_DS - TRAIN_SPLIT
     LEARNING_RATE = 1e-4
-    # LEARNING_RATE_SCHED = 'cosine_decay'
-    LEARNING_RATE_SCHED = 'constant'
+    LEARNING_RATE_SCHED = 'cosine_decay'
+    # LEARNING_RATE_SCHED = 'constant'
     L2_REG_ALPHA = 0.01
     EPOCHS = 100
     PRINT_EVERY = EPOCHS // 20
@@ -259,9 +260,8 @@ if __name__ == '__main__':
 
     N_HEAD = len(np.unique(y))
 
-
     if x.shape[0] < TOTAL_DS:
-        logging.info(
+        print(
             f'WARNING: The filtered data is not as large as the requested total dataset size: {x.shape[0]} vs. requested {TOTAL_DS}')
 
     # %%
@@ -317,5 +317,8 @@ if __name__ == '__main__':
 
     # %%
 
-    json.dumps(saves, 'saves')
+    jdict = json.dumps(saves)
+    with open("saves.json", "w") as outfile:
+        outfile.write(jdict)
+        
     logging.info(params)
