@@ -1,21 +1,19 @@
-absl-py==1.4.0
-autopep8==2.0.0
+absl-py
 biopython
--e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@a3b65d09c22475c5346beec8c180ba6d5c76f866#egg=bioreaction
+autopep8
+# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@a3b65d09c22475c5346beec8c180ba6d5c76f866#egg=bioreaction
 boto3
-celluloid==0.2.0
 # chex==0.1.81
-git+https://github.com/deepmind/chex.git
-corner==2.2.1
-diffrax==0.4.1
+# git+https://github.com/deepmind/chex.git
+diffrax==0.3.1
 dm-haiku==0.0.10
 # dm-tree==0.1.7
-equinox==0.10.11
+equinox==0.10.4
 graphviz==0.20.1
 ipykernel==6.17.1
-jax==0.4.16
--f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
-# jaxlib==0.4.16+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+# jax==0.4.12
+# -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+# jaxlib==0.4.12+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 jupyter==1.0.0
 matplotlib
 notebook==6.5.2
