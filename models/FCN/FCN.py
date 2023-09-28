@@ -295,9 +295,6 @@ if __name__ == '__main__':
                         l2_reg_alpha=L2_REG_ALPHA, epochs=EPOCHS, batch_size=BATCH_SIZE,
                         save_every=PRINT_EVERY)  # int(STEPS // 15))
 
-    json.dumps(saves)
-    logging.info(params)
-
     # %% [markdown]
     # ## Visualise
 
@@ -319,3 +316,6 @@ if __name__ == '__main__':
     plt.savefig('training_summary.png')
 
     # %%
+
+    json.dumps(saves, 'saves')
+    logging.info(params)
