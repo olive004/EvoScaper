@@ -197,13 +197,12 @@ if __name__ == '__main__':
             data, interaction_attr='binding_site_group_range', remove_symmetrical=True):
         data[c] = data[c].map(ast.literal_eval)
 
-
     # %% [markdown]
     # ## Hyperparameters
 
     # %%
     BATCH_SIZE = 128
-    N_BATCHES = 100
+    N_BATCHES = 1000
     TOTAL_DS = BATCH_SIZE * N_BATCHES
     TRAIN_SPLIT = int(0.8 * TOTAL_DS)
     TEST_SPLIT = TOTAL_DS - TRAIN_SPLIT
@@ -223,8 +222,7 @@ if __name__ == '__main__':
     MAX_POOL_KERNEL_SIZE = 1
 
     # FCN Architecture
-    LAYER_SIZES = [10, 50, 50]
-
+    LAYER_SIZES = [50, 50, 50]
 
     n_samples = len(data['sample_name'].unique())
 
@@ -239,10 +237,8 @@ if __name__ == '__main__':
 
     # %%
 
-
     def convert_to_scientific_exponent(x):
         return int(f'{x:.0e}'.split('e')[1])
-
 
     vectorized_convert_to_scientific_exponent = np.vectorize(
         convert_to_scientific_exponent)
@@ -272,10 +268,10 @@ if __name__ == '__main__':
     # ### Initialise model
 
     # %%
-    model = hk.transform(partial(FCN_fn, layer_sizes=LAYER_SIZES, n_head=N_HEAD))
+    model = hk.transform(
+        partial(FCN_fn, layer_sizes=LAYER_SIZES, n_head=N_HEAD))
 
     params = model.init(rng, x[:5])
-
 
     # %% [markdown]
     # ### Optimiser
@@ -289,11 +285,10 @@ if __name__ == '__main__':
     optimiser = optax.sgd(learning_rate=learning_rate_scheduler)
     optimiser_state = optimiser.init(x)
 
-
     # %%
     params, saves = train(params, rng, model, x_train, y_train, x_val, y_val, optimiser, optimiser_state,
-                        l2_reg_alpha=L2_REG_ALPHA, epochs=EPOCHS, batch_size=BATCH_SIZE,
-                        save_every=PRINT_EVERY)  # int(STEPS // 15))
+                          l2_reg_alpha=L2_REG_ALPHA, epochs=EPOCHS, batch_size=BATCH_SIZE,
+                          save_every=PRINT_EVERY)  # int(STEPS // 15))
 
     # %% [markdown]
     # ## Visualise
@@ -320,5 +315,5 @@ if __name__ == '__main__':
     jdict = json.dumps(saves)
     with open("saves.json", "w") as outfile:
         outfile.write(jdict)
-        
+
     logging.info(params)
