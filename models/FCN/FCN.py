@@ -10,6 +10,7 @@ from synbio_morpher.utils.results.analytics.naming import get_true_names_analyti
 from synbio_morpher.utils.misc.type_handling import flatten_listlike
 from synbio_morpher.utils.misc.string_handling import convert_liststr_to_list
 from synbio_morpher.utils.misc.numerical import make_symmetrical_matrix_from_sequence
+from synbio_morpher.utils.data.data_format_tools.common import write_json
 from typing import Optional, List, Callable, Dict, Any, Tuple, Union
 from functools import partial
 import logging
@@ -312,8 +313,6 @@ if __name__ == '__main__':
 
     # %%
 
-    jdict = json.dumps(saves)
-    with open("saves.json", "w") as outfile:
-        outfile.write(jdict)
+    write_json(saves)
 
     logging.info(params)
