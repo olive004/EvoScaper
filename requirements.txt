@@ -10,6 +10,7 @@ dm-haiku==0.0.10
 # dm-tree==0.1.7
 equinox==0.10.4
 graphviz==0.20.1
+imblearn
 ipykernel==6.17.1
 # jax==0.4.12
 # -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
