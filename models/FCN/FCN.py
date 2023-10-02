@@ -313,6 +313,6 @@ if __name__ == '__main__':
 
     # %%
 
-    write_json(saves)
+    write_json(saves, out_path='saves')
 
     logging.info(params)
