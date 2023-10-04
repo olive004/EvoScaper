@@ -23,6 +23,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import equinox as eqx
 import optax  # https://github.com/deepmind/optax
 import torch  # https://pytorch.org
@@ -91,14 +92,14 @@ def FCN_fn(x, **kwargs):
 
 def loss_fn(
     params, rng,
-    model: FCN, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
-    l2_reg_alpha: Float
+    model: FCN, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"], 
+    l2_reg_alpha: Float,
 ) -> Float[Array, ""]:
-
+    
     pred_y = model.apply(params, rng, x)
     loss = cross_entropy(y, pred_y, num_classes=pred_y.shape[-1])
     # loss += sum(
-    #     l2_loss(w, alpha=l2_reg_alpha)
+    #     l2_loss(w, alpha=l2_reg_alpha) 
     #     for w in jax.tree_util.tree_leaves(params)
     # )
     return loss
@@ -109,7 +110,7 @@ def l2_loss(weights, alpha):
 
 
 def cross_entropy(y: Int[Array, " batch"], pred_y: Float[Array, "batch 10"], num_classes: int):
-    one_hot_actual = jax.nn.one_hot(-y, num_classes=num_classes)
+    one_hot_actual = jax.nn.one_hot(y, num_classes=num_classes)
     return optax.softmax_cross_entropy(pred_y, one_hot_actual).sum()
 
 
@@ -124,7 +125,7 @@ def compute_accuracy(
     params, rng, model: FCN, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"]
 ) -> Float[Array, ""]:
     pred_y = model.apply(params, rng, x)
-    pred_y = -1 * jnp.argmax(pred_y, axis=1)
+    pred_y = jnp.argmax(pred_y, axis=1)
     return jnp.mean(y == pred_y)
 
 
@@ -210,17 +211,12 @@ if __name__ == '__main__':
     LEARNING_RATE = 1e-4
     LEARNING_RATE_SCHED = 'cosine_decay'
     # LEARNING_RATE_SCHED = 'constant'
+    WARMUP_EPOCHS = 20
     L2_REG_ALPHA = 0.01
     EPOCHS = 100
     PRINT_EVERY = EPOCHS // 20
     SEED = 0
     INPUT_SPECIES = 'RNA_1'
-
-    # CNN Architecture
-    N_CHANNELS = 1
-    OUT_CHANNELS = 3
-    KERNEL_SIZE = 1
-    MAX_POOL_KERNEL_SIZE = 1
 
     # FCN Architecture
     LAYER_SIZES = [50, 50, 50]
@@ -229,7 +225,7 @@ if __name__ == '__main__':
 
     rng = jax.random.PRNGKey(SEED)
     # rng, subkey = jax.random.split(rng, 2)
-
+    
     # %% [markdown]
     # ## Initialise
 
