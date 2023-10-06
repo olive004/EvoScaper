@@ -195,9 +195,9 @@ if __name__ == '__main__':
     fn = 'data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv'
     data = pd.read_csv(fn)
     data.drop(columns=['Unnamed: 0'], inplace=True)
-    for c in get_true_interaction_cols(data, interaction_attr='binding_sites_idxs', remove_symmetrical=True) + get_true_interaction_cols(
-            data, interaction_attr='binding_site_group_range', remove_symmetrical=True):
-        data[c] = data[c].map(ast.literal_eval)
+    # for c in get_true_interaction_cols(data, interaction_attr='binding_sites_idxs', remove_symmetrical=True) + get_true_interaction_cols(
+    #         data, interaction_attr='binding_site_group_range', remove_symmetrical=True):
+    #     data[c] = data[c].map(ast.literal_eval)
 
     # %% [markdown]
     # ## Hyperparameters
