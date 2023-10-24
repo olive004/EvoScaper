@@ -67,20 +67,22 @@ def proc_info(info: pd.DataFrame, include_log: bool = True):
             lambda x: np.log(x / x.loc[x['mutation_num'] == 0].squeeze()))
         mutation_log = mutation_log.reset_index()
         mutation_log[numerical_cols] = info[numerical_cols]
-        info[[c + '_logm' for c in numerical_cols]] = mutation_log[numerical_cols]
+        info[[c + '_logm' for c in numerical_cols]
+             ] = mutation_log[numerical_cols]
 
     return info, num_group_cols, num_bs_cols, numerical_cols, key_cols, bs_range_cols
 
 
 def txt_to_csv(input_file: str, output_file: str):
     """ GCG """
-    
+
     import csv
 
     # Open the input and output files
     with open(input_file, 'r') as txt_file, open(output_file, 'w', newline='') as csv_file:
         # Create a CSV writer
-        csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_writer = csv.writer(csv_file, delimiter=',',
+                                quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
         # Write the header row to the CSV file
         header = next(txt_file).strip().split('\t')
