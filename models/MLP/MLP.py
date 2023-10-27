@@ -52,8 +52,8 @@ jnp.arange(9)
 
 
 def load_data():
-    fn = '../data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv'
-    fn_test_data = '../data/raw/ensemble_mutation_effect_analysis/2023_10_03_204819/tabulated_mutation_info.csv'
+    fn = '../../data/processed/ensemble_mutation_effect_analysis/2023_07_17_105328/tabulated_mutation_info.csv'
+    fn_test_data = '../../data/raw/ensemble_mutation_effect_analysis/2023_10_03_204819/tabulated_mutation_info.csv'
     data = pd.read_csv(fn)
     try:
         data.drop(columns=['Unnamed: 0'], inplace=True)
@@ -480,10 +480,10 @@ def main(args):
     print('The R2 score with weighted variance is ', r2_score(
         y_val, predicted, multioutput='variance_weighted'))
 
-    plt.savefit('predicted_actual.png')
+    plt.savefig('predicted_actual.png')
 
     # %%
-    write_json(saves, out_path=save_path)
+    # write_json(saves, out_path=save_path)
 
 
 if __name__ == '__main__':
@@ -493,6 +493,9 @@ if __name__ == '__main__':
         tuner_params = nni.get_next_parameter()
         logger.debug(tuner_params)
         params = vars(nni.utils.merge_parameter(get_params(), tuner_params))
+        # params = {"lr": 0.0001, "epochs": 2, "n_batches": 500,
+        #           "linear_layer_size": 32, "num_linear_layers": 4, "make_encoder_layers": False}
+
         print(params)
         main(params)
     except Exception as exception:
