@@ -9,7 +9,7 @@
     },
     "n_batches": {
         "_type":"choice",
-        "_value":[100, 500, 1000]
+        "_value":[100, 500]
     },
     "linear_layer_size": {
         "_type":"choice",
