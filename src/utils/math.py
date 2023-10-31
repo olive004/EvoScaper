@@ -4,26 +4,41 @@ from bisect import bisect_left
 from numbers import Number
 from typing import Tuple
 import numpy as np
+import jax.numpy as jnp
 
 
-def take_closest(listlike: list, num: Number) -> Number:
-    """
-    From https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value/12141511#12141511
-    Assumes myList is sorted. Returns closest value to myNumber.
+def arrayise(d):
+    """ Make a nested dictionary into an array. Useful for loading
+    previously saved weights back in from a json """
+    for k, v in d.items():
+        if type(v) == dict:
+            for kk, vv in v.items():
+                d[k][kk] = jnp.array(vv)
+    return d
 
-    If two numbers are equally close, return the smallest number.
-    """
-    pos = bisect_left(listlike, num)
-    if pos == 0:
-        return listlike[0]
-    if pos == len(listlike):
-        return listlike[-1]
-    before = listlike[pos - 1]
-    after = listlike[pos]
-    if after - num < num - before:
-        return after
-    else:
-        return before
+
+def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
+    return int((input_size - kernel_size + 2 * padding) // stride + 1)
+
+
+def convert_to_scientific_exponent(x, numerical_resolution: dict):
+    exp_not = f'{x:.0e}'.split('e')
+    resolution = numerical_resolution[int(exp_not[1])]
+    base = int(10 / resolution)
+    pre = custom_round(int(exp_not[0]), base=base)
+    return int(exp_not[1]) + pre / 10
+
+
+def convert_to_scientific_exponent_simple(x): 
+    return int(f'{x:.0e}'.split('e')[1])
+
+
+def custom_round(x, base=5):
+    return base * round(x/base)
+
+
+def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
+    return base_num * np.power(10.0, exponent)
 
 
 def scientific_exponent(value: Number) -> int:
@@ -52,13 +67,21 @@ def scientific_notation(value: Number) -> Tuple[Number, int]:
     return numerical_value, exponent
 
 
-def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
-    return base_num * np.power(10.0, exponent)
+def take_closest(listlike: list, num: Number) -> Number:
+    """
+    From https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value/12141511#12141511
+    Assumes myList is sorted. Returns closest value to myNumber.
 
-
-def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
-    return int((input_size - kernel_size + 2 * padding) // stride + 1)
-
-
-def convert_to_scientific_exponent(x): 
-    return int(f'{x:.0e}'.split('e')[1])
+    If two numbers are equally close, return the smallest number.
+    """
+    pos = bisect_left(listlike, num)
+    if pos == 0:
+        return listlike[0]
+    if pos == len(listlike):
+        return listlike[-1]
+    before = listlike[pos - 1]
+    after = listlike[pos]
+    if after - num < num - before:
+        return after
+    else:
+        return before

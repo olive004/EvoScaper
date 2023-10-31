@@ -13,6 +13,16 @@ from synbio_morpher.utils.results.analytics.naming import get_true_interaction_c
 SEQ_LENGTH = 20
 
 
+def drop_duplicates_keep_first_n(df, column, n):
+    """ GCG """
+    indices = df[df.duplicated(subset=column, keep=False)].groupby(
+        column).head(n).index
+    all_duplicates_indices = df[df.duplicated(subset=column, keep=False)].index
+    to_drop = list(set(all_duplicates_indices) - set(indices))
+    df2 = df.drop(to_drop)
+    return df2
+
+
 def proc_info(info: pd.DataFrame, include_log: bool = True):
     info['num_interacting_all'] = info['num_interacting'] + \
         info['num_self_interacting']
