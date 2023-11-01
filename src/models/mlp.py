@@ -46,14 +46,14 @@ class MLP(hk.Module):
         return l
         
 
-    def __call__(self, x: Float[Array, " num_interactions"], inference: bool = False, seed: int = 0) -> Float[Array, " n_head"]:
+    def __call__(self, x: Float[Array, " num_interactions"], inference: bool = False, seed: int = 0, logging: bool = True) -> Float[Array, " n_head"]:
         for i, layer in enumerate(self.layers):
             kwargs = {} if not type(layer) == eqx.nn.Dropout else {
                 'inference': inference, 'key': jax.random.PRNGKey(seed)}
 
             x = layer(x, **kwargs)
             
-            if inference:
+            if inference and logging:
                 df = pd.DataFrame(data=np.array(x), columns=['0'])
                 # logs[f'emb_{i}_{type(layer)}'] = df
                 wandb.log({f'emb_{i}_{type(layer)}': df})
