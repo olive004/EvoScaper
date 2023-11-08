@@ -1,0 +1,26 @@
+{
+    "lr": {
+        "_type":"choice", 
+        "_value":[1e-4, 5e-4, 1e-3, 5e-3]
+    },
+    "epochs": {
+        "_type":"choice",
+        "_value":[100, 500, 1000]
+    },
+    "n_batches": {
+        "_type":"choice",
+        "_value":[100, 500]
+    },
+    "linear_layer_size": {
+        "_type":"choice",
+        "_value":[32, 64, 128]
+    },
+    "num_linear_layers": {
+        "_type":"choice",
+        "_value":[3, 4, 6]
+    },
+    "make_encoder_layers": {
+        "_type":"choice",
+        "_value":[true, false]
+    }
+}

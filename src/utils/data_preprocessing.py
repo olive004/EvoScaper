@@ -13,6 +13,16 @@ from synbio_morpher.utils.results.analytics.naming import get_true_interaction_c
 SEQ_LENGTH = 20
 
 
+def drop_duplicates_keep_first_n(df, column, n):
+    """ GCG """
+    indices = df[df.duplicated(subset=column, keep=False)].groupby(
+        column).head(n).index
+    all_duplicates_indices = df[df.duplicated(subset=column, keep=False)].index
+    to_drop = list(set(all_duplicates_indices) - set(indices))
+    df2 = df.drop(to_drop)
+    return df2
+
+
 def proc_info(info: pd.DataFrame, include_log: bool = True):
     info['num_interacting_all'] = info['num_interacting'] + \
         info['num_self_interacting']
@@ -67,6 +77,32 @@ def proc_info(info: pd.DataFrame, include_log: bool = True):
             lambda x: np.log(x / x.loc[x['mutation_num'] == 0].squeeze()))
         mutation_log = mutation_log.reset_index()
         mutation_log[numerical_cols] = info[numerical_cols]
-        info[[c + '_logm' for c in numerical_cols]] = mutation_log[numerical_cols]
+        info[[c + '_logm' for c in numerical_cols]
+             ] = mutation_log[numerical_cols]
 
     return info, num_group_cols, num_bs_cols, numerical_cols, key_cols, bs_range_cols
+
+
+def txt_to_csv(input_file: str, output_file: str):
+    """ GCG """
+
+    import csv
+
+    # Open the input and output files
+    with open(input_file, 'r') as txt_file, open(output_file, 'w', newline='') as csv_file:
+        # Create a CSV writer
+        csv_writer = csv.writer(csv_file, delimiter=',',
+                                quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+        # Write the header row to the CSV file
+        header = next(txt_file).strip().split('\t')
+        csv_writer.writerow(header)
+
+        # Process the rest of the lines in the text file
+        for line in txt_file:
+            # Split the line by tab character
+            data = line.strip().split('\t')
+            # Write the data to the CSV file
+            csv_writer.writerow(data)
+
+    print("Conversion complete. CSV file saved as", output_file)
