@@ -1,10 +1,9 @@
 #####################################################################
-# Rewritten in Python by Bard (Olivia Gallup)
+# Rewritten in Python by Google Bard + Olivia Gallup
 #####################################################################
 
 
 import networkx as nx
-import sys
 import numpy as np
 import re
 
@@ -159,8 +158,7 @@ def build_structure_map(segments, knots, bp, seq):
                 mknots = includes_knot(m_start, m_stop, knots)
                 pk = mknots if mknots else ""
 
-                if m_count not in structure_types["M"]: structure_types["M"][m_count] = []
-                structure_types["M"][m_count].append(
+                structure_types["M"].setdefault(m_count, []).append(
                     f"M{m_count}.{mp} {m_start}..{m_stop} \"{m_seq}\" ({bp5_pos1},{bp5_pos2}) {nuc5_1}:{nuc5_2} ({bp3_pos1},{bp3_pos2}) {nuc3_1}:{nuc3_2} {pk}\n"
                 )
 
@@ -375,8 +373,7 @@ def build_structure_map(segments, knots, bp, seq):
             iknots = includes_knot(i_start, i_stop, knots)
             pk = iknots if iknots else ""
 
-            if i_count not in structure_types["I"]: structure_types["I"][i_count] = []
-            structure_types["I"][i_count].append(
+            structure_types["I"].setdefault(i_count, []).append(
                 f"I{i_count}.{ip} {i_start}..{i_stop} \"{i_seq}\" ({bp5_pos1},{bp5_pos2}) {nuc5_1}:{nuc5_2} {pk}\n"
             )
 
@@ -658,40 +655,33 @@ def print_structure_data(regions):
             gff.write(f"{line}\n")
 
 
-def is_multiloop(components, mG, edges):
-    # make copy of components
-    components = components.copy()
-
-    if len(components) == 1:
+def is_multiloop(og_components, mG, edges):
+    
+    if len(og_components) == 1:
         return 0
+    # make copy of components
+    components = list(og_components)
 
     first_vertex = components.pop(0)
     current_vertex = first_vertex
-
     while components:
-        successors = mG.successors(current_vertex)
+        successors = list(mG.successors(current_vertex))
+        if successors:
+            # It should only have one successor. Reality check here.
+            if len(successors) != 1:
+                raise Exception("Fatal error: Too many successors of multiloop part.")
+            next_vertex = successors[0]
+            index = -1
+            for i, component in enumerate(components):
+                if component == next_vertex:
+                    index = i
+            if index >= 0:
+                components.pop(index)
+            else:
+                return 0
+            current_vertex = next_vertex
 
-        # It should only have one successor. Reality check here.
-        if len(successors) != 1:
-            raise Exception("Fatal error: Too many successors of multiloop part.")
-
-        next_vertex = successors[0]
-        index = -1
-
-        for i, component in enumerate(components):
-            if component == next_vertex:
-                index = i
-
-        if index >= 0:
-            components.pop(index)
         else:
-            return 0
-
-        current_vertex = next_vertex
-
-        successors = mG.successors(current_vertex)
-
-        if not successors:
             return 0
 
     # If here, all vertices in @c were removed.
@@ -872,6 +862,13 @@ def pkQuartet(i, j, k, l):
 
 
 def get_segments(bp):
+    # 5'start    3'stop
+    #       ACG.UA
+    #       ||| ||
+    #       UGCAAU
+    # 3'start    5'stop
+    #
+
     # Initialize an empty list to store all segments
     all_segments = []
 
@@ -880,35 +877,39 @@ def get_segments(bp):
 
     # Initialize the current position indices
     i = get_next_pair(0, bp, last_pos, knots=[])
+    if i:
+        # Build the first segment starting with the first base pair
+        in_segment = False
+        while first_pos <= i <= last_pos:
+            j = bp[i]
+            segment = []
+            if i < j: 
+                segment.append([i, j])
+                in_segment = True
 
-    # Build the first segment starting with the first base pair
-    while first_pos <= i <= last_pos:
-        j = bp[i]
-        segment = []
-        if i and j: segment.append([i, j])
-        in_segment = True
+            # Grow the segment to include more base pairs
+            while in_segment:
+                next_pair = get_next_pair(i, bp, last_pos, knots=[])
+                prev_pair = get_prev_pair(j, bp, first_pos, knots=[])
 
-        # Grow the segment to include more base pairs
-        while in_segment:
-            next_pair = get_next_pair(i, bp, last_pos, knots=[])
-            prev_pair = get_prev_pair(j, bp, first_pos, knots=[])
-
-            if next_pair and prev_pair:
-                if bp[next_pair] == prev_pair and next_pair < prev_pair:
-                    # Add the base pair to the segment
-                    segment.append([next_pair, prev_pair])
-                    i = next_pair
-                    j = prev_pair
+                if next_pair and prev_pair:
+                    if (bp[next_pair] == prev_pair) and (next_pair < prev_pair):
+                        # Add the base pair to the segment
+                        segment.append([next_pair, prev_pair])
+                        i = next_pair
+                        j = prev_pair
+                    else:
+                        # Close the segment and add it to the list
+                        in_segment = False
+                        # if segment: 
+                        all_segments.append(segment)
                 else:
-                    # Close the segment and add it to the list
                     in_segment = False
-                    if segment: all_segments.append(segment)
-            else:
-                in_segment = False
-                if segment: all_segments.append(segment)
+                    # if segment: 
+                    all_segments.append(segment)
 
-        # Move to the first base pair of the next segment
-        i = get_next_pair(i, bp, last_pos, knots=[])
+            # Move to the first base pair of the next segment
+            i = get_next_pair(i, bp, last_pos, knots=[])
 
     # By construction, the segments should be ordered by the most 5' position of each segment
     return all_segments
@@ -932,16 +933,16 @@ def separate_segments(segments):
     G = nx.Graph()
 
     if len(segments) > 1:
-        for i in range(len(segments)):
+        for i in range(len(segments)-1):
             segment1 = segments[i]
             if not segment1: continue
-            firstPair1 = segment1.pop(0)
+            firstPair1 = segment1[0]
             s1_5pStart, s1_3pStart = firstPair1
 
             for j in range(i + 1, len(segments)):
                 segment2 = segments[j]
                 if not segment2: continue
-                firstPair2 = segment2.pop(0)
+                firstPair2 = segment2[0]
                 s2_5pStart, s2_3pStart = firstPair2
 
                 if pkQuartet(s1_5pStart, s1_3pStart, s2_5pStart, s2_3pStart):
@@ -950,15 +951,17 @@ def separate_segments(segments):
     CCs = list(nx.connected_components(G))
     ccCount = 0
     for c in CCs:
+        if DEBUG: print("Primary Connected Component: ", G.subgraph(c))
         for v in c:
-            knot[v] = 1
-
-        knotsList, warning = getBestKnots(G, c, segments)
-        for v in knotsList:
-            G.remove_node(v)
-
-        warnings += warning
+            if DEBUG: print("w($v)=", len(segments[v]))
         ccCount += 1
+        knotsList, warning = get_best_knots(G, c, segments)
+        for v in knotsList:
+            if G.has_node(v):
+                G.remove_node(v)
+            knot.setdefault(v, 0)
+            knot[v] += 1
+        warnings += warning
 
     if segments:
         if len(segments) == len(knot):
@@ -970,8 +973,16 @@ def separate_segments(segments):
                     maxSize = len(segments[i])
 
             del knot[maxI]
+            
+    knots = []
+    all_segments = []
+    for i in range(len(segments)):
+        if knot.get(i):
+            knots.append(segments[i])
+        else:
+            all_segments.append(segments[i])
 
-    return segments, list(knot.keys()), warnings
+    return all_segments, knots, warnings
 
 
 def get_min_v_pair(c, segments):
@@ -1025,9 +1036,10 @@ def get_best_knots(G, c, segments, DEBUG=False):
 
     # Create a subgraph of the connected component
     g = G.subgraph(c)
+    g = nx.Graph(g)
 
     # Check for connected components
-    connected_components = g.connected_components()
+    connected_components = list(nx.connected_components(g))
 
     # Initialize variables
     knots_remain = False
@@ -1044,7 +1056,7 @@ def get_best_knots(G, c, segments, DEBUG=False):
             knots_remain = True
             (min_v, warning) = get_min_v_pair(cc, segments)
             warnings += warning
-            g.delete_vertex(min_v)
+            g.remove_node(min_v)
             knots_list.append(min_v)
             if DEBUG:
                 print(f"2-deleted {min_v}")
@@ -1054,13 +1066,13 @@ def get_best_knots(G, c, segments, DEBUG=False):
                 knots_remain = True
 
                 # Get the path and its corresponding weights
-                path = '' #get_path_from_graph(g, cc)
+                path = list(is_path_graph(g, cc))
                 path_weights = [len(segments[v]) for v in path]
 
                 # Check for a specific path pattern
                 if len(path) == 3 and path_weights[1] == path_weights[0] + path_weights[2]:
                     v = path[1]
-                    g.delete_vertex(v)
+                    g.remove_node(v)
                     knots_list.append(v)
 
                     if DEBUG:
@@ -1109,7 +1121,7 @@ def get_best_knots(G, c, segments, DEBUG=False):
                     for v in path:
                         if v not in max_weighted:
                             knots_remain = True
-                            g.delete_vertex(v)
+                            g.remove_node(v)
                             knots_list.append(v)
 
                             if DEBUG:
@@ -1246,13 +1258,14 @@ def getBestKnots(G, c, segments):
                     break
 
                 # Initialize variables for maximum weight set
-                max_set = [0]
-                max_set[1] = len(segments[path[0]])
+                max_set = [0, len(segments[path[0]])]
 
                 # Find maximum weight set for the path
                 for i in range(2, len(path)):
+                    # the path index is 0-based, but maxSet is 1-based
+                    # 0th term is 0.
                     w = len(segments[path[i]])
-                    max_set[i] = max(max_set[i - 1], max_set[i - 2] + w)
+                    max_set.append(max(max_set[i - 1], max_set[i - 2] + w))
 
                 # Check if the maximum weight set is the entire path
                 if max_set[-1] == sum(len(segments[p]) for p in path):
@@ -1298,7 +1311,7 @@ def getBestKnots(G, c, segments):
                                 i -= 2
                                 continue
 
-                if max_set[i] == max_set[i - 1]:
+                if max_set[i-1] == max_set[i - 2]:
                     i -= 1
                 else:
                     if DEBUG: print("storing", i, ":", path[i - 1])
@@ -1306,6 +1319,7 @@ def getBestKnots(G, c, segments):
                     i -= 2
 
             # Remove unweighted nodes from the path
+            if nx.is_frozen(g): g = nx.Graph(g)
             for v in path:
                 if v not in max_weighted:
                     knots_remain = True
@@ -1316,7 +1330,7 @@ def getBestKnots(G, c, segments):
             for i in range(len(path)):
                 v = path[i]
 
-                if not max_weighted.get(v):
+                if not max_weighted.get(v) and (v in g):
                     g.remove_node(v)
                     knots_list.append(v)
                     if DEBUG: print("path-deleted", v, "\n") 
@@ -1337,7 +1351,10 @@ def getBestKnots(G, c, segments):
                     # Iterate through all vertices of this connected component
                     for v in cc:
                         # Get the degree and weight for the current node
+                        if not G.has_node(v): 
+                            raise ValueError(f'Graph should have node {v}')
                         d = G.degree(v)
+                    
                         weight = len(segments[v])
 
                         # Update the minimum weight node
@@ -1541,12 +1558,12 @@ def pair_map(dotbracket):
             stack.setdefault(char, []).append(i)
         elif char in ")]>a-z}":
             pair_char = char_map(char)
-            pair_pos = stack.pop(pair_char).pop()
+            pair_pos = stack.setdefault(pair_char, []).pop()
 
             pmap[pair_pos] = i + 1
             pmap[i] = pair_pos + 1
-        elif char in "-_,:":
-            pmap[i] = "0"
+        elif char in "-_,:.":
+            pmap[i] = 0
         else:
             raise ValueError(f"Unknown character '{char}' found in\n{dotbracket}\n")
 
@@ -1578,7 +1595,6 @@ def is_bpseq_file(input_file):
             if not line.startswith('#'):
                 if len(line.split()) != 3:
                     return False
-
     return True
 
 
@@ -1773,4 +1789,3 @@ if __name__ == "__main__":
             stf.write(f"#Length: {len(seq)}\n")
             stf.write(f"#PageNumber: 0\n")
             stf.write(f"{seq}\n{dotbracket}\n{s}\n{k}\n")
-
