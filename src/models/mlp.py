@@ -57,6 +57,20 @@ class MLP(hk.Module):
                 df = pd.DataFrame(data=np.array(x), columns=['0'])
                 # logs[f'emb_{i}_{type(layer)}'] = df
                 wandb.log({f'emb_{i}_{type(layer)}': df})
+                
+        # def f(carry, layer):
+        #     x, i = carry
+        #     kwargs = {} if not type(layer) == eqx.nn.Dropout else {
+        #         'inference': inference, 'key': jax.random.PRNGKey(seed)}
+        #     x = layer(x, **kwargs)
+        #     if inference and logging:
+        #         df = pd.DataFrame(data=np.array(x), columns=['0'])
+        #         # logs[f'emb_{i}_{type(layer)}'] = df
+        #         i += 1
+        #         wandb.log({f'emb_{i}_{type(layer)}': df})
+        #     return (x, i), None
+
+        # (x, _i), _ = jax.lax.scan(f, (x, 0), self.layers)
         return x
     
     
