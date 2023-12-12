@@ -84,6 +84,7 @@ def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np
     try:
         params, train_loss, val_loss, val_acc, params_stack, grads = do_scan()
         saves = make_saves(train_loss, val_loss, val_acc, include_params_in_saves, params_stack, grads)
+        saves['params'] = params
     except:
         # saves = {}
         # e_max = 50
@@ -103,4 +104,5 @@ def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np
                 print(
                     f'Epoch {e} / {epochs} -\t\t Train loss: {np.mean(train_loss)}\tVal loss: {val_loss}\tVal accuracy: {val_acc}')
 
+        saves[list(saves.keys())[-1]]['params'] = params
     return params, saves
