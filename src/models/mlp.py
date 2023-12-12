@@ -1,16 +1,9 @@
 from typing import List
-from functools import partial
-import json
-
 import numpy as np
 import haiku as hk
 import jax
-import jax.numpy as jnp
 import equinox as eqx
-import optax  # https://github.com/deepmind/optax
-from jaxtyping import Array, Float, Int  # https://github.com/google/jaxtyping
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.utils import shuffle
+from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import wandb
 
 import pandas as pd
@@ -21,7 +14,7 @@ import pandas as pd
 class MLP(hk.Module):
 
     def __init__(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
-        super().__init__(name="FCN")
+        super().__init__(name="MLP")
         self.layers = self.create_layers(layer_sizes, n_head, use_categorical)
 
     def create_layers(self, layer_sizes: List[int], n_head: int, use_categorical: bool):

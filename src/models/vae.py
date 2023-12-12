@@ -1,9 +1,9 @@
 
 
-from typing import Type
 import haiku as hk
 from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import jax.numpy as jnp
+from jax import random
 
 
 class VAE(hk.Module):
@@ -21,7 +21,7 @@ class VAE(hk.Module):
 
     def reparameterize(self, mu, logvar, key, deterministic=False):
         std = jnp.exp(0.5 * logvar)
-        eps = jnp.normal(key, std.shape)
+        eps = random.normal(key, std.shape)
         z = mu + (std * eps if not deterministic else 0)
         return z
 
