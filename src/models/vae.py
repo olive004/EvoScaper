@@ -19,14 +19,15 @@ class VAE(hk.Module):
         self.h2mu = hk.Linear(embed_size)
         self.h2logvar = hk.Linear(embed_size)
 
-    def reparameterize(self, mu, logvar, deterministic=False):
+    def reparameterize(self, mu, logvar, key, deterministic=False):
         std = jnp.exp(0.5 * logvar)
-        eps = jnp.randn_like(std)
+        eps = jnp.normal(key, std.shape)
         z = mu + (std * eps if not deterministic else 0)
         return z
 
     def __call__(self,
                  input: Float[Array, " num_interactions"],
+                 key: Float, 
                  inference: bool = False,
                  deterministic: bool = False,
                  logging: bool = True) -> Float[Array, " n_head"]:
@@ -35,7 +36,7 @@ class VAE(hk.Module):
 
         mu = self.h2mu(h)
         logvar = self.h2logvar(h)
-        z = self.reparameterize(mu, logvar, deterministic)
+        z = self.reparameterize(mu, logvar, key, deterministic)
 
         y = self.decoder(z)
 

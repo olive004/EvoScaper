@@ -23,8 +23,7 @@ class MLP(hk.Module):
     def __init__(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
         super().__init__(name="FCN")
         self.layers = self.create_layers(layer_sizes, n_head, use_categorical)
-        
-        
+
     def create_layers(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
         sizes = layer_sizes + [n_head]
         l = []
@@ -35,16 +34,15 @@ class MLP(hk.Module):
                     l.append(jax.nn.sigmoid)
             # if sj == n_head:
             #     l.append(eqx.nn.Dropout(p=0.4))
-            
+
             # He initialisation
             l.append(
                 hk.Linear(s, w_init=hk.initializers.VarianceScaling(scale=2.0))
             )
-            
+
         if use_categorical:
             l.append(jax.nn.log_softmax)
         return l
-        
 
     def __call__(self, x: Float[Array, " num_interactions"], inference: bool = False, seed: int = 0, logging: bool = True) -> Float[Array, " n_head"]:
         for i, layer in enumerate(self.layers):
@@ -52,12 +50,12 @@ class MLP(hk.Module):
                 'inference': inference, 'key': jax.random.PRNGKey(seed)}
 
             x = layer(x, **kwargs)
-            
+
             if inference and logging:
                 df = pd.DataFrame(data=np.array(x), columns=['0'])
                 # logs[f'emb_{i}_{type(layer)}'] = df
                 wandb.log({f'emb_{i}_{type(layer)}': df})
-                
+
         # def f(carry, layer):
         #     x, i = carry
         #     kwargs = {} if not type(layer) == eqx.nn.Dropout else {
@@ -72,8 +70,8 @@ class MLP(hk.Module):
 
         # (x, _i), _ = jax.lax.scan(f, (x, 0), self.layers)
         return x
-    
-    
+
+
 def MLP_fn(x, init_kwargs: dict = {}, call_kwargs: dict = {}):
     model = MLP(**init_kwargs)
     return model(x, **call_kwargs)
