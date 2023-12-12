@@ -13,8 +13,8 @@ import pandas as pd
 
 class MLP(hk.Module):
 
-    def __init__(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
-        super().__init__(name="MLP")
+    def __init__(self, layer_sizes: List[int], n_head: int, use_categorical: bool, name='MLP'):
+        super().__init__(name=name)
         self.layers = self.create_layers(layer_sizes, n_head, use_categorical)
 
     def create_layers(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
