@@ -27,8 +27,6 @@ class VAE(hk.Module):
 
     def __call__(self,
                  input: Float[Array, " num_interactions"],
-                 key: Float, 
-                 inference: bool = False,
                  deterministic: bool = False,
                  logging: bool = True) -> Float[Array, " n_head"]:
 
@@ -36,7 +34,7 @@ class VAE(hk.Module):
 
         mu = self.h2mu(h)
         logvar = self.h2logvar(h)
-        z = self.reparameterize(mu, logvar, key, deterministic)
+        z = self.reparameterize(mu, logvar, hk.next_rng_key(), deterministic)
 
         y = self.decoder(z)
 

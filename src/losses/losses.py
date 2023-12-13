@@ -6,12 +6,12 @@ import jax.numpy as jnp
 import jax
 import optax  # https://github.com/deepmind/optax
 import equinox as eqx
-from src.models.mlp import MLP
+import haiku as hk
 
 
 def loss_fn(
     params, rng,
-    model: MLP, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
+    model: hk.Module, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
     use_l2_reg=False, l2_reg_alpha: Float = None,
     loss_type: str = 'categorical'
 ) -> Float[Array, ""]:
@@ -21,6 +21,26 @@ def loss_fn(
         loss = cross_entropy(y, pred_y, num_classes=pred_y.shape[-1]) / len(x)
     else:
         loss = mse_loss(y, pred_y.reshape(y.shape))
+
+    # Add L2 loss
+    if use_l2_reg:
+        loss += sum(
+            l2_loss(w, alpha=l2_reg_alpha)
+            for w in jax.tree_util.tree_leaves(params)
+        )
+    return loss
+
+
+def loss_wrapper(
+    params, rng,
+    model_f, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
+    loss_f,
+    use_l2_reg=False, l2_reg_alpha: Float = None, 
+    **model_call_kwargs
+) -> Float[Array, ""]:
+    
+    pred_y = model_f(params, rng, x, **model_call_kwargs)
+    loss = loss_f(y, pred_y)
 
     # Add L2 loss
     if use_l2_reg:
@@ -52,7 +72,7 @@ def update_params(optimiser, params, grads):
 
 @eqx.filter_jit
 def compute_accuracy_categorical(
-    params, rng, model: MLP, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"]
+    params, rng, model: hk.Module, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"]
 ) -> Float[Array, ""]:
     pred_y = model.apply(params, rng, x)
     pred_y = jnp.argmax(pred_y, axis=1)
@@ -61,7 +81,7 @@ def compute_accuracy_categorical(
 
 @eqx.filter_jit
 def compute_accuracy_regression(
-    params, rng, model: MLP, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
+    params, rng, model: hk.Module, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
     threshold=0.1
 ) -> Float[Array, ""]:
     pred_y = model.apply(params, rng, x)
