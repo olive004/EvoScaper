@@ -39,3 +39,20 @@ class VAE(hk.Module):
         y = self.decoder(z)
 
         return y
+
+
+class CVAE(VAE):
+
+    def __init__(self, encoder, decoder, embed_size: int, **hk_kwargs):
+        super().__init__(encoder, decoder, embed_size, **hk_kwargs)
+
+    def __call__(self, x: Array, cond: Array, deterministic: bool = False, logging: bool = True) -> Array:
+        h = self.encoder(jnp.concatenate([x, cond], axis=1))
+
+        mu = self.h2mu(h)
+        logvar = self.h2logvar(h)
+        z = self.reparameterize(mu, logvar, hk.next_rng_key(), deterministic)
+        z_cond = jnp.concatenate([z, cond], axis=1)
+
+        y = self.decoder(z_cond)
+        return y
