@@ -16,8 +16,8 @@ class VAE(hk.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-        self.h2mu = hk.Linear(embed_size)
-        self.h2logvar = hk.Linear(embed_size)
+        self.h2mu = hk.Linear(embed_size, name='h2mu')
+        self.h2logvar = hk.Linear(embed_size, name='h2logvar')
 
     def reparameterize(self, mu, logvar, key, deterministic=False):
         std = jnp.exp(0.5 * logvar)
