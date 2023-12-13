@@ -33,8 +33,7 @@ def loss_fn(
 
 def loss_wrapper(
     params, rng,
-    model_f, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
-    loss_f,
+    model_f, loss_f, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
     use_l2_reg=False, l2_reg_alpha: Float = None, 
     **model_call_kwargs
 ) -> Float[Array, ""]:
@@ -82,7 +81,8 @@ def compute_accuracy_categorical(
 @eqx.filter_jit
 def compute_accuracy_regression(
     params, rng, model: hk.Module, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
+    *model_args,
     threshold=0.1
 ) -> Float[Array, ""]:
-    pred_y = model.apply(params, rng, x)
+    pred_y = model.apply(params, rng, x, *model_args)
     return jnp.mean(jnp.abs(y - pred_y) <= threshold)

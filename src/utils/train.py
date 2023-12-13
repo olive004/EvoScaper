@@ -6,10 +6,10 @@ import jax
 import optax
 
 
-def train_step(params, x, y, optimiser_state, model, rng, l2_reg_alpha, optimiser, loss_fn):
+def train_step(params, xy_train: dict, optimiser_state, model, rng, l2_reg_alpha, optimiser, loss_fn):
 
     loss, grads = jax.value_and_grad(loss_fn)(
-        params, rng, model, x, y, l2_reg_alpha=l2_reg_alpha)
+        params, rng, model, l2_reg_alpha=l2_reg_alpha, **xy_train)
 
     updates, optimiser_state = optimiser.update(grads, optimiser_state)
     params = optax.apply_updates(params, updates)
@@ -17,35 +17,33 @@ def train_step(params, x, y, optimiser_state, model, rng, l2_reg_alpha, optimise
     return params, optimiser_state, loss, grads
 
 
-def eval_step(params, rng, model, x, y, l2_reg_alpha, loss_fn, compute_accuracy):
+def eval_step(params, rng, model, xy_val: dict, l2_reg_alpha, loss_fn, compute_accuracy):
     """ Return the average of loss and accuracy on validation data """
-    loss = loss_fn(params, rng, model, x, y, l2_reg_alpha=l2_reg_alpha)
-    acc = compute_accuracy(params, rng, model, x, y)
+    loss = loss_fn(params, rng, model, l2_reg_alpha=l2_reg_alpha, **xy_val)
+    acc = compute_accuracy(params, rng, model, **xy_val)
     return acc, loss
 
 
-def run_batches(params, model, xy_train, rng, l2_reg_alpha, optimiser, optimiser_state, loss_fn):
+def run_batches(params, model, xy_train: list, rng, l2_reg_alpha, optimiser, optimiser_state, loss_fn):
 
     f_train_step = partial(train_step, model=model, rng=rng,
                            l2_reg_alpha=l2_reg_alpha, optimiser=optimiser,
                            loss_fn=loss_fn)
 
-    def f(carry, inp):
+    def f(carry, xy):
 
         params, optimiser_state = carry[0], carry[1]
-        x_batch, y_batch = inp[0], inp[1]
-
         params, optimiser_state, loss, grads = f_train_step(
-            params, x_batch, y_batch, optimiser_state)
+            params, xy, optimiser_state)
         return (params, optimiser_state), (loss, grads)
 
-    # for x_batch, y_batch in xy_train:
+    # for x_batch, y_batch, * in xy_train:
     (params, optimiser_state), (train_loss, grads) = jax.lax.scan(
         f, (params, optimiser_state), xy_train)
     return params, optimiser_state, train_loss, grads
 
 
-def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray,
+def train(params, rng, model, xy_train: list, xy_val: list, 
           optimiser, optimiser_state,
           l2_reg_alpha: float, epochs: int,
           compute_accuracy,
@@ -61,7 +59,7 @@ def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np
             params, model, xy_train, rng, l2_reg_alpha, optimiser, optimiser_state, loss_fn)
 
         val_acc, val_loss = eval_step(
-            params, rng, model, x_val, y_val, l2_reg_alpha, loss_fn, compute_accuracy)
+            params, rng, model, xy_val, l2_reg_alpha, loss_fn, compute_accuracy)
 
         return (params, optimiser_state), (params, grads, train_loss, val_loss, val_acc)
 
