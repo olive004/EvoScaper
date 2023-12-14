@@ -45,6 +45,18 @@ def run_batches(params, model, xy_train, rng, l2_reg_alpha, optimiser, optimiser
     return params, optimiser_state, train_loss, grads
 
 
+def make_saves(train_loss, val_loss, val_acc, include_params_in_saves, params_stack=None, grads=None):
+    saves = {
+        'train_loss': np.mean(train_loss),
+        'val_loss': np.mean(val_loss),
+        'val_accuracy': np.mean(val_acc)
+    }
+    if include_params_in_saves:
+        saves['params'] = params_stack
+        saves['grads'] = grads
+    return saves
+
+
 def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np.ndarray,
           optimiser, optimiser_state,
           l2_reg_alpha: float, epochs: int,
@@ -69,17 +81,6 @@ def train(params, rng, model, xy_train: np.ndarray, x_val: np.ndarray, y_val: np
         (params, optimiser_state), (params_stack, grads, train_loss, val_loss, val_acc) = jax.lax.scan(
             f, init=(params, optimiser_state), xs=None, length=epochs)
         return params, train_loss, val_loss, val_acc, params_stack, grads
-
-    def make_saves(train_loss, val_loss, val_acc, include_params_in_saves, params_stack=None, grads=None):
-        saves = {
-            'train_loss': np.mean(train_loss),
-            'val_loss': np.mean(val_loss),
-            'val_accuracy': np.mean(val_acc)
-        }
-        if include_params_in_saves:
-            saves['params'] = params_stack
-            saves['grads'] = grads
-        return saves
 
     try:
         params, train_loss, val_loss, val_acc, params_stack, grads = do_scan()

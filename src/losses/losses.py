@@ -32,13 +32,12 @@ def loss_fn(
 
 
 def loss_wrapper(
-    params, rng,
-    model_f, loss_f, x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
-    use_l2_reg=False, l2_reg_alpha: Float = None, 
-    **model_call_kwargs
+    params,
+    pred_y: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
+    loss_f,
+    use_l2_reg=False, l2_reg_alpha: Float = None,
 ) -> Float[Array, ""]:
-    
-    pred_y = model_f(params, rng, x, **model_call_kwargs)
+
     loss = loss_f(y, pred_y)
 
     # Add L2 loss
@@ -81,8 +80,15 @@ def compute_accuracy_categorical(
 @eqx.filter_jit
 def compute_accuracy_regression(
     params, rng, model: hk.Module, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
-    *model_args,
+    threshold=0.1, **model_call_kwargs
+) -> Float[Array, ""]:
+    pred_y = model.apply(params, rng, x, **model_call_kwargs)
+    return accuracy_regression(pred_y, y, threshold)
+
+
+@eqx.filter_jit
+def accuracy_regression(
+    pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
     threshold=0.1
 ) -> Float[Array, ""]:
-    pred_y = model.apply(params, rng, x, *model_args)
     return jnp.mean(jnp.abs(y - pred_y) <= threshold)
