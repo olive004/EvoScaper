@@ -32,12 +32,14 @@ def loss_fn(
 
 
 def loss_wrapper(
-    params,
-    pred_y: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
+    params, rng, model,
+    x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
     loss_f,
     use_l2_reg=False, l2_reg_alpha: Float = None,
+    **model_call_kwargs
 ) -> Float[Array, ""]:
 
+    pred_y = model(params, rng, x, **model_call_kwargs)
     loss = loss_f(y, pred_y)
 
     # Add L2 loss

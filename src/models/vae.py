@@ -20,10 +20,10 @@ class VAE(hk.Module):
         self.h2logvar = hk.Linear(embed_size, name='h2logvar')
 
     def reparameterize(self, mu, logvar, key, deterministic=False):
-        std = jnp.exp(0.5 * logvar)
-        eps = random.normal(key, std.shape)
-        z = mu + (std * eps if not deterministic else 0)
-        return z
+        # std = jnp.exp(0.5 * logvar)
+        # eps = random.normal(key, std.shape)
+        # z = mu + (std * eps if not deterministic else 0)
+        return sample_z(mu, logvar, key, deterministic)
 
     def __call__(self,
                  input: Float[Array, " num_interactions"],
@@ -56,3 +56,10 @@ class CVAE(VAE):
 
         y = self.decoder(z_cond)
         return y
+
+
+def sample_z(mu, logvar, key, deterministic=False):
+    std = jnp.exp(0.5 * logvar)
+    eps = random.normal(key, std.shape)
+    z = mu + (std * eps if not deterministic else 0)
+    return z
