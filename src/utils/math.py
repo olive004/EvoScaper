@@ -37,6 +37,17 @@ def custom_round(x, base=5):
     return base * round(x/base)
 
 
+def make_symmetrical_matrix_from_sequence():
+    
+    arr = fake_circuits[0]
+
+    side_length=symmetrical_matrix_length(fake_circuits.shape[-1])
+
+    n = np.zeros((side_length, side_length))
+
+    n[np.triu_indices(side_length)] = arr
+
+
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
     return base_num * np.power(10.0, exponent)
 
