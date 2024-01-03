@@ -12,9 +12,9 @@ equinox==0.10.4
 graphviz==0.20.1
 imblearn
 ipykernel==6.17.1
-# jax==0.4.12
+# jax==0.4.16
 # -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
-# jaxlib==0.4.12+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+# jaxlib==0.4.16+cuda11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 jupyter==1.0.0
 matplotlib
 notebook==6.5.2
