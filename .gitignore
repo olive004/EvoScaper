@@ -1,8 +1,11 @@
 *__pycache__
 *.gz
 *.pyc
-*data
+*data/raw
+*data/processed
 *-ubyte
 *wandb
 notebooks/weight_saves
+notebooks/data
+notebooks_sRNA/data
 src/nucleotide_transformer
