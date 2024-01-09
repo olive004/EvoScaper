@@ -5,6 +5,7 @@
 *data/processed
 *-ubyte
 *wandb
+data/sRNA/merged_inter.csv
 notebooks/weight_saves
 notebooks/data
 notebooks_sRNA/data
