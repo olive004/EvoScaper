@@ -1,7 +1,7 @@
 absl-py
 biopython
 autopep8
-# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@a3b65d09c22475c5346beec8c180ba6d5c76f866#egg=bioreaction
+# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@47391ff32aa2e0e9dcbb4541efb526ff6c43e427#egg=bioreaction
 boto3
 # chex==0.1.81
 # git+https://github.com/deepmind/chex.git
