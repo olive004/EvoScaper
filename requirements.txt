@@ -28,7 +28,7 @@ regex
 scikit-learn==1.2.2
 scipy==1.10.1
 seaborn==0.12.1
--e git+https://github.com/olive004/synbio_morpher.git@2ea27aaf5bf3efb644b723a1a59a08c9bcd3dca3#egg=synbio_morpher
+-e git+https://github.com/olive004/synbio_morpher.git@7d51ccdd5466b50731dd598a2039707c4e34aca4#egg=synbio_morpher
 -i https://test.pypi.org/simple/ synbio-morpher
 tensorflow==2.12.0
 torch
