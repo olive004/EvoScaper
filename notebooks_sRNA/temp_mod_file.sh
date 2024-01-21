@@ -6,7 +6,7 @@ notebook_file="04_distribution_mutational_robustness.ipynb"
 # Specify the Docker container name or ID
 container_name="gcg"
 
-i=0
+i=23
 
 cd notebooks_sRNA
 cp "$notebook_file" "modified_notebook_$i.ipynb"
