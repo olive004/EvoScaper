@@ -22,6 +22,7 @@ docker cp "modified_notebook_$i.ipynb" "$container_name:workdir/notebooks_sRNA/m
 
 docker exec -it "$container_name" bash -c "cd notebooks_sRNA && jupyter nbconvert --to notebook --execute "modified_notebook_$i.ipynb" --output="dmodified_notebook_$i.ipynb" --ExecutePreprocessor.timeout=-1"
 
+# docker exec -it gcg bash -c cd notebooks_sRNA && jupyter nbconvert --to notebook --execute 03_simulate_sRNA_confusion.ipynb --output=03_simulate_sRNA_confusion_1.ipynb --ExecutePreprocessor.timeout=-1
 
 # Create a temporary copy of the notebook
 # cp "$notebook_file" "temp_notebook_$i.ipynb"
