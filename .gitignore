@@ -7,6 +7,8 @@
 *wandb
 data/sRNA/merged_inter.csv
 *data/sRNA/merged_EcoCyc_RNAInter_sRNATarBase.csv
+data/sRNA/merged_EcoCyc_RNAInter_sRNATarBase.csv
+merged_EcoCyc_RNAInter_sRNATarBase.csv
 notebooks/weight_saves
 notebooks/data
 notebooks_sRNA/data
