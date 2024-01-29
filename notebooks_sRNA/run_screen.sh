@@ -4,6 +4,8 @@
 num_iterations=24
 file_to_modify="run_iterate_script.sh"
 
+# Kill with pgrep -f ipykernel | sudo xargs kill
+
 # Loop to run each iteration within a screen session
 for ((i=0; i<$num_iterations; i++)); do
     screen_name="screen_$i"
@@ -22,7 +24,7 @@ for ((i=0; i<$num_iterations; i++)); do
         bash temp_mod_file.sh
     '$(printf \\r)"
 
-    sleep 1
+    sleep 3
     echo "Started loop $i in screen $screen_name"
 done
 
