@@ -93,4 +93,4 @@ def accuracy_regression(
     pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
     threshold=0.1
 ) -> Float[Array, ""]:
-    return jnp.mean(jnp.abs(y - pred_y) <= threshold)
+    return jnp.mean(jnp.abs(y - pred_y) <= (threshold * y))
