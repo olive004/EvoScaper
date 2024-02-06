@@ -37,15 +37,12 @@ def custom_round(x, base=5):
     return base * round(x/base)
 
 
-def make_symmetrical_matrix_from_sequence():
-    
-    arr = fake_circuits[0]
-
-    side_length=symmetrical_matrix_length(fake_circuits.shape[-1])
-
+def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
+    """ For a flat 1D array, make a symmetrical 2D matrix filling
+    in the upper triangle with the 1D array. Not jax-friendly. """
     n = np.zeros((side_length, side_length))
-
     n[np.triu_indices(side_length)] = arr
+    return n
 
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
