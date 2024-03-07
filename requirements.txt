@@ -13,8 +13,10 @@ graphviz==0.20.1
 imblearn
 ipykernel==6.17.1
 
-jax==0.4.24
-# jaxlib==0.4.24+11.cudnn86 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+jax==0.4.25
+# jaxlib==0.4.25+cuda12.cudnn89 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+
+# pip install -U "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 # jax==0.4.16
 # -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
