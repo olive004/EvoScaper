@@ -6,12 +6,12 @@ boto3
 # chex==0.1.81
 # git+https://github.com/deepmind/chex.git
 diffrax==0.3.1
-dm-haiku==0.0.11
+dm-haiku  #==0.0.11
 # dm-tree==0.1.7
-equinox==0.10.4
+equinox
 graphviz==0.20.1
 imblearn
-ipykernel==6.17.1
+ipykernel
 
 jax==0.4.25
 # jaxlib==0.4.25+cuda12.cudnn89 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
@@ -22,10 +22,10 @@ jax==0.4.25
 # -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 # jaxlib==0.4.16+cuda12.cudnn89 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 jaxtyping==0.2.24
-jupyter==1.0.0
+jupyter
 matplotlib
-notebook==6.5.2
-numpy==1.24.3
+notebook
+numpy
 # nvidia-cudnn-cu11==8.9.2.26
 optax==0.1.9
 pandas==1.5.2
@@ -33,13 +33,13 @@ pandas==1.5.2
 pyvis==0.3.1
 regex
 scikit-learn==1.2.2
-scipy==1.10.1
-seaborn==0.12.1
+scipy
+seaborn
 # -e git+https://github.com/olive004/synbio_morpher.git@a6ab067bd0b09e4cac4bb1ccca4624a6f521c024#egg=synbio_morpher
 # -i https://test.pypi.org/simple/ synbio-morpher
-tensorflow==2.12.0
+tensorflow  #==2.12.0
 torch
-tqdm==4.65.0
+tqdm
 typing_extensions==4.6.3
 umap-learn==0.5.3
 wandb==0.14.2

@@ -1,4 +1,7 @@
 
+# Reload nvidia info
+sudo nvidia-container-cli --load-kmods info
+
 # A pre-req for using gpus here is the NVIDIA Docker Container Toolkit
 
 sudo docker pull quay.io/biocontainers/intarna:3.3.2--pl5321h7ff8a90_0
