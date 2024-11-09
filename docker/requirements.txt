@@ -1,7 +1,7 @@
 absl-py
 biopython
 autopep8
-# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@47391ff32aa2e0e9dcbb4541efb526ff6c43e427#egg=bioreaction
+# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@599990dcac56e7678f45269d2fc9df736d25f356#egg=bioreaction
 boto3
 # chex==0.1.81
 # git+https://github.com/deepmind/chex.git
@@ -35,7 +35,7 @@ regex
 scikit-learn==1.2.2
 scipy
 seaborn
-# -e git+https://github.com/olive004/synbio_morpher.git@a6ab067bd0b09e4cac4bb1ccca4624a6f521c024#egg=synbio_morpher
+# -e git+https://github.com/olive004/synbio_morpher.git@147c6a18a8c08b25d49042ec1adb9ec49ebadd75#egg=synbio_morpher
 # -i https://test.pypi.org/simple/ synbio-morpher
 tensorflow  #==2.12.0
 torch
