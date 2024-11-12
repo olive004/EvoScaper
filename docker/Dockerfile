@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # https://quay.io/repository/biocontainers/intarna
-FROM quay.io/biocontainers/intarna:3.3.2--pl5321h7ff8a90_0 AS intarna_build
+FROM quay.io/biocontainers/intarna:3.4.1--pl5321hdcf5f25_0 AS intarna_build
 
 # FROM nvidia/cuda:12.6.0-cudnn-devel-ubuntu22.04 AS workdir_build
 # FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04 AS workdir_build
