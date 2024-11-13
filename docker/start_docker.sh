@@ -34,5 +34,8 @@ sudo docker create -it \
 --mount type=bind,source="$(pwd)",target=/workdir \
 genetic_glitch:latest
 sudo docker container start evo
+
+# sudo docker exec -it evo cd /usr/lib/install_requirements && pip install -r ./requirements.txt
+# sudo docker exec -it evo pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 sudo docker exec -it evo /bin/bash 
 # sudo docker container stop evo
