@@ -13,3 +13,4 @@ notebooks/weight_saves
 notebooks/data
 notebooks_sRNA/data
 src/nucleotide_transformer
+src/core-bioreaction-simulation

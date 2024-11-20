@@ -26,12 +26,12 @@ else
 fi
 
 
-pip install -r requirements.txt
-pip install jax==0.4.29
-pip install jaxlib==0.4.29+cuda12.cudnn91 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
-pip install -U chex
-# pip install git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@f903c39872de43e28b56653efda689bb082cb592#egg=bioreaction
-# pip install git+https://github.com/olive004/synbio_morpher.git@bc7aaf284fcf5b10abf591f5f2cf6c898f45861f#egg=synbio_morpher
+pip3 install -r requirements.txt
+pip3 install jax==0.4.29
+pip3 install jaxlib==0.4.29+cuda12.cudnn91 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+pip3 install -U chex
+# pip3 install git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@f903c39872de43e28b56653efda689bb082cb592#egg=bioreaction
+# pip3 install git+https://github.com/olive004/synbio_morpher.git@bc7aaf284fcf5b10abf591f5f2cf6c898f45861f#egg=synbio_morpher
 
 if [ -d "src/core-bioreaction-simulation" ]; then
     echo "Directory src/bioreaction exists."
@@ -40,4 +40,4 @@ else
     git clone https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git
     cd ..
 fi
-pip install -e src/core-bioreaction-simulation
+pip3 install -e src/core-bioreaction-simulation
