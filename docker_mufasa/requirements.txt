@@ -1,0 +1,44 @@
+absl-py
+biopython
+autopep8
+# -e git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@f903c39872de43e28b56653efda689bb082cb592#egg=bioreaction
+boto3
+# chex==0.1.81
+# git+https://github.com/deepmind/chex.git
+diffrax==0.3.1
+dm-haiku  #==0.0.11
+equinox
+graphviz==0.20.1
+imblearn
+ipykernel
+
+# jax==0.4.25
+# jaxlib==0.4.25+cuda12.cudnn89 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+
+# pip install -U "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+# jax==0.4.16
+# -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+# jaxlib==0.4.16+cuda12.cudnn89 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
+jaxtyping
+jupyter
+matplotlib
+notebook
+numpy
+# nvidia-cudnn-cu11==8.9.2.26
+optax
+pandas
+# pytorch-metric-learning
+pyvis
+regex
+scikit-learn
+scipy
+seaborn
+# -e git+https://github.com/olive004/synbio_morpher.git@147c6a18a8c08b25d49042ec1adb9ec49ebadd75#egg=synbio_morpher
+# -i https://test.pypi.org/simple/ synbio-morpher
+tensorflow
+torch
+tqdm
+typing_extensions
+umap-learn
+wandb
