@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: evoscaper
+Version: 0.0.1
+Summary: EvoScaper: Predicting the robustness of genetic circuits against mutations
+Home-page: https://github.com/olive004/EvoScaper
+Author: Olivia Gallup
+Author-email: olivia.gallup@gmail.com
+License: UNKNOWN
+Description: Hello :)
+        # EvoScaper
+        
+Keywords: Synthetic Biology,Biotech,Deep Learning,JAX
+Platform: UNKNOWN
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown

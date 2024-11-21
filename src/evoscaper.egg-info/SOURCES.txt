@@ -1,0 +1,7 @@
+README.md
+setup.py
+src/evoscaper.egg-info/PKG-INFO
+src/evoscaper.egg-info/SOURCES.txt
+src/evoscaper.egg-info/dependency_links.txt
+src/evoscaper.egg-info/requires.txt
+src/evoscaper.egg-info/top_level.txt
