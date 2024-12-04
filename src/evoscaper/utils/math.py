@@ -42,7 +42,8 @@ def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
     in the upper triangle with the 1D array. Not jax-friendly. """
     n = np.zeros((side_length, side_length))
     n[np.triu_indices(side_length)] = arr
-    return n
+    symmetric_matrix = n + n.T - np.diag(np.diag(n))
+    return symmetric_matrix
 
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
