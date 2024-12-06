@@ -55,6 +55,12 @@ from evoscaper.utils.preprocess import drop_duplicates_keep_first_n
 from evoscaper.utils.math import convert_to_scientific_exponent
 
 
+class Decoder(MLP):
+    def __init__(self, layer_sizes, n_head, use_categorical, name='decoder'):
+        super().__init__(layer_sizes, n_head, use_categorical, name=name)
+        self.layers.append(jax.nn.sigmoid)
+
+
 class VAE(hk.Module):
 
     def __init__(self, encoder, decoder, embed_size: int, **hk_kwargs):
@@ -109,7 +115,7 @@ class CVAE(VAE):
     
 def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, call_kwargs: dict = {}, ):
     encoder = MLP(layer_sizes=enc_layers, n_head=dec_layers[0], use_categorical=False, name='encoder')
-    decoder = MLP(layer_sizes=dec_layers, n_head=decoder_head, use_categorical=False, name='decoder')
+    decoder = Decoder(layer_sizes=dec_layers, n_head=decoder_head, use_categorical=False, name='decoder')
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)
     
     def init(x: np.ndarray, cond: np.ndarray, deterministic: bool):
