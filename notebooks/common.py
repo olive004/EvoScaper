@@ -10,8 +10,8 @@ from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptati
 
 
 def init_data(data, OUTPUT_SPECIES, X_COLS, TOTAL_DS, TOTAL_DS_MAX, BATCH_SIZE, SEED,
-              USE_NEG_ENERGY, USE_X_LOGSCALE, SCALE_X_MINMAX,
-              OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_CATEGORICAL):
+              USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX,
+              OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL):
 
     data = embellish_data(data)
     df = filter_invalids(data, OUTPUT_SPECIES)
@@ -24,9 +24,9 @@ def init_data(data, OUTPUT_SPECIES, X_COLS, TOTAL_DS, TOTAL_DS_MAX, BATCH_SIZE, 
     TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
 
-    x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, USE_NEG_ENERGY,
+    x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, USE_X_NEG,
                                                                       USE_X_LOGSCALE, SCALE_X_MINMAX, OBJECTIVE_COL,
-                                                                      USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_CATEGORICAL)
+                                                                      USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL)
     N_HEAD = x.shape[-1]
 
     return df, x, cond, TOTAL_DS, N_BATCHES, x_scaling, x_unscaling, y_scaling, y_unscaling
@@ -42,13 +42,13 @@ def embellish_data(data):
 
 # Make xy
 
-def make_xy(df, SEED, TOTAL_DS, X_COLS, USE_NEG_ENERGY, USE_X_LOGSCALE, SCALE_X_MINMAX,
-            OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_CATEGORICAL):
+def make_xy(df, SEED, TOTAL_DS, X_COLS, USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX,
+            OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL):
 
-    x, x_scaling, x_unscaling = make_x(df, TOTAL_DS, X_COLS, USE_NEG_ENERGY,
+    x, x_scaling, x_unscaling = make_x(df, TOTAL_DS, X_COLS, USE_X_NEG,
                                        USE_X_LOGSCALE, SCALE_X_MINMAX)
     cond, y_scaling, y_unscaling = make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE,
-                                          SCALE_Y_MINMAX, USE_CATEGORICAL, TOTAL_DS)
+                                          SCALE_Y_MINMAX, USE_Y_CATEGORICAL, TOTAL_DS)
 
     x, cond = shuffle(x, cond, random_state=SEED)
 
@@ -59,12 +59,12 @@ def make_xy(df, SEED, TOTAL_DS, X_COLS, USE_NEG_ENERGY, USE_X_LOGSCALE, SCALE_X_
     return x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling
 
 
-def make_x(df, TOTAL_DS, X_COLS, USE_NEG_ENERGY, USE_X_LOGSCALE, SCALE_X_MINMAX):
+def make_x(df, TOTAL_DS, X_COLS, USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX):
     x = [df[i].iloc[:TOTAL_DS].values[:, None] for i in X_COLS]
     x = np.concatenate(x, axis=1).squeeze()
 
     x_scaling, x_unscaling = [], []
-    if USE_NEG_ENERGY:
+    if USE_X_NEG:
         x_scaling.append(lambda x: -x)
         x_unscaling.append(lambda x: -x)
 
@@ -85,12 +85,12 @@ def make_x(df, TOTAL_DS, X_COLS, USE_NEG_ENERGY, USE_X_LOGSCALE, SCALE_X_MINMAX)
     return x, x_scaling, x_unscaling
 
 
-def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_CATEGORICAL, TOTAL_DS):
+def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL, TOTAL_DS):
     cond = df[OBJECTIVE_COL].iloc[:TOTAL_DS].to_numpy()
 
     y_scaling, y_unscaling = [], []
 
-    if USE_CATEGORICAL:
+    if USE_Y_CATEGORICAL:
 
         vectorized_convert_to_scientific_exponent = np.vectorize(
             convert_to_scientific_exponent)
