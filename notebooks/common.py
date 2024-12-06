@@ -14,7 +14,7 @@ def init_data(data, OUTPUT_SPECIES, X_COLS, TOTAL_DS, TOTAL_DS_MAX, BATCH_SIZE, 
               OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL):
 
     data = embellish_data(data)
-    df = filter_invalids(data, OUTPUT_SPECIES)
+    df = filter_invalids(data, OUTPUT_SPECIES, OBJECTIVE_COL)
     df = reduce_repeat_samples(df, X_COLS)
 
     if TOTAL_DS is None:
@@ -129,12 +129,13 @@ def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL,
 
 # Balance preprocess
 
-def filter_invalids(data, OUTPUT_SPECIES):
+def filter_invalids(data, OUTPUT_SPECIES, OBJECTIVE_COL):
 
     filt = data['sample_name'].isin(OUTPUT_SPECIES) & ~data['precision_wrt_species-6'].isna(
-    ) & ~data['sensitivity_wrt_species-6'].isna() & (data['precision_wrt_species-6'] < np.inf)
+    ) & ~data['sensitivity_wrt_species-6'].isna() & (data['precision_wrt_species-6'] < np.inf) & data[OBJECTIVE_COL].notna()
 
     df = data[filt]
+    df.loc[:, 'adaptability'] = df['adaptability'].apply(np.float32)
     df.loc[:, 'adaptability'] = df['adaptability'].apply(
         lambda x: np.round(x, 1))
     df = df.reset_index(drop=True)
