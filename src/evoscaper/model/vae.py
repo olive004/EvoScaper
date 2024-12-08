@@ -58,7 +58,8 @@ from evoscaper.utils.math import convert_to_scientific_exponent
 class Decoder(MLP):
     def __init__(self, layer_sizes, n_head, use_categorical, name='decoder'):
         super().__init__(layer_sizes, n_head, use_categorical, name=name)
-        self.layers.append(jax.nn.sigmoid)
+        if not use_categorical:
+            self.layers.append(jax.nn.sigmoid)
 
 
 class VAE(hk.Module):
