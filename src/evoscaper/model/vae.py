@@ -57,7 +57,8 @@ class Decoder(MLP):
     def __init__(self, layer_sizes, n_head, use_categorical, name='decoder'):
         super().__init__(layer_sizes, n_head, use_categorical, name=name)
         if not use_categorical:
-            self.layers.append(jax.nn.sigmoid)
+            # replace relu
+            self.layers[-1] = jax.nn.sigmoid
 
 
 class VAE(hk.Module):
@@ -118,7 +119,7 @@ class CVAE(VAE):
 
 def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, USE_SIGMOID_DECODER=False, call_kwargs: dict = {}, ):
     encoder = MLP(layer_sizes=enc_layers,
-                  n_head=dec_layers[0], use_categorical=False, name='encoder')
+                  n_head=HIDDEN_SIZE, use_categorical=False, name='encoder')
     if USE_SIGMOID_DECODER:
         decoder = Decoder(layer_sizes=dec_layers, n_head=decoder_head,
                           use_categorical=False, name='decoder')

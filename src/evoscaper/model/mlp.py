@@ -32,7 +32,7 @@ class MLP(hk.Module):
             l.append(
                 hk.Linear(s, w_init=hk.initializers.VarianceScaling(scale=2.0))
             )
-            l.append(jax.nn.relu)
+            l.append(jax.nn.leaky_relu)
 
         if use_categorical:
             l.append(jax.nn.log_softmax)
