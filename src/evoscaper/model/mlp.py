@@ -21,10 +21,10 @@ class MLP(hk.Module):
         sizes = layer_sizes + [n_head]
         l = []
         for i, s in enumerate(sizes):
-            if l:
-                l.append(jax.nn.relu)
-                if np.mod(i, 2) == 0:
-                    l.append(jax.nn.sigmoid)
+            # if l:
+            #     l.append(jax.nn.relu)
+            #     if np.mod(i, 2) == 0:
+            #         l.append(jax.nn.sigmoid)
             # if sj == n_head:
             #     l.append(eqx.nn.Dropout(p=0.4))
 
@@ -32,6 +32,7 @@ class MLP(hk.Module):
             l.append(
                 hk.Linear(s, w_init=hk.initializers.VarianceScaling(scale=2.0))
             )
+            l.append(jax.nn.relu)
 
         if use_categorical:
             l.append(jax.nn.log_softmax)

@@ -51,6 +51,22 @@ def loss_wrapper(
     return loss
 
 
+def kl_gaussian(mu: jnp.ndarray, logvar: jnp.ndarray) -> jnp.ndarray:
+    """ https://jaxopt.github.io/stable/auto_examples/deep_learning/haiku_vae.html """
+    return 0.5 * jnp.sum(-logvar - 1.0 + jnp.exp(logvar) + jnp.square(mu), axis=-1)
+
+
+def binary_cross_entropy(x: jnp.ndarray, logits: jnp.ndarray) -> jnp.ndarray:
+    x = jnp.reshape(x, (x.shape[0], -1))
+    logits = jnp.reshape(logits, (logits.shape[0], -1))
+
+    return -jnp.sum(x * logits - jnp.logaddexp(0.0, logits), axis=-1)
+
+
+def recon_loss(y_true, y_pred):
+	return jnp.sum(binary_cross_entropy(y_true, y_pred), axis=-1)
+
+
 def l2_loss(weights, alpha):
     return alpha * (weights ** 2).mean()
 

@@ -114,9 +114,12 @@ class CVAE(VAE):
         return y
     
     
-def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, call_kwargs: dict = {}, ):
+def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, USE_SIGMOID_DECODER=False, call_kwargs: dict = {}, ):
     encoder = MLP(layer_sizes=enc_layers, n_head=dec_layers[0], use_categorical=False, name='encoder')
-    decoder = Decoder(layer_sizes=dec_layers, n_head=decoder_head, use_categorical=False, name='decoder')
+    if USE_SIGMOID_DECODER:
+        decoder = Decoder(layer_sizes=dec_layers, n_head=decoder_head, use_categorical=False, name='decoder')
+    else:
+        decoder = MLP(layer_sizes=dec_layers, n_head=decoder_head, use_categorical=False, name='decoder')
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)
     
     def init(x: np.ndarray, cond: np.ndarray, deterministic: bool):

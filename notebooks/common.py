@@ -67,26 +67,27 @@ def make_x(df, TOTAL_DS, X_COLS, USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX):
     if USE_X_NEG:
         x_scaling.append(lambda x: -x)
         x_unscaling.append(lambda x: -x)
+        x = x_scaling[-1](x)
 
     if USE_X_LOGSCALE:
         x_scaling.append(np.log10)
         x_unscaling.append(lambda x: np.power(10, x))
+        x = x_scaling[-1](x)
 
     if SCALE_X_MINMAX:
-        xscaler = MinMaxScaler()
-        x_scaling.append(xscaler.fit_transform)
+        xscaler = MinMaxScaler().fit(x)
+        x_scaling.append(xscaler.transform)
         x_unscaling.append(xscaler.inverse_transform)
+        x = x_scaling[-1](x)
 
     x_unscaling = x_unscaling[::-1]
-
-    for fn in x_scaling:
-        x = fn(x)
 
     return x, x_scaling, x_unscaling
 
 
 def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL, TOTAL_DS):
-    cond = df[OBJECTIVE_COL].iloc[:TOTAL_DS].to_numpy()
+
+    cond = df[OBJECTIVE_COL].iloc[:TOTAL_DS].to_numpy()[:, None]
 
     y_scaling, y_unscaling = [], []
 
@@ -106,6 +107,7 @@ def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL,
             vectorized_convert_to_scientific_exponent, numerical_resolution=cond_map), cond)
         cond = np.interp(cond, sorted(np.unique(cond)), np.arange(
             len(sorted(np.unique(cond))))).astype(int)
+        cond = y_scaling[-1](cond)
 
     if USE_Y_LOGSCALE:
         zero_log_replacement = -10.0
@@ -114,15 +116,15 @@ def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL,
             x != 0, np.log10(x), zero_log_replacement))
         y_unscaling.append(lambda x: np.where(
             x != zero_log_replacement, np.power(10, x), 0))
+        cond = y_scaling[-1](cond)
 
     if SCALE_Y_MINMAX:
-        yscaler = MinMaxScaler()
-        cond = yscaler.fit_transform(cond[:, None])
-        cond = cond.squeeze()
+        yscaler = MinMaxScaler().fit(cond)
         y_scaling.append(yscaler.transform)
         y_unscaling.append(yscaler.inverse_transform)
+        cond = y_scaling[-1](cond)
 
-    cond = cond[:, None]
+    y_unscaling = y_unscaling[::-1]
 
     return cond, y_scaling, y_unscaling
 
