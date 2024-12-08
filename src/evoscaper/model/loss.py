@@ -36,10 +36,12 @@ def loss_wrapper(
     x: Float[Array, " batch n_interactions"], y: Int[Array, " batch"],
     loss_f,
     use_l2_reg=False, l2_reg_alpha: Float = None,
+    use_kl_div=False,
     **model_call_kwargs
 ) -> Float[Array, ""]:
 
-    pred_y = model(params, rng, x, **model_call_kwargs)
+    pred_y, mu, logvar = model(
+        params, rng, x, return_muvar=True, **model_call_kwargs)
     loss = loss_f(y, pred_y)
 
     # Add L2 loss
@@ -48,6 +50,9 @@ def loss_wrapper(
             l2_loss(w, alpha=l2_reg_alpha)
             for w in jax.tree_util.tree_leaves(params)
         )
+    # KL divergence
+    if use_kl_div:
+        loss += kl_gaussian(mu, logvar).mean()
     return loss
 
 
@@ -56,15 +61,15 @@ def kl_gaussian(mu: jnp.ndarray, logvar: jnp.ndarray) -> jnp.ndarray:
     return 0.5 * jnp.sum(-logvar - 1.0 + jnp.exp(logvar) + jnp.square(mu), axis=-1)
 
 
-def binary_cross_entropy(x: jnp.ndarray, logits: jnp.ndarray) -> jnp.ndarray:
-    x = jnp.reshape(x, (x.shape[0], -1))
-    logits = jnp.reshape(logits, (logits.shape[0], -1))
+# def binary_cross_entropy(x: jnp.ndarray, logits: jnp.ndarray) -> jnp.ndarray:
+#     x = jnp.reshape(x, (x.shape[0], -1))
+#     logits = jnp.reshape(logits, (logits.shape[0], -1))
 
-    return -jnp.sum(x * logits - jnp.logaddexp(0.0, logits), axis=-1)
+#     return -jnp.sum(x * logits - jnp.logaddexp(0.0, logits), axis=-1)
 
 
-def recon_loss(y_true, y_pred):
-	return jnp.sum(binary_cross_entropy(y_true, y_pred), axis=-1)
+# def recon_loss(y_true, y_pred):
+# 	return jnp.sum(binary_cross_entropy(y_true, y_pred), axis=-1)
 
 
 def l2_loss(weights, alpha):
