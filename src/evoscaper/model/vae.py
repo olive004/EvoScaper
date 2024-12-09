@@ -74,11 +74,11 @@ class CVAE(VAE):
 
 
 def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, USE_SIGMOID_DECODER=False, USE_CATEGORICAL=False, call_kwargs: dict = {}, ):
-    encoder = hk.nets.MLP(output_size=enc_layers + [HIDDEN_SIZE],
-                          activation=jax.nn.log_softmax if USE_CATEGORICAL else None,
+    encoder = hk.nets.MLP(output_sizes=enc_layers + [HIDDEN_SIZE],
+                          activation=jax.nn.log_softmax if USE_CATEGORICAL else jax.nn.leaky_relu,
                           activate_final=USE_CATEGORICAL, name='encoder')
-    decoder = hk.nets.MLP(output_size=[HIDDEN_SIZE] + dec_layers + [decoder_head],
-                          activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else None,
+    decoder = hk.nets.MLP(output_sizes=[HIDDEN_SIZE] + dec_layers + [decoder_head],
+                          activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu,
                           activate_final=USE_SIGMOID_DECODER, name='decoder')
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)
 
