@@ -2,6 +2,7 @@
 
 import numpy as np
 from evoscaper.utils.math import convert_to_scientific_exponent
+from evoscaper.utils.normalise import make_chain_f, NormalizationSettings
 import jax
 from functools import partial
 from sklearn.preprocessing import MinMaxScaler
@@ -9,27 +10,56 @@ from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
 
 
-def init_data(data, OUTPUT_SPECIES, X_COLS, TOTAL_DS, TOTAL_DS_MAX, BATCH_SIZE, SEED,
-              USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX,
-              OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL):
+def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS, 
+              TOTAL_DS_MAX, BATCH_SIZE, SEED,
+              PREP_X_NEG,
+              PREP_X_LOGSCALE,
+              PREP_X_STANDARDISE,
+              PREP_X_MINMAX,
+              PREP_X_ROBUST_SCALING,
+              PREP_X_CATEGORICAL,
+              PREP_Y_NEG,
+              PREP_Y_LOGSCALE,
+              PREP_Y_STANDARDISE,
+              PREP_Y_MINMAX,
+              PREP_Y_ROBUST_SCALING,
+              PREP_Y_CATEGORICAL
+              ):
+
+    df = prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS)
+
+    TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
+    TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
+    N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
+
+    x_norm_settings = NormalizationSettings(
+        negative=PREP_X_NEG,
+        log=PREP_X_LOGSCALE,
+        standardise=PREP_X_STANDARDISE,
+        min_max=PREP_X_MINMAX,
+        robust=PREP_X_ROBUST_SCALING,
+        categorical=PREP_X_CATEGORICAL
+    )
+    y_norm_settings = NormalizationSettings(
+        negative=PREP_Y_NEG,
+        log=PREP_Y_LOGSCALE,
+        standardise=PREP_Y_STANDARDISE,
+        min_max=PREP_Y_MINMAX,
+        robust=PREP_Y_ROBUST_SCALING,
+        categorical=PREP_Y_CATEGORICAL
+    )
+    x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
+                                                                      x_norm_settings, y_norm_settings)
+
+    return df, x, cond, TOTAL_DS, N_BATCHES, x_scaling, x_unscaling, y_scaling, y_unscaling
+
+
+def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS):
 
     data = embellish_data(data)
     df = filter_invalids(data, OUTPUT_SPECIES, OBJECTIVE_COL)
     df = reduce_repeat_samples(df, X_COLS)
-
-    if TOTAL_DS is None:
-        TOTAL_DS = len(df)
-
-    TOTAL_DS = int(np.min([TOTAL_DS, TOTAL_DS_MAX, len(df)]))
-    TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
-    N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
-
-    x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, USE_X_NEG,
-                                                                      USE_X_LOGSCALE, SCALE_X_MINMAX, OBJECTIVE_COL,
-                                                                      USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL)
-    N_HEAD = x.shape[-1]
-
-    return df, x, cond, TOTAL_DS, N_BATCHES, x_scaling, x_unscaling, y_scaling, y_unscaling
+    return df
 
 
 def embellish_data(data):
@@ -42,91 +72,39 @@ def embellish_data(data):
 
 # Make xy
 
-def make_xy(df, SEED, TOTAL_DS, X_COLS, USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX,
-            OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL):
+def make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
+            x_norm_settings, y_norm_settings):
 
-    x, x_scaling, x_unscaling = make_x(df, TOTAL_DS, X_COLS, USE_X_NEG,
-                                       USE_X_LOGSCALE, SCALE_X_MINMAX)
-    cond, y_scaling, y_unscaling = make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE,
-                                          SCALE_Y_MINMAX, USE_Y_CATEGORICAL, TOTAL_DS)
-
+    x, x_datanormaliser, x_methods_preprocessing = make_x(
+        df, TOTAL_DS, X_COLS, x_norm_settings)
+    cond, y_datanormaliser, y_methods_preprocessing = make_y(
+        df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings)
     x, cond = shuffle(x, cond, random_state=SEED)
 
     if x.shape[0] < TOTAL_DS:
         print(
             f'WARNING: The filtered data is not as large as the requested total dataset size: {x.shape[0]} vs. requested {TOTAL_DS}')
 
-    return x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling
+    return x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
-def make_x(df, TOTAL_DS, X_COLS, USE_X_NEG, USE_X_LOGSCALE, SCALE_X_MINMAX):
+def make_x(df, TOTAL_DS, X_COLS, x_norm_settings):
     x = [df[i].iloc[:TOTAL_DS].values[:, None] for i in X_COLS]
     x = np.concatenate(x, axis=1).squeeze()
 
-    x_scaling, x_unscaling = [], []
-    if USE_X_NEG:
-        x_scaling.append(lambda x: -x)
-        x_unscaling.append(lambda x: -x)
-        x = x_scaling[-1](x)
+    x_datanormaliser, x_methods_preprocessing = make_chain_f(x_norm_settings)
 
-    if USE_X_LOGSCALE:
-        x_scaling.append(np.log10)
-        x_unscaling.append(lambda x: np.power(10, x))
-        x = x_scaling[-1](x)
-
-    if SCALE_X_MINMAX:
-        xscaler = MinMaxScaler().fit(x)
-        x_scaling.append(xscaler.transform)
-        x_unscaling.append(xscaler.inverse_transform)
-        x = x_scaling[-1](x)
-
-    x_unscaling = x_unscaling[::-1]
-
-    return x, x_scaling, x_unscaling
+    x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(x)
+    return x, x_datanormaliser, x_methods_preprocessing
 
 
-def make_y(df, OBJECTIVE_COL, USE_Y_LOGSCALE, SCALE_Y_MINMAX, USE_Y_CATEGORICAL, TOTAL_DS):
+def make_y(df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings):
 
     cond = df[OBJECTIVE_COL].iloc[:TOTAL_DS].to_numpy()[:, None]
-
-    y_scaling, y_unscaling = [], []
-
-    if USE_Y_CATEGORICAL:
-
-        vectorized_convert_to_scientific_exponent = np.vectorize(
-            convert_to_scientific_exponent)
-        numerical_resolution = 2
-        cond_map = {k: numerical_resolution for k in np.arange(int(f'{cond[cond != 0].min():.0e}'.split(
-            'e')[1])-1, np.max([int(f'{cond.max():.0e}'.split('e')[1])+1, 0 + 1]))}
-        cond_map[-6] = 1
-        cond_map[-5] = 1
-        cond_map[-4] = 4
-        cond_map[-3] = 2
-        cond_map[-1] = 3
-        cond = jax.tree_util.tree_map(partial(
-            vectorized_convert_to_scientific_exponent, numerical_resolution=cond_map), cond)
-        cond = np.interp(cond, sorted(np.unique(cond)), np.arange(
-            len(sorted(np.unique(cond))))).astype(int)
-        cond = y_scaling[-1](cond)
-
-    if USE_Y_LOGSCALE:
-        zero_log_replacement = -10.0
-        cond = np.where(cond != 0, np.log10(cond), zero_log_replacement)
-        y_scaling.append(lambda x: np.where(
-            x != 0, np.log10(x), zero_log_replacement))
-        y_unscaling.append(lambda x: np.where(
-            x != zero_log_replacement, np.power(10, x), 0))
-        cond = y_scaling[-1](cond)
-
-    if SCALE_Y_MINMAX:
-        yscaler = MinMaxScaler().fit(cond)
-        y_scaling.append(yscaler.transform)
-        y_unscaling.append(yscaler.inverse_transform)
-        cond = y_scaling[-1](cond)
-
-    y_unscaling = y_unscaling[::-1]
-
-    return cond, y_scaling, y_unscaling
+    y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings)
+    cond = y_datanormaliser.create_chain_preprocessor(
+        y_methods_preprocessing)(cond)
+    return cond, y_datanormaliser, y_methods_preprocessing
 
 
 # Balance preprocess

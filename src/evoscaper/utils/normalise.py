@@ -2,7 +2,21 @@ import jax.numpy as jnp
 import haiku as hk
 import numpy as np
 from typing import Dict, Any, Tuple, Literal, Union, Optional
+from dataclasses import dataclass
 
+           
+@dataclass
+class NormalizationSettings:
+    """
+    Configuration settings for data normalization.
+    """
+    negative: bool = False
+    log: bool = False
+    standardise: bool = True
+    min_max: bool = False
+    robust: bool = False
+    categorical: bool = False
+    
 
 class DataNormalizer:
     """
@@ -449,28 +463,21 @@ class ContinuousToCategorical:
         return summary
 
 
-def make_chain_f(
-    PREP_NEG,
-    PREP_LOGSCALE,
-    PREP_STANDARDISE,
-    PREP_MINMAX,
-    PREP_ROBUST_SCALING,
-    PREP_CATEGORICAL
-    ):
+def make_chain_f(data_norm_settings: NormalizationSettings):
     """ Helper function """
     datanormaliser = DataNormalizer()
     methods_preprocessing = []
-    if PREP_CATEGORICAL:
+    if data_norm_settings.categorical:
         methods_preprocessing.append('categorical')
-    if PREP_NEG:
+    if data_norm_settings.negative:
         methods_preprocessing.append('negative')
-    if PREP_LOGSCALE:
+    if data_norm_settings.log:
         methods_preprocessing.append('log')
-    if PREP_STANDARDISE:
+    if data_norm_settings.standardise:
         methods_preprocessing.append('standardise')
-    if PREP_MINMAX:
+    if data_norm_settings.min_max:
         methods_preprocessing.append('min_max')
-    if PREP_ROBUST_SCALING:
+    if data_norm_settings.robust:
         methods_preprocessing.append('robust')
     return datanormaliser, methods_preprocessing
 
