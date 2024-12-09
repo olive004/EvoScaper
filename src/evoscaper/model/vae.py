@@ -1,3 +1,4 @@
+from bioreaction.misc.misc import flatten_listlike
 import haiku as hk
 from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import jax.numpy as jnp
@@ -78,14 +79,16 @@ class CVAE(VAE):
 
 def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, USE_SIGMOID_DECODER=False, USE_CATEGORICAL=False, call_kwargs: dict = {}, 
            enc_init='HeNormal', dec_init = 'HeNormal'):
-    encoder = hk.nets.MLP(output_sizes=enc_layers + [HIDDEN_SIZE],
-                          w_init=get_initialiser(enc_init),
-                          activation=jax.nn.log_softmax if USE_CATEGORICAL else jax.nn.leaky_relu,
-                          activate_final=USE_CATEGORICAL, name='encoder')
-    decoder = hk.nets.MLP(output_sizes=[HIDDEN_SIZE] + dec_layers + [decoder_head],
-                          w_init=get_initialiser(dec_init),
-                          activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu,
-                          activate_final=USE_SIGMOID_DECODER, name='decoder')
+    # encoder = hk.nets.MLP(output_sizes=enc_layers + [HIDDEN_SIZE],
+    #                       w_init=get_initialiser(enc_init),
+    #                       activation=jax.nn.log_softmax if USE_CATEGORICAL else jax.nn.leaky_relu,
+    #                       activate_final=USE_CATEGORICAL, name='encoder')
+    # decoder = hk.nets.MLP(output_sizes=[HIDDEN_SIZE] + dec_layers + [decoder_head],
+    #                       w_init=get_initialiser(dec_init),
+    #                       activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu,
+    #                       activate_final=USE_SIGMOID_DECODER, name='decoder')
+    encoder = hk.Sequential(flatten_listlike([[hk.Linear(i), jax.nn.leaky_relu] for i in enc_layers + [HIDDEN_SIZE]]))
+    decoder = hk.Sequential(flatten_listlike([[hk.Linear(i), jax.nn.leaky_relu] for i in [HIDDEN_SIZE] + dec_layers]) + [hk.Linear(decoder_head), jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu])
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)
 
     def init(x: np.ndarray, cond: np.ndarray, deterministic: bool):
