@@ -4,7 +4,7 @@ from evoscaper.utils.math import convert_to_scientific_exponent
 from evoscaper.utils.preprocess import drop_duplicates_keep_first_n
 from evoscaper.model.loss import loss_wrapper, compute_accuracy_regression, mse_loss
 from evoscaper.model.shared import arrayise
-from evoscaper.model.mlp import MLP
+# from evoscaper.model.mlp import MLP
 import haiku as hk
 from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import jax.numpy as jnp
@@ -53,7 +53,7 @@ sys.path.append(module_path)
 __package__ = os.path.basename(module_path)
 
 
-class Decoder(MLP):
+class Decoder(hk.nets.MLP):
     def __init__(self, layer_sizes, n_head, use_categorical, name='decoder'):
         super().__init__(layer_sizes, n_head, use_categorical, name=name)
         if not use_categorical:
