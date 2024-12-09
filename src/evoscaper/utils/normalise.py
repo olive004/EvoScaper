@@ -1,8 +1,7 @@
-import jax
 import jax.numpy as jnp
 import haiku as hk
 import numpy as np
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Literal, Union, Optional
 
 
 class DataNormalizer:
@@ -11,8 +10,10 @@ class DataNormalizer:
     Supports multiple normalization techniques with inverse transformations
     """
 
-    @staticmethod
-    def standardization(data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def __init__(self):
+        self.metadata: Dict[str, Any] = {}
+
+    def standardise(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Standardize data to have zero mean and unit variance
 
@@ -32,30 +33,31 @@ class DataNormalizer:
 
         standardized = (data - mean) / std
 
-        return standardized, {
+        self.metadata.update({
             'mean': mean,
             'std': std
-        }
+        })
 
-    @staticmethod
-    def inverse_standardization(
-        normalized_data: jnp.ndarray,
-        metadata: Dict[str, jnp.ndarray]
+        return standardized
+
+    def inverse_standardise(
+        self,
+        normalized_data: jnp.ndarray
     ) -> jnp.ndarray:
         """
-        Reverse standardization transformation
+        Reverse standardise transformation
 
         Args:
             normalized_data (jnp.ndarray): Standardized data
-            metadata (dict): Metadata from standardization
+            metadata (dict): Metadata from standardise
 
         Returns:
             jnp.ndarray: Original scale data
         """
-        return normalized_data * metadata['std'] + metadata['mean']
+        return normalized_data * self.metadata['std'] + self.metadata['mean']
 
-    @staticmethod
     def min_max_scaling(
+        self,
         data: jnp.ndarray,
         feature_range: Tuple[float, float] = (0, 1)
     ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
@@ -83,16 +85,16 @@ class DataNormalizer:
         scaled = ((data - min_val) / scale) * \
             (max_range - min_range) + min_range
 
-        return scaled, {
+        self.metadata.update({
             'min_val': min_val,
             'scale': scale,
             'feature_range': feature_range
-        }
+        })
+        return scaled
 
-    @staticmethod
     def inverse_min_max_scaling(
-        normalized_data: jnp.ndarray,
-        metadata: Dict[str, Any]
+        self,
+        normalized_data: jnp.ndarray
     ) -> jnp.ndarray:
         """
         Reverse min-max scaling transformation
@@ -104,16 +106,15 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        min_range, max_range = metadata['feature_range']
+        min_range, max_range = self.metadata['feature_range']
 
         # Reverse the feature range scaling
         unscaled = (normalized_data - min_range) / (max_range - min_range)
 
         # Reverse the min-max transformation
-        return unscaled * metadata['scale'] + metadata['min_val']
+        return unscaled * self.metadata['scale'] + self.metadata['min_val']
 
-    @staticmethod
-    def robust_scaling(data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def robust_scaling(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Scale features using median and interquartile range
 
@@ -134,15 +135,16 @@ class DataNormalizer:
 
         robust_scaled = (data - median) / iqr
 
-        return robust_scaled, {
+        self.metadata.update({
             'median': median,
             'iqr': iqr
-        }
+        })
 
-    @staticmethod
+        return robust_scaled
+
     def inverse_robust_scaling(
+        self,
         normalized_data: jnp.ndarray,
-        metadata: Dict[str, jnp.ndarray]
     ) -> jnp.ndarray:
         """
         Reverse robust scaling transformation
@@ -154,10 +156,146 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        return normalized_data * metadata['iqr'] + metadata['median']
+        return normalized_data * self.metadata['iqr'] + self.metadata['median']
+
+    def make_categorical(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+        """
+        Convert continuous data to categorical data
+
+        Args:
+            data (jnp.ndarray): Input data array
+
+        Returns:
+            Tuple of:
+            - Categorical data
+            - Metadata for reversing the transformation
+        """
+        unique_values = jnp.unique(data)
+        categories = jnp.arange(len(unique_values))
+        category_map = dict(zip(unique_values, categories))
+
+        categorical_data = jnp.vectorize(category_map.get)(data)
+
+        self.metadata.update({
+            'category_map': category_map
+        })
+
+        # Alternatively:
+        # binned_data, bin_edges = ContinuousToCategorical.bin_data(
+        #     data,
+        #     n_bins=5,
+        #     method=method
+        # )
+
+        return categorical_data
+
+    def negative_scaling(self, data: jnp.ndarray) -> jnp.ndarray:
+        """
+        Scale features to negative values
+
+        Args:
+            data (jnp.ndarray): Input data array
+
+        Returns:
+            jnp.ndarray: Negative scaled data
+        """
+        return -data
+
+    def inverse_negative_scaling(
+        self,
+        normalized_data: jnp.ndarray
+    ) -> jnp.ndarray:
+        """
+        Reverse negative scaling transformation
+
+        Args:
+            normalized_data (jnp.ndarray): Negative scaled data
+
+        Returns:
+            jnp.ndarray: Original scale data
+        """
+        return -normalized_data
+
+    def log_scaling(self, data: jnp.ndarray, zero_log_replacement=-10.0) -> jnp.ndarray:
+        """
+        Scale features to log values
+
+        Args:
+            data (jnp.ndarray): Input data array
+
+        Returns:
+            jnp.ndarray: Log scaled data
+        """
+        return jnp.where(data != 0, jnp.log10(data), zero_log_replacement)
+
+    def inverse_log_scaling(
+        self,
+        normalized_data: jnp.ndarray,
+        zero_log_replacement=-10.0
+    ) -> jnp.ndarray:
+        """
+        Reverse log scaling transformation
+
+        Args:
+            normalized_data (jnp.ndarray): Log scaled data
+
+        Returns:
+            jnp.ndarray: Original scale data
+        """
+        return jnp.where(normalized_data != zero_log_replacement, jnp.power(10, normalized_data), 0)
+
+    def create_chain_preprocessor(self, methods: list):
+        """
+        Create a Haiku module for chaining multiple normalization methods
+
+        Args:
+            methods (list): List of normalization methods to chain
+
+        Returns:
+            hk.Module: A normalization layer with forward and inverse methods
+        """
+        def chain_preprocess(x):
+            for method in methods:
+                if method == 'standardise':
+                    x = DataNormalizer.standardise(x)
+                elif method == 'min_max':
+                    x = DataNormalizer.min_max_scaling(x)
+                elif method == 'robust':
+                    x = DataNormalizer.robust_scaling(x)
+                elif method == 'negative':
+                    x = DataNormalizer.negative_scaling(x)
+                elif method == 'log':
+                    x = DataNormalizer.log_scaling(x)
+                elif method == 'categorical':
+                    x = DataNormalizer.make_categorical(x)
+                else:
+                    raise ValueError(
+                        f"Unsupported normalization method: {method}")
+            return x
+        return chain_preprocess
+
+    def create_chain_preprocessor_inverse(self, methods: list):
+        def chain_inverse_preprocess(x):
+            for method in reversed(methods):
+                if method == 'standardise':
+                    x = DataNormalizer.inverse_standardise(x)
+                elif method == 'min_max':
+                    x = DataNormalizer.inverse_min_max_scaling(x)
+                elif method == 'robust':
+                    x = DataNormalizer.inverse_robust_scaling(x)
+                elif method == 'negative':
+                    x = DataNormalizer.inverse_negative_scaling(x)
+                elif method == 'log':
+                    x = DataNormalizer.inverse_log_scaling(x)
+                else:
+                    raise ValueError(
+                        f"Unsupported normalization method: {method}")
+            return x
+
+        return chain_inverse_preprocess
 
     @staticmethod
-    def create_normalization_layer(method='standardization'):
+    def create_normalization_layer(method='standardise'):
         """
         Create a Haiku module for normalization with reversal capability
 
@@ -168,8 +306,8 @@ class DataNormalizer:
             hk.Module: A normalization layer with forward and inverse methods
         """
         def normalize_and_track(x):
-            if method == 'standardization':
-                return DataNormalizer.standardization(x)
+            if method == 'standardise':
+                return DataNormalizer.standardise(x)
             elif method == 'min_max':
                 return DataNormalizer.min_max_scaling(x)
             elif method == 'robust':
@@ -181,10 +319,164 @@ class DataNormalizer:
             hk.Lambda(normalize_and_track)
         ])
 
+
+class ContinuousToCategorical:
+    """
+    Utility for converting continuous data into categorical bins
+    Supports multiple binning strategies
+    """
+
+    @staticmethod
+    def bin_data(
+        data: Union[jnp.ndarray, np.ndarray],
+        n_bins: int = 5,
+        method: Literal['equal_width', 'equal_frequency',
+                        'quantile', 'custom'] = 'equal_width',
+        custom_breaks: Optional[jnp.ndarray] = None
+    ) -> tuple:
+        """
+        Convert continuous data to categorical bins with guaranteed sample distribution
+
+        Args:
+            data (array-like): Input continuous data
+            n_bins (int): Number of bins to create
+            method (str): Binning strategy
+            custom_breaks (array-like, optional): Custom bin boundaries
+
+        Returns:
+            tuple: 
+            - Binned categorical data (integer labels)
+            - Bin edges used for transformation
+        """
+        # Convert to JAX array if not already
+        data = jnp.asarray(data)
+
+        # Compute bin edges based on method
+        if method == 'equal_width':
+            # Initial equal-width binning
+            min_val, max_val = jnp.min(data), jnp.max(data)
+            bin_edges = jnp.linspace(min_val, max_val, n_bins + 1)
+        elif method == 'equal_frequency':
+            # Percentile-based binning
+            bin_edges = jnp.percentile(
+                data,
+                jnp.linspace(0, 100, n_bins + 1)
+            )
+        elif method == 'quantile':
+            # Quantile-based binning
+            bin_edges = jnp.quantile(
+                data,
+                jnp.linspace(0, 1, n_bins + 1)
+            )
+        elif method == 'custom':
+            if custom_breaks is None:
+                raise ValueError(
+                    "Custom breaks must be provided for 'custom' method")
+            bin_edges = jnp.asarray(custom_breaks)
+        else:
+            raise ValueError(f"Unsupported binning method: {method}")
+
+        # Ensure unique bin edges
+        bin_edges = jnp.unique(bin_edges)
+
+        # Corrected binning: use all bin edges except the last one for comparison
+        binned_data = jnp.searchsorted(bin_edges[:-1], data) - 1
+
+        return binned_data, bin_edges
+
+    @staticmethod
+    def inverse_bin(
+        binned_data: jnp.ndarray,
+        bin_edges: jnp.ndarray
+    ) -> jnp.ndarray:
+        """
+        Convert categorical bins back to continuous representative values
+
+        Args:
+            binned_data (array-like): Categorical bin labels
+            bin_edges (array-like): Bin edges from original binning
+
+        Returns:
+            jnp.ndarray: Continuous representative values for each bin
+        """
+        # Compute bin midpoints
+        bin_midpoints = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        # Map bin labels to midpoints
+        return bin_midpoints[binned_data]
+
+    @staticmethod
+    def bin_summary(
+        original_data: Union[jnp.ndarray, np.ndarray],
+        binned_data: jnp.ndarray,
+        bin_edges: jnp.ndarray
+    ) -> dict:
+        """
+        Provide summary statistics for each bin
+
+        Args:
+            original_data (array-like): Original continuous data
+            binned_data (array-like): Categorical bin labels
+            bin_edges (array-like): Bin edges
+
+        Returns:
+            dict: Summary statistics for each bin
+        """
+        # Convert to JAX arrays
+        original_data = jnp.asarray(original_data)
+        binned_data = jnp.asarray(binned_data)
+
+        # Prepare summary dictionary
+        summary = {}
+
+        for bin_label in range(len(bin_edges) - 1):
+            # Create mask for current bin
+            bin_mask = binned_data == bin_label
+
+            # Extract data for this bin
+            bin_data = original_data[bin_mask]
+
+            # Compute summary statistics
+            summary[bin_label] = {
+                'count': jnp.sum(bin_mask),
+                'mean': jnp.mean(bin_data) if bin_data.size > 0 else None,
+                'median': jnp.median(bin_data) if bin_data.size > 0 else None,
+                'min': jnp.min(bin_data) if bin_data.size > 0 else None,
+                'max': jnp.max(bin_data) if bin_data.size > 0 else None,
+                'bin_range': (bin_edges[bin_label], bin_edges[bin_label + 1])
+            }
+
+        return summary
+
+
+def make_chain_f(
+    PREP_NEG,
+    PREP_LOGSCALE,
+    PREP_STANDARDISE,
+    PREP_MINMAX,
+    PREP_ROBUST_SCALING,
+    PREP_CATEGORICAL
+    ):
+    """ Helper function """
+    datanormaliser = DataNormalizer()
+    methods_preprocessing = []
+    if PREP_CATEGORICAL:
+        methods_preprocessing.append('categorical')
+    if PREP_NEG:
+        methods_preprocessing.append('negative')
+    if PREP_LOGSCALE:
+        methods_preprocessing.append('log')
+    if PREP_STANDARDISE:
+        methods_preprocessing.append('standardise')
+    if PREP_MINMAX:
+        methods_preprocessing.append('min_max')
+    if PREP_ROBUST_SCALING:
+        methods_preprocessing.append('robust')
+    return datanormaliser, methods_preprocessing
+
+
 # Example usage demonstrating reversible normalization
-
-
-def main():
+def main_normalise():
     # Simulate training data
     np.random.seed(0)
     training_data = np.random.randn(1000, 5) * 10 + 5
@@ -192,20 +484,22 @@ def main():
     # Convert to JAX array
     jax_data = jnp.array(training_data)
 
-    # Standardization with reversal
-    print("Standardization Example:")
-    standardized, std_metadata = DataNormalizer.standardization(jax_data)
-    reconstructed_std = DataNormalizer.inverse_standardization(
-        standardized, std_metadata)
+    normer = DataNormalizer()
+
+    # standardise with reversal
+    print("standardise Example:")
+    standardized = normer.standardise(jax_data)
+    reconstructed_std = normer.inverse_standardise(
+        standardized)
     print("Original Data Mean:", jnp.mean(jax_data, axis=0))
     print("Reconstructed Data Mean:", jnp.mean(reconstructed_std, axis=0))
     print("Mean Difference:", jnp.mean(jnp.abs(jax_data - reconstructed_std)))
 
     # Min-Max Scaling with reversal
     print("\nMin-Max Scaling Example:")
-    min_max_scaled, minmax_metadata = DataNormalizer.min_max_scaling(jax_data)
-    reconstructed_minmax = DataNormalizer.inverse_min_max_scaling(
-        min_max_scaled, minmax_metadata)
+    min_max_scaled = normer.min_max_scaling(jax_data)
+    reconstructed_minmax = normer.inverse_min_max_scaling(
+        min_max_scaled)
     print("Original Data Min:", jnp.min(jax_data, axis=0))
     print("Reconstructed Data Min:", jnp.min(reconstructed_minmax, axis=0))
     print("Mean Difference:", jnp.mean(
@@ -213,14 +507,50 @@ def main():
 
     # Robust Scaling with reversal
     print("\nRobust Scaling Example:")
-    robust_scaled, robust_metadata = DataNormalizer.robust_scaling(jax_data)
-    reconstructed_robust = DataNormalizer.inverse_robust_scaling(
-        robust_scaled, robust_metadata)
+    robust_scaled = normer.robust_scaling(jax_data)
+    reconstructed_robust = normer.inverse_robust_scaling(
+        robust_scaled)
     print("Original Data Median:", jnp.median(jax_data, axis=0))
     print("Reconstructed Data Median:", jnp.median(reconstructed_robust, axis=0))
     print("Mean Difference:", jnp.mean(
         jnp.abs(jax_data - reconstructed_robust)))
 
 
+# Example usage demonstration categorical binning
+def main_categorical():
+    # Generate sample continuous data with potential binning challenges
+    np.random.seed(42)
+    data = np.concatenate([
+        np.random.normal(loc=10, scale=2, size=300),  # Cluster 1
+        np.random.normal(loc=50, scale=5, size=400),  # Cluster 2
+        np.random.normal(loc=90, scale=3, size=300)   # Cluster 3
+    ])
+
+    # Convert to categorical using different methods
+    methods = ['equal_width', 'equal_frequency', 'quantile']
+
+    for method in methods:
+        print(f"\nBinning Method: {method}")
+
+        # Bin the data
+        binned_data, bin_edges = ContinuousToCategorical.bin_data(
+            data,
+            n_bins=5,
+            method=method
+        )
+
+        # Get bin summary
+        summary = ContinuousToCategorical.bin_summary(
+            data, binned_data, bin_edges)
+
+        # Print bin summary
+        for bin_label, bin_info in summary.items():
+            print(f"Bin {bin_label}:")
+            print(f"  Range: {bin_info['bin_range']}")
+            print(f"  Count: {bin_info['count']}")
+            print(f"  Mean: {bin_info['mean']}")
+
+
 if __name__ == '__main__':
-    main()
+    # main_normalise()
+    main_categorical()
