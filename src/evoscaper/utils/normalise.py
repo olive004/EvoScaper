@@ -257,17 +257,17 @@ class DataNormalizer:
         def chain_preprocess(x):
             for method in methods:
                 if method == 'standardise':
-                    x = DataNormalizer.standardise(x)
+                    x = self.standardise(x)
                 elif method == 'min_max':
-                    x = DataNormalizer.min_max_scaling(x)
+                    x = self.min_max_scaling(x)
                 elif method == 'robust':
-                    x = DataNormalizer.robust_scaling(x)
+                    x = self.robust_scaling(x)
                 elif method == 'negative':
-                    x = DataNormalizer.negative_scaling(x)
+                    x = self.negative_scaling(x)
                 elif method == 'log':
-                    x = DataNormalizer.log_scaling(x)
+                    x = self.log_scaling(x)
                 elif method == 'categorical':
-                    x = DataNormalizer.make_categorical(x)
+                    x = self.make_categorical(x)
                 else:
                     raise ValueError(
                         f"Unsupported normalization method: {method}")
@@ -278,15 +278,15 @@ class DataNormalizer:
         def chain_inverse_preprocess(x):
             for method in reversed(methods):
                 if method == 'standardise':
-                    x = DataNormalizer.inverse_standardise(x)
+                    x = self.inverse_standardise(x)
                 elif method == 'min_max':
-                    x = DataNormalizer.inverse_min_max_scaling(x)
+                    x = self.inverse_min_max_scaling(x)
                 elif method == 'robust':
-                    x = DataNormalizer.inverse_robust_scaling(x)
+                    x = self.inverse_robust_scaling(x)
                 elif method == 'negative':
-                    x = DataNormalizer.inverse_negative_scaling(x)
+                    x = self.inverse_negative_scaling(x)
                 elif method == 'log':
-                    x = DataNormalizer.inverse_log_scaling(x)
+                    x = self.inverse_log_scaling(x)
                 else:
                     raise ValueError(
                         f"Unsupported normalization method: {method}")
