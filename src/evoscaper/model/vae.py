@@ -106,8 +106,8 @@ def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDD
 
 
 def sample_z(mu, logvar, key, deterministic=False):
-    std = jnp.exp(0.5 * logvar)
-    eps = jax.random.normal(key, std.shape)
+    std = jnp.exp(logvar)
+    eps = jax.random.normal(key, mu.shape)
     z = mu + (std * eps if not deterministic else 0)
     return z
 
