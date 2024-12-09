@@ -1,48 +1,12 @@
-
-
-from evoscaper.utils.math import convert_to_scientific_exponent
-from evoscaper.utils.preprocess import drop_duplicates_keep_first_n
-from evoscaper.model.loss import loss_wrapper, compute_accuracy_regression, mse_loss
-from evoscaper.model.shared import arrayise
-# from evoscaper.model.mlp import MLP
 import haiku as hk
 from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import jax.numpy as jnp
-from jax import random
-import logging
-
-
-from synbio_morpher.srv.io.manage.script_manager import script_preamble
-from synbio_morpher.srv.parameter_prediction.simulator import RawSimulationHandling, make_piecewise_stepcontrol
-from synbio_morpher.utils.results.analytics.timeseries import generate_analytics
-from synbio_morpher.utils.common.setup import prepare_config, expand_config, expand_model_config
-from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
-from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
-from synbio_morpher.utils.misc.numerical import symmetrical_matrix_length
-from synbio_morpher.utils.misc.type_handling import flatten_listlike, get_unique
-from synbio_morpher.utils.modelling.deterministic import bioreaction_sim_dfx_expanded
-from bioreaction.model.data_tools import construct_model_fromnames
-from bioreaction.model.data_containers import BasicModel, QuantifiedReactions
-from bioreaction.simulation.manager import simulate_steady_states
-from functools import partial
-
-from scipy.cluster.vq import whiten
-from scipy.special import factorial
-from sklearn.manifold import TSNE
+from typing import List
 import os
 import sys
 import numpy as np
 import haiku as hk
 import jax
-import diffrax as dfx
-
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.utils import shuffle
-
-from datetime import datetime
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 
 # if __package__ is None:
@@ -51,14 +15,6 @@ module_path = os.path.abspath(os.path.join('..'))
 sys.path.append(module_path)
 
 __package__ = os.path.basename(module_path)
-
-
-class Decoder(hk.nets.MLP):
-    def __init__(self, layer_sizes, n_head, use_categorical, name='decoder'):
-        super().__init__(layer_sizes, n_head, use_categorical, name=name)
-        if not use_categorical:
-            # replace relu
-            self.layers[-1] = jax.nn.sigmoid
 
 
 class VAE(hk.Module):
@@ -117,15 +73,13 @@ class CVAE(VAE):
         return y
 
 
-def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, USE_SIGMOID_DECODER=False, call_kwargs: dict = {}, ):
-    encoder = MLP(layer_sizes=enc_layers,
-                  n_head=HIDDEN_SIZE, use_categorical=False, name='encoder')
-    if USE_SIGMOID_DECODER:
-        decoder = Decoder(layer_sizes=dec_layers, n_head=decoder_head,
-                          use_categorical=False, name='decoder')
-    else:
-        decoder = MLP(layer_sizes=dec_layers, n_head=decoder_head,
-                      use_categorical=False, name='decoder')
+def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, USE_SIGMOID_DECODER=False, USE_CATEGORICAL=False, call_kwargs: dict = {}, ):
+    encoder = hk.nets.MLP(output_size=enc_layers + [HIDDEN_SIZE],
+                          activation=jax.nn.log_softmax if USE_CATEGORICAL else None,
+                          activate_final=USE_CATEGORICAL, name='encoder')
+    decoder = hk.nets.MLP(output_size=[HIDDEN_SIZE] + dec_layers + [decoder_head],
+                          activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else None,
+                          activate_final=USE_SIGMOID_DECODER, name='decoder')
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)
 
     def init(x: np.ndarray, cond: np.ndarray, deterministic: bool):
@@ -144,7 +98,7 @@ def VAE_fn(enc_layers: list, dec_layers: list, decoder_head, HIDDEN_SIZE, USE_SI
 
 def sample_z(mu, logvar, key, deterministic=False):
     std = jnp.exp(0.5 * logvar)
-    eps = random.normal(key, std.shape)
+    eps = jax.random.normal(key, std.shape)
     z = mu + (std * eps if not deterministic else 0)
     return z
 
