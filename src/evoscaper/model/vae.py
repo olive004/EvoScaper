@@ -17,6 +17,9 @@ sys.path.append(module_path)
 __package__ = os.path.basename(module_path)
 
 
+from evoscaper.model.shared import get_initialiser
+
+
 class VAE(hk.Module):
 
     def __init__(self, encoder, decoder, embed_size: int, **hk_kwargs):
@@ -73,11 +76,14 @@ class CVAE(VAE):
         return y
 
 
-def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, USE_SIGMOID_DECODER=False, USE_CATEGORICAL=False, call_kwargs: dict = {}, ):
+def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, USE_SIGMOID_DECODER=False, USE_CATEGORICAL=False, call_kwargs: dict = {}, 
+           enc_init='HeNormal', dec_init = 'HeNormal'):
     encoder = hk.nets.MLP(output_sizes=enc_layers + [HIDDEN_SIZE],
+                          w_init=get_initialiser(enc_init),
                           activation=jax.nn.log_softmax if USE_CATEGORICAL else jax.nn.leaky_relu,
                           activate_final=USE_CATEGORICAL, name='encoder')
     decoder = hk.nets.MLP(output_sizes=[HIDDEN_SIZE] + dec_layers + [decoder_head],
+                          w_init=get_initialiser(dec_init),
                           activation=jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu,
                           activate_final=USE_SIGMOID_DECODER, name='decoder')
     model = CVAE(encoder=encoder, decoder=decoder, embed_size=HIDDEN_SIZE)

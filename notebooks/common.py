@@ -1,11 +1,7 @@
 
 
 import numpy as np
-from evoscaper.utils.math import convert_to_scientific_exponent
 from evoscaper.utils.normalise import make_chain_f, NormalizationSettings
-import jax
-from functools import partial
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
 
@@ -71,7 +67,6 @@ def embellish_data(data):
 
 
 # Make xy
-
 def make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
             x_norm_settings, y_norm_settings):
 

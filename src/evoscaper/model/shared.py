@@ -1,6 +1,7 @@
 
 
 import jax.numpy as jnp
+import haiku as hk
 
 
 def model_fn(x, model, init_kwargs: dict = {}, call_kwargs: dict = {}):
@@ -14,3 +15,12 @@ def arrayise(d):
             for kk, vv in v.items():
                 d[k][kk] = jnp.array(vv)
     return d
+
+
+def get_initialiser(init):
+    if init == 'HeNormal':
+        return hk.initializers.VarianceScaling(scale=2.0)
+    elif init == 'RandomNormal':
+        return hk.initializers.RandomNormal()
+    else:
+        raise ValueError(f'Invalid initialiser: {init}')
