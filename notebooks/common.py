@@ -75,6 +75,7 @@ def embellish_data(data):
         data['adaptability'] = calculate_adaptation(
             s=data['sensitivity_wrt_species-6'].values,
             p=data['precision_wrt_species-6'].values)
+    data['Log sensitivity'] = np.log10(data['sensitivity_wrt_species-6'])
     return data
 
 

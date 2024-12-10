@@ -224,7 +224,7 @@ class DataNormalizer:
             - One-hot encoded data
             - Metadata for reversing the transformation
         """
-        onehot_data = jax.nn.one_hot(data, int(data.max())).squeeze()
+        onehot_data = jax.nn.one_hot(data, int(data.max() + 1)).squeeze()
 
         return onehot_data
     
