@@ -340,6 +340,8 @@ class DataNormalizer:
                     x = self.inverse_negative_scaling(x)
                 elif method == 'log':
                     x = self.inverse_log_scaling(x)
+                elif method == 'categorical':
+                    pass
                 elif method == 'categorical_onehot':
                     x = self.inverse_onehot(x)
                 else:
@@ -520,10 +522,10 @@ def make_chain_f(data_norm_settings: NormalizationSettings):
             methods_preprocessing.append('categorical_onehot')
     if data_norm_settings.standardise:
         methods_preprocessing.append('standardise')
-    if data_norm_settings.min_max:
-        methods_preprocessing.append('min_max')
     if data_norm_settings.robust:
         methods_preprocessing.append('robust')
+    if data_norm_settings.min_max:
+        methods_preprocessing.append('min_max')
     return datanormaliser, methods_preprocessing
 
 
