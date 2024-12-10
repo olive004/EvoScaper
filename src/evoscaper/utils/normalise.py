@@ -224,7 +224,7 @@ class DataNormalizer:
             - One-hot encoded data
             - Metadata for reversing the transformation
         """
-        onehot_data = jax.nn.one_hot(data, data.max())
+        onehot_data = jax.nn.one_hot(data, int(data.max())).squeeze()
 
         return onehot_data
     
@@ -319,6 +319,8 @@ class DataNormalizer:
                     x = self.log_scaling(x)
                 elif method == 'categorical':
                     x = self.make_categorical(x, n_bins=self.categorical_n_bins, method=self.categorical_method)
+                elif method == 'categorical_onehot':
+                    x = self.categorical_onehot(x)
                 else:
                     raise ValueError(
                         f"Unsupported normalization method: {method}")
@@ -338,6 +340,8 @@ class DataNormalizer:
                     x = self.inverse_negative_scaling(x)
                 elif method == 'log':
                     x = self.inverse_log_scaling(x)
+                elif method == 'categorical_onehot':
+                    x = self.inverse_onehot(x)
                 else:
                     raise ValueError(
                         f"Unsupported normalization method: {method}")
@@ -504,16 +508,16 @@ def make_chain_f(data_norm_settings: NormalizationSettings):
     """ Helper function """
     datanormaliser = DataNormalizer()
     methods_preprocessing = []
+    if data_norm_settings.negative:
+        methods_preprocessing.append('negative')
+    if data_norm_settings.log:
+        methods_preprocessing.append('log')
     if data_norm_settings.categorical:
         methods_preprocessing.append('categorical')
         datanormaliser.categorical_n_bins = data_norm_settings.categorical_n_bins
         datanormaliser.categorical_method = data_norm_settings.categorical_method
         if data_norm_settings.categorical_onehot:
             methods_preprocessing.append('categorical_onehot')
-    if data_norm_settings.negative:
-        methods_preprocessing.append('negative')
-    if data_norm_settings.log:
-        methods_preprocessing.append('log')
     if data_norm_settings.standardise:
         methods_preprocessing.append('standardise')
     if data_norm_settings.min_max:
