@@ -37,6 +37,7 @@ def loss_wrapper(
     loss_f,
     use_l2_reg=False, l2_reg_alpha: Float = None,
     use_kl_div=False,
+    kl_weight: Float = 1.0,
     **model_call_kwargs
 ) -> Float[Array, ""]:
 
@@ -52,7 +53,7 @@ def loss_wrapper(
         )
     # KL divergence
     if use_kl_div:
-        loss += kl_gaussian(mu, logvar).mean()
+        loss += kl_gaussian(mu, logvar).mean() * kl_weight
     return loss
 
 

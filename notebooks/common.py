@@ -6,7 +6,7 @@ from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
 
 
-def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS, 
+def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
               TOTAL_DS_MAX, BATCH_SIZE, SEED,
               PREP_X_NEG,
               PREP_X_LOGSCALE,
@@ -106,8 +106,8 @@ def make_y(df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings):
 
 def filter_invalids(data, OUTPUT_SPECIES, OBJECTIVE_COL):
 
-    filt = data['sample_name'].isin(OUTPUT_SPECIES) & ~data['precision_wrt_species-6'].isna(
-    ) & ~data['sensitivity_wrt_species-6'].isna() & (data['precision_wrt_species-6'] < np.inf) & data[OBJECTIVE_COL].notna()
+    filt = data['sample_name'].isin(OUTPUT_SPECIES) & ~data['precision_wrt_species-6'].isna() & ~data['sensitivity_wrt_species-6'].isna(
+    ) & (np.abs(data['precision_wrt_species-6']) < np.inf) & data[OBJECTIVE_COL].notna() & (np.abs(data[OBJECTIVE_COL]) < np.inf) & (np.abs(data['sensitivity_wrt_species-6']) < np.inf)
 
     df = data[filt]
     df.loc[:, 'adaptability'] = df['adaptability'].apply(np.float32)
