@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+import jax
 import haiku as hk
 import numpy as np
 from typing import Dict, Any, Tuple, Literal, Union, Optional
@@ -16,6 +17,9 @@ class NormalizationSettings:
     min_max: bool = False
     robust: bool = False
     categorical: bool = False
+    categorical_onehot: bool = False
+    categorical_n_bins: int = 10
+    categorical_method: str = 'equal_width'
     
 
 class DataNormalizer:
@@ -24,8 +28,10 @@ class DataNormalizer:
     Supports multiple normalization techniques with inverse transformations
     """
 
-    def __init__(self):
+    def __init__(self, categorical_n_bins: int = 10, categorical_method: str = 'equal_width'):
         self.metadata: Dict[str, Any] = {}
+        self.categorical_n_bins = categorical_n_bins
+        self.categorical_method = categorical_method
 
     def standardise(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
@@ -172,7 +178,7 @@ class DataNormalizer:
         """
         return normalized_data * self.metadata['iqr'] + self.metadata['median']
 
-    def make_categorical(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def make_categorical(self, data: jnp.ndarray, n_bins: int=10, method='equal_width') -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Convert continuous data to categorical data
 
@@ -184,24 +190,55 @@ class DataNormalizer:
             - Categorical data
             - Metadata for reversing the transformation
         """
-        unique_values = jnp.unique(data)
-        categories = jnp.arange(len(unique_values))
-        category_map = dict(zip(unique_values, categories))
+        # unique_values = jnp.unique(data)
+        # categories = jnp.arange(len(unique_values))
+        # category_map = dict(zip(unique_values, categories))
 
-        categorical_data = jnp.vectorize(category_map.get)(data)
+        # categorical_data = jnp.vectorize(category_map.get)(data)
+
+        # self.metadata.update({
+        #     'category_map': category_map
+        # })
+
+        categorical_data, bin_edges = ContinuousToCategorical.bin_data(
+            data,
+            n_bins=n_bins,
+            method=method
+        )
+        category_map = dict(zip(np.arange(n_bins), [np.mean([bin_edges[i], bin_edges[i+1]]) for i in range(n_bins)]))
 
         self.metadata.update({
             'category_map': category_map
         })
-
-        # Alternatively:
-        # binned_data, bin_edges = ContinuousToCategorical.bin_data(
-        #     data,
-        #     n_bins=5,
-        #     method=method
-        # )
-
         return categorical_data
+    
+    def categorical_onehot(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+        """
+        Convert continuous data to one-hot encoded categorical data
+
+        Args:
+            data (jnp.ndarray): Input data array
+
+        Returns:
+            Tuple of:
+            - One-hot encoded data
+            - Metadata for reversing the transformation
+        """
+        onehot_data = jax.nn.one_hot(data, data.max())
+
+        return onehot_data
+    
+    def inverse_onehot(self, onehot_data: jnp.ndarray) -> jnp.ndarray:
+        """
+        Convert one-hot encoded data back to categorical data
+
+        Args:
+            onehot_data (jnp.ndarray): One-hot encoded data
+
+        Returns:
+            jnp.ndarray: Categorical data
+        """
+        return jnp.argmax(onehot_data, axis=-1)
 
     def negative_scaling(self, data: jnp.ndarray) -> jnp.ndarray:
         """
@@ -281,7 +318,7 @@ class DataNormalizer:
                 elif method == 'log':
                     x = self.log_scaling(x)
                 elif method == 'categorical':
-                    x = self.make_categorical(x)
+                    x = self.make_categorical(x, n_bins=self.categorical_n_bins, method=self.categorical_method)
                 else:
                     raise ValueError(
                         f"Unsupported normalization method: {method}")
@@ -469,6 +506,10 @@ def make_chain_f(data_norm_settings: NormalizationSettings):
     methods_preprocessing = []
     if data_norm_settings.categorical:
         methods_preprocessing.append('categorical')
+        datanormaliser.categorical_n_bins = data_norm_settings.categorical_n_bins
+        datanormaliser.categorical_method = data_norm_settings.categorical_method
+        if data_norm_settings.categorical_onehot:
+            methods_preprocessing.append('categorical_onehot')
     if data_norm_settings.negative:
         methods_preprocessing.append('negative')
     if data_norm_settings.log:

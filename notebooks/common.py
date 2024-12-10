@@ -14,12 +14,18 @@ def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
               PREP_X_MINMAX,
               PREP_X_ROBUST_SCALING,
               PREP_X_CATEGORICAL,
+              PREP_X_CATEGORICAL_ONEHOT,
+              PREP_X_CATEGORICAL_NBINS,
+              PREP_X_CATEGORICAL_METHOD,
               PREP_Y_NEG,
               PREP_Y_LOGSCALE,
               PREP_Y_STANDARDISE,
               PREP_Y_MINMAX,
               PREP_Y_ROBUST_SCALING,
-              PREP_Y_CATEGORICAL
+              PREP_Y_CATEGORICAL,
+              PREP_Y_CATEGORICAL_ONEHOT,
+              PREP_Y_CATEGORICAL_NBINS,
+              PREP_Y_CATEGORICAL_METHOD
               ):
 
     df = prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS)
@@ -34,7 +40,10 @@ def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
         standardise=PREP_X_STANDARDISE,
         min_max=PREP_X_MINMAX,
         robust=PREP_X_ROBUST_SCALING,
-        categorical=PREP_X_CATEGORICAL
+        categorical=PREP_X_CATEGORICAL,
+        categorical_onehot=PREP_X_CATEGORICAL_ONEHOT,
+        categorical_n_bins=PREP_X_CATEGORICAL_NBINS,
+        categorical_method=PREP_X_CATEGORICAL_METHOD
     )
     y_norm_settings = NormalizationSettings(
         negative=PREP_Y_NEG,
@@ -42,7 +51,10 @@ def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
         standardise=PREP_Y_STANDARDISE,
         min_max=PREP_Y_MINMAX,
         robust=PREP_Y_ROBUST_SCALING,
-        categorical=PREP_Y_CATEGORICAL
+        categorical=PREP_Y_CATEGORICAL,
+        categorical_onehot=PREP_Y_CATEGORICAL_ONEHOT,
+        categorical_n_bins=PREP_Y_CATEGORICAL_NBINS,
+        categorical_method=PREP_Y_CATEGORICAL_METHOD
     )
     x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
                                                                       x_norm_settings, y_norm_settings)
