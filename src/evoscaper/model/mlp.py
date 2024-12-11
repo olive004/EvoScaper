@@ -5,37 +5,45 @@ import jax
 import equinox as eqx
 from jaxtyping import Array, Float  # https://github.com/google/jaxtyping
 import wandb
-
+from collections.abc import Iterable
+from typing import Callable, Optional
 import pandas as pd
 
 
 # https://coderzcolumn.com/tutorials/artificial-intelligence/haiku-cnn
 
-class MLP(hk.Module):
+class MLPWithActivation(hk.Module):
 
-    def __init__(self, layer_sizes: List[int], n_head: int, use_categorical: bool, name='MLP'):
+    def __init__(self,
+                 output_sizes: Iterable[int],
+                 w_init: Optional[hk.initializers.Initializer] = None,
+                 b_init: Optional[hk.initializers.Initializer] = None,
+                 with_bias: bool = True,
+                 activation: Optional[Callable[[
+                     jax.Array], jax.Array]] = None,
+                 activation_final: Optional[Callable[[
+                     jax.Array], jax.Array]] = None,
+                 name: Optional[str] = None):
         super().__init__(name=name)
-        self.layers = self.create_layers(layer_sizes, n_head, use_categorical)
+        self.with_bias = with_bias
+        self.w_init = w_init
+        self.b_init = b_init
+        self.activation = activation
+        self.activation_final = activation_final
+        self.layers = self.create_layers(output_sizes)
 
-    def create_layers(self, layer_sizes: List[int], n_head: int, use_categorical: bool):
-        sizes = layer_sizes + [n_head]
+    def create_layers(self, output_sizes: List[int]):
         l = []
-        for i, s in enumerate(sizes):
-            # if l:
-            #     l.append(jax.nn.relu)
-            #     if np.mod(i, 2) == 0:
-            #         l.append(jax.nn.sigmoid)
-            # if sj == n_head:
-            #     l.append(eqx.nn.Dropout(p=0.4))
+        for i, output_size in enumerate(output_sizes):
 
-            # He initialisation
-            l.append(
-                hk.Linear(s, w_init=hk.initializers.VarianceScaling(scale=2.0))
-            )
-            l.append(jax.nn.leaky_relu)
+            l.append(hk.Linear(output_size=output_size,
+                               w_init=self.w_init,
+                               b_init=self.b_init,
+                               with_bias=self.with_bias,
+                               name="linear_%d" % i))
 
-        if use_categorical:
-            l.append(jax.nn.log_softmax)
+        if self.activation_final is not None:
+            l.append(self.activation_final)
         return l
 
     def __call__(self, x: Float[Array, " num_interactions"], inference: bool = False, seed: int = 0, logging: bool = True) -> Float[Array, " n_head"]:
@@ -44,12 +52,17 @@ class MLP(hk.Module):
                 'inference': inference, 'key': jax.random.PRNGKey(seed)}
 
             x = layer(x, **kwargs)
+            if (self.activation is not None) and (i < len(self.layers) - 1):
+                x = self.activation(x)
 
             if inference and logging:
                 df = pd.DataFrame(data=np.array(x), columns=['0'])
                 # logs[f'emb_{i}_{type(layer)}'] = df
                 wandb.log({f'emb_{i}_{type(layer)}': df})
 
+        if self.activation_final is not None:
+            x = self.activation_final(x)
+            
         # def f(carry, layer):
         #     x, i = carry
         #     kwargs = {} if not type(layer) == eqx.nn.Dropout else {
@@ -67,5 +80,5 @@ class MLP(hk.Module):
 
 
 def MLP_fn(x, init_kwargs: dict = {}, call_kwargs: dict = {}):
-    model = MLP(**init_kwargs)
+    model = MLPWithActivation(**init_kwargs)
     return model(x, **call_kwargs)
