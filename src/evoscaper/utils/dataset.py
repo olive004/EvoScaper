@@ -4,7 +4,7 @@ import numpy as np
 from evoscaper.utils.normalise import make_chain_f, NormalizationSettings, FilterSettings
 from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
-
+    
 
 def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
               TOTAL_DS_MAX, BATCH_SIZE, SEED,

@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import jax
-from dataclasses import dataclass
 
 
 from synbio_morpher.utils.misc.numerical import count_monotonic_group_lengths
@@ -10,17 +9,6 @@ from synbio_morpher.utils.misc.type_handling import get_nth_elements
 from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 
 SEQ_LENGTH = 20
-
-
-@dataclass
-class FilterSettings:
-    """ Filter data before creating the dataset. """
-    filt_x_nans: bool = True,
-    filt_y_nans: bool = True,
-    filt_sensitivity_nans: bool = True,
-    filt_precision_nans: bool = True,
-    filt_n_same_x_max: int = 100,
-    filt_n_same_x_max_bins: int = 500,
 
 
 def drop_duplicates_keep_first_n(df, column, n):
@@ -152,3 +140,12 @@ def construct_binding_img_complex(binding_idxs: list, seq_length: int, sequence_
         img[q, t] = binding_value_map[tuple(
             sorted((sequence_q[q], sequence_t[t])))]
     return img
+
+
+def make_xcols(data, x_type, include_diffs=False):
+    x_cols = list(get_true_interaction_cols(data, x_type, remove_symmetrical=True))
+    if include_diffs:
+        x_cols = x_cols + \
+            [[f'{i}_diffs' for i in get_true_interaction_cols(
+                data, x_type, remove_symmetrical=True)]]
+    return x_cols
