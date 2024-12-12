@@ -15,7 +15,7 @@ class NormalizationSettings:
     log: bool = False
     standardise: bool = True
     min_max: bool = False
-    robust: bool = False
+    robust_scaling: bool = False
     categorical: bool = False
     categorical_onehot: bool = False
     categorical_n_bins: int = 10
@@ -311,7 +311,7 @@ class DataNormalizer:
                     x = self.standardise(x)
                 elif method == 'min_max':
                     x = self.min_max_scaling(x)
-                elif method == 'robust':
+                elif method == 'robust_scaling':
                     x = self.robust_scaling(x)
                 elif method == 'negative':
                     x = self.negative_scaling(x)
@@ -334,7 +334,7 @@ class DataNormalizer:
                     x = self.inverse_standardise(x)
                 elif method == 'min_max':
                     x = self.inverse_min_max_scaling(x)
-                elif method == 'robust':
+                elif method == 'robust_scaling':
                     x = self.inverse_robust_scaling(x)
                 elif method == 'negative':
                     x = self.inverse_negative_scaling(x)
@@ -367,7 +367,7 @@ class DataNormalizer:
                 return DataNormalizer.standardise(x)
             elif method == 'min_max':
                 return DataNormalizer.min_max_scaling(x)
-            elif method == 'robust':
+            elif method == 'robust_scaling':
                 return DataNormalizer.robust_scaling(x)
             else:
                 raise ValueError(f"Unsupported normalization method: {method}")
@@ -522,8 +522,8 @@ def make_chain_f(data_norm_settings: NormalizationSettings):
             methods_preprocessing.append('categorical_onehot')
     if data_norm_settings.standardise:
         methods_preprocessing.append('standardise')
-    if data_norm_settings.robust:
-        methods_preprocessing.append('robust')
+    if data_norm_settings.robust_scaling:
+        methods_preprocessing.append('robust_scaling')
     if data_norm_settings.min_max:
         methods_preprocessing.append('min_max')
     return datanormaliser, methods_preprocessing
