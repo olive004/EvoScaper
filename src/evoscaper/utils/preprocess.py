@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import jax
+from dataclasses import dataclass
 
 
 from synbio_morpher.utils.misc.numerical import count_monotonic_group_lengths
@@ -9,6 +10,17 @@ from synbio_morpher.utils.misc.type_handling import get_nth_elements
 from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 
 SEQ_LENGTH = 20
+
+
+@dataclass
+class FilterSettings:
+    """ Filter data before creating the dataset. """
+    filt_x_nans: bool = True,
+    filt_y_nans: bool = True,
+    filt_sensitivity_nans: bool = True,
+    filt_precision_nans: bool = True,
+    filt_n_same_x_max: int = 100,
+    filt_n_same_x_max_bins: int = 500,
 
 
 def drop_duplicates_keep_first_n(df, column, n):

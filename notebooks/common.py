@@ -4,36 +4,28 @@ import numpy as np
 from evoscaper.utils.normalise import make_chain_f, NormalizationSettings
 from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
+from evoscaper.utils.preprocess import FilterSettings
 
 
-def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
-              TOTAL_DS_MAX, BATCH_SIZE, SEED,
-              PREP_X_NEG,
-              PREP_X_LOGSCALE,
-              PREP_X_STANDARDISE,
-              PREP_X_MINMAX,
-              PREP_X_ROBUST_SCALING,
-              PREP_X_CATEGORICAL,
-              PREP_X_CATEGORICAL_ONEHOT,
-              PREP_X_CATEGORICAL_NBINS,
-              PREP_X_CATEGORICAL_METHOD,
-              PREP_Y_NEG,
-              PREP_Y_LOGSCALE,
-              PREP_Y_STANDARDISE,
-              PREP_Y_MINMAX,
-              PREP_Y_ROBUST_SCALING,
-              PREP_Y_CATEGORICAL,
-              PREP_Y_CATEGORICAL_ONEHOT,
-              PREP_Y_CATEGORICAL_NBINS,
-              PREP_Y_CATEGORICAL_METHOD
-              ):
-
-    df = prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS)
-
-    TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
-    TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
-    N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
-
+def create_settings(
+        PREP_X_NEG,
+        PREP_X_LOGSCALE,
+        PREP_X_STANDARDISE,
+        PREP_X_MINMAX,
+        PREP_X_ROBUST_SCALING,
+        PREP_X_CATEGORICAL,
+        PREP_X_CATEGORICAL_ONEHOT,
+        PREP_X_CATEGORICAL_NBINS,
+        PREP_X_CATEGORICAL_METHOD,
+        PREP_Y_NEG,
+        PREP_Y_LOGSCALE,
+        PREP_Y_STANDARDISE,
+        PREP_Y_MINMAX,
+        PREP_Y_ROBUST_SCALING,
+        PREP_Y_CATEGORICAL,
+        PREP_Y_CATEGORICAL_ONEHOT,
+        PREP_Y_CATEGORICAL_NBINS,
+        PREP_Y_CATEGORICAL_METHOD):
     x_norm_settings = NormalizationSettings(
         negative=PREP_X_NEG,
         log=PREP_X_LOGSCALE,
@@ -56,6 +48,21 @@ def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
         categorical_n_bins=PREP_Y_CATEGORICAL_NBINS,
         categorical_method=PREP_Y_CATEGORICAL_METHOD
     )
+    return x_norm_settings, y_norm_settings
+
+
+def init_data(data, OBJECTIVE_COL, OUTPUT_SPECIES, X_COLS,
+              TOTAL_DS_MAX, BATCH_SIZE, SEED,
+              x_norm_settings: NormalizationSettings,
+              y_norm_settings: NormalizationSettings
+              ):
+
+    df = prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS)
+
+    TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
+    TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
+    N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
+
     x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
                                                                       x_norm_settings, y_norm_settings)
 
@@ -117,14 +124,24 @@ def make_y(df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings):
 
 # Balance preprocess
 
-def filter_invalids(data, OUTPUT_SPECIES, OBJECTIVE_COL):
+def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings: FilterSettings):
 
-    filt = data['sample_name'].isin(OUTPUT_SPECIES) & ~data['precision_wrt_species-6'].isna() & ~data['sensitivity_wrt_species-6'].isna(
-    ) & (np.abs(data['precision_wrt_species-6']) < np.inf) & data[OBJECTIVE_COL].notna() & (np.abs(data[OBJECTIVE_COL]) < np.inf) & (np.abs(data['sensitivity_wrt_species-6']) < np.inf)
+    filt = data['sample_name'].isin(OUTPUT_SPECIES)
+    if filter_settings.filt_x_nans:
+        filt = filt & data[X_COLS].notna().all(axis=1)
+    if filter_settings.filt_y_nans:
+        filt = filt & data[OBJECTIVE_COL].notna() & (
+            np.abs(data[OBJECTIVE_COL]) < np.inf)
+    if filter_settings.filt_sensitivity_nans:
+        filt = filt & (np.abs(data['sensitivity_wrt_species-6'])
+                       < np.inf) & data['sensitivity_wrt_species-6'].notna()
+    if filter_settings.filt_precision_nans:
+        filt = filt & (np.abs(data['precision_wrt_species-6'])
+                       < np.inf) & data['precision_wrt_species-6'].notna()
 
     df = data[filt]
-    df.loc[:, 'adaptability'] = df['adaptability'].apply(np.float32)
-    df.loc[:, 'adaptability'] = df['adaptability'].apply(
+    df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(np.float32)
+    df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(
         lambda x: np.round(x, 1))
     df = df.reset_index(drop=True)
 
