@@ -44,25 +44,33 @@ class MLPWithActivation(hk.Module):
 
         if self.activation_final is not None:
             l.append(self.activation_final)
+
+            hk.nets.MLP
         return l
 
-    def __call__(self, x: Float[Array, " num_interactions"], inference: bool = False, seed: int = 0, logging: bool = True) -> Float[Array, " n_head"]:
+    def __call__(self,
+                 inputs: Float[Array, " num_interactions"],
+                 dropout_rate: Optional[float] = None,
+                 rng=None, inference: bool = False, logging: bool = True) -> Float[Array, " n_head"]:
         for i, layer in enumerate(self.layers):
-            kwargs = {} if not type(layer) == eqx.nn.Dropout else {
-                'inference': inference, 'key': jax.random.PRNGKey(seed)}
+            kwargs = {}
+            if dropout_rate is not None:
+                kwargs = {} if not type(layer) == eqx.nn.Dropout else {
+                    'inference': inference, 'key': rng}
+                raise NotImplementedError('Dropout not implemented')
 
-            x = layer(x, **kwargs)
+            inputs = layer(inputs, **kwargs)
             if (self.activation is not None) and (i < len(self.layers) - 1):
-                x = self.activation(x)
+                inputs = self.activation(inputs)
 
             if inference and logging:
-                df = pd.DataFrame(data=np.array(x), columns=['0'])
+                df = pd.DataFrame(data=np.array(inputs), columns=['0'])
                 # logs[f'emb_{i}_{type(layer)}'] = df
                 wandb.log({f'emb_{i}_{type(layer)}': df})
 
         if self.activation_final is not None:
-            x = self.activation_final(x)
-            
+            inputs = self.activation_final(inputs)
+
         # def f(carry, layer):
         #     x, i = carry
         #     kwargs = {} if not type(layer) == eqx.nn.Dropout else {
@@ -76,7 +84,7 @@ class MLPWithActivation(hk.Module):
         #     return (x, i), None
 
         # (x, _i), _ = jax.lax.scan(f, (x, 0), self.layers)
-        return x
+        return inputs
 
 
 def MLP_fn(x, init_kwargs: dict = {}, call_kwargs: dict = {}):
