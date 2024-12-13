@@ -5,7 +5,7 @@ from evoscaper.utils.normalise import make_chain_f
 from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
 from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
-    
+
 
 def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
               TOTAL_DS_MAX, BATCH_SIZE, SEED,
@@ -21,7 +21,7 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
 
     x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, SEED, TOTAL_DS, x_cols, y_col,
-                                                                      x_norm_settings, y_norm_settings)
+                                                                                                            x_norm_settings, y_norm_settings)
 
     return df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
@@ -29,7 +29,8 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
 def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
 
     data = embellish_data(data)
-    df = filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings)
+    df = filter_invalids(data, OUTPUT_SPECIES, X_COLS,
+                         OBJECTIVE_COL, filter_settings)
     df = reduce_repeat_samples(df, X_COLS)
     return df
 
@@ -40,7 +41,8 @@ def embellish_data(data, transform_sensitivity_nans=True):
             s=data['sensitivity_wrt_species-6'].values,
             p=data['precision_wrt_species-6'].values)
     if transform_sensitivity_nans:
-        data['sensitivity_wrt_species-6'] = np.where(np.isnan(data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
+        data['sensitivity_wrt_species-6'] = np.where(np.isnan(
+            data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
     data['Log sensitivity'] = np.log10(data['sensitivity_wrt_species-6'])
     return data
 

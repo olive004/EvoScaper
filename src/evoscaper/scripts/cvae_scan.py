@@ -10,11 +10,12 @@ from datetime import datetime
 from evoscaper.model.vae import sample_z, VAE_fn
 from evoscaper.model.shared import arrayise, get_activation_fn
 from evoscaper.model.loss import loss_wrapper, compute_accuracy_regression, mse_loss, accuracy_regression
+from evoscaper.utils.dataclasses import DatasetConfig, NormalizationSettings, ModelConfig
+from evoscaper.utils.dataset import init_data
 from evoscaper.utils.math import convert_to_scientific_exponent
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.train import train
-from evoscaper.utils.dataclasses import NormalizationSettings, ModelConfig
-from evoscaper.utils.dataset import init_data
+from evoscaper.utils.tuning import make_configs_initial
 
 
 def init_model(rng, x, cond, model_settings: ModelConfig):
@@ -55,21 +56,33 @@ def make_training_data(x, cond, y, train_split, n_batches, batch_size):
         train_split * n_batches):], y[int(train_split * n_batches):]
 
     return x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val
+    
+
+def make_configs(x, hpos):
+    
+    model_settings = ModelConfig(
+        seed=hpos['seed_arch']
+        decoder_head=x.shape[-1],
+        activation=get_activation_fn(hpos['activation']),
+        use_sigmoid_decoder=hpos['use_sigmoid_decoder']
+    )
 
 
 def main(hpos):
 
     rng = jax.random.PRNGKey(hpos['seed'])
     rng_model = jax.random.PRNGKey(hpos['seed_arch'])
+    
 
+    config_norm_x, config_norm_y, config_filter, config_dataset, config_training = make_configs_initial(hpos)
+    
+    
     (df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing,
-     y_datanormaliser, y_methods_preprocessing) = init_data(hpos)
+     y_datanormaliser, y_methods_preprocessing) = init_data(
+         config_norm_x, config_norm_y, config_filter)
+    
+    make_configs
 
-    model_settings = ModelConfig(
-        decoder_head=x.shape[-1],
-        activation=get_activation_fn(ACTIVATION),
-        use_sigmoid_decoder=USE_SIGMOID_DECODER
-    )
     params, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
         rng_model, x, cond, model_settings)
     x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val = make_training_data(

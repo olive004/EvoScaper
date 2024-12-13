@@ -64,6 +64,7 @@ class ModelConfig:
 class TrainingConfig:
     batch_size: int
     epochs: int
+    patience: int
     learning_rate: float
     learning_rate_sched: str
     loss_func: str
@@ -84,7 +85,6 @@ class OptimizationConfig:
     opt_method: str
     opt_metric: str
     opt_mode: str
-    opt_patience: int
     opt_factor: float
     opt_min_lr: float
     opt_min_delta: float
