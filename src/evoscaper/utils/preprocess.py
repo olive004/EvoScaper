@@ -142,8 +142,8 @@ def construct_binding_img_complex(binding_idxs: list, seq_length: int, sequence_
     return img
 
 
-def make_xcols(data, x_type, include_diffs=False):
-    x_cols = list(get_true_interaction_cols(data, x_type, remove_symmetrical=True))
+def make_xcols(data, x_type, include_diffs=False, remove_symmetrical=True):
+    x_cols = list(get_true_interaction_cols(data, x_type, remove_symmetrical=remove_symmetrical))
     if include_diffs:
         x_cols = x_cols + \
             [[f'{i}_diffs' for i in get_true_interaction_cols(
