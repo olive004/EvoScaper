@@ -19,10 +19,10 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
 
-    x, cond, x_scaling, x_unscaling, y_scaling, y_unscaling = make_xy(df, SEED, TOTAL_DS, x_cols, y_col,
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, SEED, TOTAL_DS, x_cols, y_col,
                                                                       x_norm_settings, y_norm_settings)
 
-    return df, x, cond, TOTAL_DS, N_BATCHES, x_scaling, x_unscaling, y_scaling, y_unscaling
+    return df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
 def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
