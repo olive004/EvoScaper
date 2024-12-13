@@ -3,34 +3,6 @@ import jax
 import haiku as hk
 import numpy as np
 from typing import Dict, Any, Tuple, Literal, Union, Optional
-from dataclasses import dataclass
-
-
-@dataclass
-class FilterSettings:
-    """ Filter data before creating the dataset. """
-    filt_x_nans: bool = True
-    filt_y_nans: bool = True
-    filt_sensitivity_nans: bool = True
-    filt_precision_nans: bool = True
-    filt_n_same_x_max: int = 100
-    filt_n_same_x_max_bins: int = 500
-
-           
-@dataclass
-class NormalizationSettings:
-    """
-    Configuration settings for data normalization.
-    """
-    negative: bool = False
-    log: bool = False
-    standardise: bool = True
-    min_max: bool = False
-    robust_scaling: bool = False
-    categorical: bool = False
-    categorical_onehot: bool = False
-    categorical_n_bins: int = 10
-    categorical_method: str = 'equal_width'
     
 
 class DataNormalizer:
@@ -223,6 +195,18 @@ class DataNormalizer:
         })
         return categorical_data
     
+    def inverse_categorical(self, data: jnp.array):
+        """
+        Convert categorical data back to continuous data
+
+        Args:
+            data (jnp.ndarray): Categorical data
+
+        Returns:
+            jnp.ndarray: Continuous data
+        """
+        return np.vectorize(self.metadata['category_map'].get)(data)
+    
     def categorical_onehot(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Convert continuous data to one-hot encoded categorical data
@@ -352,7 +336,7 @@ class DataNormalizer:
                 elif method == 'log':
                     x = self.inverse_log_scaling(x)
                 elif method == 'categorical':
-                    pass
+                    x = self.inverse_categorical(x)
                 elif method == 'categorical_onehot':
                     x = self.inverse_onehot(x)
                 else:

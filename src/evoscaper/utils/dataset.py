@@ -1,7 +1,8 @@
 
 
 import numpy as np
-from evoscaper.utils.normalise import make_chain_f, NormalizationSettings, FilterSettings
+from evoscaper.utils.normalise import make_chain_f
+from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
 from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
     
@@ -33,11 +34,13 @@ def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
     return df
 
 
-def embellish_data(data):
+def embellish_data(data, transform_sensitivity_nans=True):
     if 'adaptability' not in data.columns:
         data['adaptability'] = calculate_adaptation(
             s=data['sensitivity_wrt_species-6'].values,
             p=data['precision_wrt_species-6'].values)
+    if transform_sensitivity_nans:
+        data['sensitivity_wrt_species-6'] = np.where(np.isnan(data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
     data['Log sensitivity'] = np.log10(data['sensitivity_wrt_species-6'])
     return data
 
