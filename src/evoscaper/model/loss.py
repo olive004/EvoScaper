@@ -104,15 +104,16 @@ def compute_accuracy_categorical(
 @eqx.filter_jit
 def compute_accuracy_regression(
     params, rng, model: hk.Module, x: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
-    threshold=0.1, **model_call_kwargs
+    rtol=1e-3, atol=1e-5, **model_call_kwargs
 ) -> Float[Array, ""]:
     pred_y = model.apply(params, rng, x, **model_call_kwargs)
-    return accuracy_regression(pred_y, y, threshold)
+    return accuracy_regression(pred_y, y, rtol=rtol, atol=atol)
 
 
 @eqx.filter_jit
 def accuracy_regression(
     pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
-    threshold=0.1
+    rtol=1e-3, atol=1e-5
 ) -> Float[Array, ""]:
-    return jnp.mean(jnp.abs(y - pred_y) <= threshold)
+    # return jnp.mean(jnp.abs(y - pred_y) <= threshold)
+    return jnp.mean(jnp.isclose(pred_y, y, rtol=rtol, atol=atol))

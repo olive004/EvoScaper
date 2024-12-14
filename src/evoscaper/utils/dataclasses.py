@@ -6,7 +6,7 @@ from typing import List
 
 @dataclass
 class DatasetConfig:
-    seed: int
+    seed_dataset: int
     include_diffs: bool
     objective_col: str
     output_species: List[str]
@@ -46,7 +46,7 @@ class NormalizationSettings:
 
 @dataclass
 class ModelConfig:
-    seed: int
+    seed_arch: int
     model: str
     enc_layers: List[int]
     dec_layers: List[int]

@@ -6,16 +6,35 @@ from evoscaper.model.shared import get_activation_fn
 
 
 def make_config_dataset(hpos: dict):
-    return DatasetConfig(
-        seed=hpos['seed_dataset'],
-        include_diffs=hpos['include_diffs'],
-        objective_col=hpos['objective_col'],
-        output_species=hpos['output_species'],
-        total_ds_max=hpos['total_ds_max'],
-        train_split=hpos['train_split'],
-        x_type=hpos['x_type'],
-        filenames_train_table=hpos['filenames_train_table'],
-        filenames_verify_table=hpos['filenames_verify_table'],
+    # return DatasetConfig(
+    #     seed_dataset=hpos['seed_dataset'],
+    #     include_diffs=hpos['include_diffs'],
+    #     objective_col=hpos['objective_col'],
+    #     output_species=hpos['output_species'],
+    #     total_ds_max=hpos['total_ds_max'],
+    #     train_split=hpos['train_split'],
+    #     x_type=hpos['x_type'],
+    #     filenames_train_table=hpos['filenames_train_table'],
+    #     filenames_verify_table=hpos['filenames_verify_table'],
+    # )
+    return DatasetConfig(**{s: hpos[s] for s in DatasetConfig.__dict__.keys()})
+    
+
+def make_config_model(x, hpos):
+    return ModelConfig(
+        seed=hpos['seed_arch'],
+        decoder_head=x.shape[-1],
+        activation=get_activation_fn(hpos['activation']),
+        model=hpos['model'],
+        enc_layers=hpos['enc_layers'],
+        dec_layers=hpos['dec_layers'],
+        decoder_head=hpos['decoder_head'],
+        hidden_size=hpos['hidden_size'],
+        use_sigmoid_decoder=hpos['use_sigmoid_decoder'],
+        enc_init=hpos['enc_init'],
+        dec_init=hpos['dec_init'],
+        call_kwargs={},
+        init_model_with_random=hpos['init_model_with_random'],
     )
 
 
