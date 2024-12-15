@@ -188,11 +188,12 @@ class DataNormalizer:
             n_bins=n_bins,
             method=method
         )
-        category_map = dict(zip(np.arange(n_bins), [np.mean([bin_edges[i], bin_edges[i+1]]) for i in range(n_bins)]))
 
-        self.metadata.update({
-            'category_map': category_map
-        })
+        if 'category_map' not in self.metadata:
+            category_map = dict(zip(np.arange(n_bins), [np.mean([bin_edges[i], bin_edges[i+1]]) for i in range(n_bins)]))
+            self.metadata.update({
+                'category_map': category_map
+            })
         return categorical_data
     
     def inverse_categorical(self, data: jnp.array):

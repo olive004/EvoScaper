@@ -62,9 +62,9 @@ def make_configs_initial(hpos: dict):
         warmup_epochs=hpos['warmup_epochs'],
         print_every=hpos['print_every']
     )
-    OptimizationConfig(**{s: hpos[s] for s in OptimizationConfig.__dict__.keys()})
+    config_optimisation = OptimizationConfig(**{s: hpos[s] for s in OptimizationConfig.__dict__.keys()})
     
-    return x_norm_settings, y_norm_settings, filter_settings, make_config_dataset(hpos), config_training
+    return x_norm_settings, y_norm_settings, filter_settings, config_optimisation, make_config_dataset(hpos), config_training
 
 
 def make_configs(x, hpos: dict):

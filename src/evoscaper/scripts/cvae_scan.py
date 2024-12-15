@@ -1,29 +1,35 @@
 
 
+from typing import Callable
+from bioreaction.misc.misc import load_json_as_dict
 import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
+import matplotlib.pyplot as plt
 from functools import partial
 from datetime import datetime
 import pandas as pd
 import os
 
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from evoscaper.model.vae import sample_z, VAE_fn
-from evoscaper.model.shared import arrayise, get_activation_fn
-from evoscaper.model.loss import loss_wrapper, compute_accuracy_regression, mse_loss, accuracy_regression
-from evoscaper.utils.dataclasses import DatasetConfig, NormalizationSettings, ModelConfig
-from evoscaper.utils.dataset import init_data
-from evoscaper.utils.math import convert_to_scientific_exponent
+from evoscaper.model.sampling import sample_reconstructions
+from evoscaper.model.vae import VAE_fn
+from evoscaper.model.shared import get_activation_fn
+from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
+from evoscaper.scripts.verify import verify
+from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
+from evoscaper.utils.dataset import init_data, prep_data
+from evoscaper.utils.math import bin_to_nearest_edge
+from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_xcols
 from evoscaper.utils.train import train
 from evoscaper.utils.tuning import make_configs_initial, make_config_model
+from evoscaper.utils.visualise import vis_histplot_combined_realfake, vis_parity, vis_recon_distribution, vis_training
 
 
 def init_model(rng, x, cond, config_model: ModelConfig):
-    # rng = jax.random.PRNGKey(config_model.seed)
 
     model_fn = partial(VAE_fn, enc_layers=config_model.enc_layers, dec_layers=config_model.dec_layers,
                        decoder_head=config_model.decoder_head, HIDDEN_SIZE=config_model.hidden_size,
@@ -64,15 +70,16 @@ def make_training_data(x, cond, y, train_split, n_batches, batch_size):
 
 def load_data(config_dataset: DatasetConfig):
     data = pd.read_csv(config_dataset.filenames_train_table)
+    data_test = pd.read_csv(config_dataset.filenames_verify_table)
     X_COLS = make_xcols(data, config_dataset.x_type,
                         config_dataset.include_diffs)
-    return data, X_COLS
+    return data, X_COLS, data_test
 
 
-def make_savepath(task = '_test'):
+def make_savepath(task='_test', top_dir='data'):
     save_path = str(datetime.now()).split(' ')[0].replace(
         '-', '_') + '__' + str(datetime.now()).split(' ')[-1].split('.')[0].replace(':', '_') + '_saves' + task
-    save_path = os.path.join('weight_saves', '01_cvae', save_path)
+    save_path = os.path.join(top_dir, save_path)
     return save_path
 
 
@@ -87,39 +94,13 @@ def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
     return loss_fn, compute_accuracy
 
 
-def main(hpos):
-
-    rng = jax.random.PRNGKey(hpos['seed'])
-    rng_model = jax.random.PRNGKey(hpos['seed_arch'])
-
-    # Configs + data
-    (config_norm_x, config_norm_y, config_filter, config_dataset,
-     config_training) = make_configs_initial(hpos)
-    data, X_COLS = load_data(config_dataset)
-
-    # Init data
-    (df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing,
-     y_datanormaliser, y_methods_preprocessing) = init_data(
-         data, X_COLS, config_dataset.objective_col, config_dataset.output_species, config_dataset.total_ds_max,
-         config_training.batch_size, config_training.seed_dataset, config_norm_x, config_norm_y, config_filter)
-
-    # Init model
-    config_model = make_config_model(x, hpos)
-
-    params, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
-        rng_model, x, cond, config_model)
-    x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val = make_training_data(
-        x, cond, y, config_dataset.train_split, N_BATCHES, config_training.batch_size)
-
-    optimiser, optimiser_state = init_optimiser(x, config_training.learning_rate_sched, config_training.learning_rate,
-                                                config_training.epochs, config_training.l2_reg_alpha, config_training.use_warmup,
-                                                config_training.warmup_epochs, N_BATCHES)
-    
-    # Losses
-    loss_fn, compute_accuracy = make_loss(
-        config_training.loss_func, config_training.use_l2_reg, config_training.use_kl_div, config_training.kl_weight)
-    
-    # Train
+def train_full(params, rng, model,
+               x_train, cond_train, y_train, x_val, cond_val, y_val,
+               config_optimisation: OptimizationConfig, config_training: TrainingConfig, 
+               loss_fn: Callable, compute_accuracy: Callable, n_batches: int):
+    optimiser, optimiser_state = init_optimiser(x_train, config_optimisation.learning_rate_sched, config_training.learning_rate,
+                                                config_training.epochs, config_training.l2_reg_alpha, config_optimisation.use_warmup,
+                                                config_optimisation.warmup_epochs, n_batches)
     tstart = datetime.now()
     params, saves = train(params, rng, model,
                           x_train, cond_train, y_train, x_val, cond_val, y_val,
@@ -128,10 +109,118 @@ def main(hpos):
                           epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
                           save_every=config_training.print_every, include_params_in_saves=False)
     print('Training complete:', datetime.now() - tstart)
-    
     save_path = make_savepath()
     write_json(saves, out_path=save_path)
     print(save_path)
+    return params, saves
+
+
+def vis(saves, x, pred_y, data_writer):
+    vis_training(saves, os.path.join(
+        data_writer.top_write_dir, 'training.png'))
+    vis_parity(x, pred_y, os.path.join(
+        data_writer.top_write_dir, 'parity.png'))
+    vis_recon_distribution(x, pred_y, len(pred_y), os.path.join(
+        data_writer.top_write_dir, 'recon_distribution.png'))
+
+
+def test_conditionality(params, rng, decoder, df, x_cols,
+                        config_dataset: DatasetConfig, config_norm_y, config_model,
+                        x_datanormaliser, x_methods_preprocessing,
+                        y_datanormaliser, y_methods_preprocessing, cond):
+    n_categories = config_norm_y.categorical_n_bins
+    fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
+                                                            n_categories=n_categories, n_to_sample=10000, hidden_size=config_model.hidden_size,
+                                                            x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
+                                                            use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
+                                                            cond_min=cond.min(), cond_max=cond.max())
+
+    vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
+                                   y_datanormaliser, y_methods_preprocessing,
+                                   fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot)
+
+
+def test(model, params, rng, decoder, saves, data_test,
+         config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model: ModelConfig,
+         x_cols, config_filter: FilterSettings,
+         x_datanormaliser: DataNormalizer, x_methods_preprocessing,
+         y_datanormaliser: DataNormalizer, y_methods_preprocessing):
+
+    df = prep_data(data_test, config_dataset.output_species,
+                   config_dataset.objective_col, x_cols, config_filter)
+    x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(
+        np.concatenate([df[i].values[:, None] for i in x_cols], axis=1).squeeze())
+    cond = y_datanormaliser.create_chain_preprocessor(y_methods_preprocessing)(
+        df[config_dataset.objective_col].to_numpy()[:, None])
+
+    pred_y = model(params, rng, x, cond)
+
+    vis(saves, x, pred_y)
+
+    test_conditionality(params, rng, decoder, df, x_cols,
+                        config_dataset, config_norm_y, config_model,
+                        x_datanormaliser, x_methods_preprocessing,
+                        y_datanormaliser, y_methods_preprocessing, cond)
     
+    return # all to be recorded
+
+
+def save_stats():
+    pass
+
+
+def main(hpos):
+
+    rng = jax.random.PRNGKey(hpos['seed'])
+    rng_model = jax.random.PRNGKey(hpos['seed_arch'])
+    rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
+
+    # Configs + data
+    (config_norm_x, config_norm_y, config_filter, config_optimisation,
+     config_dataset, config_training) = make_configs_initial(hpos)
+    data, x_cols, data_test = load_data(config_dataset)
+
+    # Init data
+    (df, x, cond, TOTAL_DS, n_batches, x_datanormaliser, x_methods_preprocessing,
+     y_datanormaliser, y_methods_preprocessing) = init_data(
+         data, x_cols, config_dataset.objective_col, config_dataset.output_species, config_dataset.total_ds_max,
+         config_training.batch_size, rng_dataset, config_norm_x, config_norm_y, config_filter)
+    x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val = make_training_data(
+        x, cond, y, config_dataset.train_split, n_batches, config_training.batch_size)
+
+    # Init model
+    config_model = make_config_model(x, hpos)
+    params, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
+        rng_model, x, cond, config_model)
+
+    # Losses
+    loss_fn, compute_accuracy = make_loss(
+        config_training.loss_func, config_training.use_l2_reg, config_training.use_kl_div, config_training.kl_weight)
+
+    # Train
+    params, saves = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
+                               config_optimisation, config_training, loss_fn, compute_accuracy, n_batches)
+
+    # Test & Visualise
+    test(model, params, rng, decoder, saves, data_test,
+         config_dataset, config_norm_y, config_model,
+         x_cols, config_filter,
+         x_datanormaliser, x_methods_preprocessing,
+         y_datanormaliser, y_methods_preprocessing)
+
     # Verification
-    
+    config_bio = load_json_as_dict(config_dataset.filenames_train_config)
+    verify(params, rng, decoder,
+           df, cond,
+           config_bio,
+           config_dataset,
+           config_model,
+           x_datanormaliser, x_methods_preprocessing,
+           y_datanormaliser,
+           output_species=config_dataset.output_species,
+           signal_species=config_dataset.signal_species,
+           n_to_sample=100000,
+           visualise=True)
+
+    # Save stats
+    save_stats()

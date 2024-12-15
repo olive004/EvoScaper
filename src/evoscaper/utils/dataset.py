@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import jax
 from evoscaper.utils.normalise import make_chain_f
 from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
 from sklearn.utils import shuffle
@@ -8,7 +9,7 @@ from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptati
 
 
 def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
-              TOTAL_DS_MAX, BATCH_SIZE, SEED,
+              TOTAL_DS_MAX, BATCH_SIZE, rng,
               x_norm_settings: NormalizationSettings,
               y_norm_settings: NormalizationSettings,
               filter_settings: FilterSettings
@@ -20,7 +21,7 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
 
-    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, SEED, TOTAL_DS, x_cols, y_col,
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
                                                                                                             x_norm_settings, y_norm_settings)
 
     return df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
@@ -48,14 +49,16 @@ def embellish_data(data, transform_sensitivity_nans=True):
 
 
 # Make xy
-def make_xy(df, SEED, TOTAL_DS, X_COLS, OBJECTIVE_COL,
+def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
             x_norm_settings, y_norm_settings):
 
     x, x_datanormaliser, x_methods_preprocessing = make_x(
         df, TOTAL_DS, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
         df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings)
-    x, cond = shuffle(x, cond, random_state=SEED)
+    # x, cond = shuffle(x, cond, random_state=rng)
+    shuffled_indices = jax.random.permutation(rng, x.shape[0])
+    x, cond = x[shuffled_indices], cond[shuffled_indices]
 
     if x.shape[0] < TOTAL_DS:
         print(

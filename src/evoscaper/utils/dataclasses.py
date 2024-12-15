@@ -10,11 +10,14 @@ class DatasetConfig:
     include_diffs: bool
     objective_col: str
     output_species: List[str]
+    signal_species: List[str]
     total_ds_max: int
     train_split: float
     x_type: str
     filenames_train_table: List[str]
     filenames_verify_table: List[str]
+    filenames_train_config: List[str]
+    filenames_verify_config: List[str]
 
 
 @dataclass
@@ -66,7 +69,6 @@ class TrainingConfig:
     epochs: int
     patience: int
     learning_rate: float
-    learning_rate_sched: str
     loss_func: str
     use_dropout: bool
     dropout_rate: float
@@ -74,8 +76,6 @@ class TrainingConfig:
     l2_reg_alpha: float
     use_kl_div: bool
     kl_weight: float
-    use_warmup: bool
-    warmup_epochs: int
     print_every: int
 
 
@@ -83,8 +83,8 @@ class TrainingConfig:
 class OptimizationConfig:
     seed_opt: int
     opt_method: str
-    opt_metric: str
-    opt_mode: str
-    opt_factor: float
     opt_min_lr: float
     opt_min_delta: float
+    learning_rate_sched: str
+    use_warmup: bool
+    warmup_epochs: int

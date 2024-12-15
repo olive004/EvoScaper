@@ -17,6 +17,12 @@ def arrayise(d):
     return d
 
 
+def bin_to_nearest_edge(x: np.ndarray, n_bins):
+    """ Bin the elements in x to the nearest lowest bin """
+    edges = np.linspace(x.min(), x.max(), n_bins)
+    return round_to_nearest_array(x, edges)
+
+
 def calculate_conv_output(input_size: int, kernel_size: int, padding: int, stride: int):
     return int((input_size - kernel_size + 2 * padding) // stride + 1)
 
@@ -29,7 +35,7 @@ def convert_to_scientific_exponent(x, numerical_resolution: dict):
     return int(exp_not[1]) + pre / 10
 
 
-def convert_to_scientific_exponent_simple(x): 
+def convert_to_scientific_exponent_simple(x):
     return int(f'{x:.0e}'.split('e')[1])
 
 
@@ -48,6 +54,16 @@ def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
     return base_num * np.power(10.0, exponent)
+
+
+def round_to_nearest_array(x, y):
+    """ 
+    x: array to be mapped over
+    y: array with integers to round to """
+    distances = np.abs(x[:, None] - y[None, :])
+    nearest_indices = np.argmin(distances, axis=1)
+    nearest_values = y[nearest_indices]
+    return nearest_values
 
 
 def scientific_exponent(value: Number) -> int:
