@@ -12,7 +12,9 @@ from datetime import datetime
 import pandas as pd
 import os
 
+from sklearn.base import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
+from evoscaper.model.evaluation import estimate_mutual_information_knn
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import VAE_fn
 from evoscaper.model.shared import get_activation_fn
@@ -111,8 +113,9 @@ def train_full(params, rng, model,
     print('Training complete:', datetime.now() - tstart)
     save_path = make_savepath()
     write_json(saves, out_path=save_path)
-    print(save_path)
-    return params, saves
+    
+    r2_train = r2_score(y_train.flatten(), model(params, rng, x_train, cond_train).flatten())
+    return params, saves, save_path, r2_train
 
 
 def vis(saves, x, pred_y, data_writer):
@@ -134,10 +137,13 @@ def test_conditionality(params, rng, decoder, df, x_cols,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max())
+    
+    mi = estimate_mutual_information_knn(z.reshape(np.prod(z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
 
     vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
                                    y_datanormaliser, y_methods_preprocessing,
                                    fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot)
+    return mi
 
 
 def test(model, params, rng, decoder, saves, data_test,
@@ -154,22 +160,28 @@ def test(model, params, rng, decoder, saves, data_test,
         df[config_dataset.objective_col].to_numpy()[:, None])
 
     pred_y = model(params, rng, x, cond)
+    
+    r2_test = r2_score(x.flatten(), pred_y.flatten())
 
     vis(saves, x, pred_y)
 
-    test_conditionality(params, rng, decoder, df, x_cols,
+    mi = test_conditionality(params, rng, decoder, df, x_cols,
                         config_dataset, config_norm_y, config_model,
                         x_datanormaliser, x_methods_preprocessing,
                         y_datanormaliser, y_methods_preprocessing, cond)
     
-    return # all to be recorded
+    return r2_test, mi
 
 
-def save_stats():
-    pass
+def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec):
+    for k, v in zip(
+        ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test', 'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec'],
+        [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec]):
+        hpos[k] = v
+    return hpos
 
 
-def main(hpos):
+def main(hpos: pd.Series):
 
     rng = jax.random.PRNGKey(hpos['seed'])
     rng_model = jax.random.PRNGKey(hpos['seed_arch'])
@@ -181,7 +193,7 @@ def main(hpos):
     data, x_cols, data_test = load_data(config_dataset)
 
     # Init data
-    (df, x, cond, TOTAL_DS, n_batches, x_datanormaliser, x_methods_preprocessing,
+    (df, x, cond, total_ds, n_batches, x_datanormaliser, x_methods_preprocessing,
      y_datanormaliser, y_methods_preprocessing) = init_data(
          data, x_cols, config_dataset.objective_col, config_dataset.output_species, config_dataset.total_ds_max,
          config_training.batch_size, rng_dataset, config_norm_x, config_norm_y, config_filter)
@@ -198,29 +210,31 @@ def main(hpos):
         config_training.loss_func, config_training.use_l2_reg, config_training.use_kl_div, config_training.kl_weight)
 
     # Train
-    params, saves = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
+    params, saves, save_path, r2_train = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
                                config_optimisation, config_training, loss_fn, compute_accuracy, n_batches)
 
     # Test & Visualise
-    test(model, params, rng, decoder, saves, data_test,
+    r2_test, mi = test(model, params, rng, decoder, saves, data_test,
          config_dataset, config_norm_y, config_model,
          x_cols, config_filter,
          x_datanormaliser, x_methods_preprocessing,
          y_datanormaliser, y_methods_preprocessing)
+    
+    # Save stats
+    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, len(config_model.enc_layers), len(config_model.dec_layers))
 
     # Verification
-    config_bio = load_json_as_dict(config_dataset.filenames_train_config)
-    verify(params, rng, decoder,
-           df, cond,
-           config_bio,
-           config_dataset,
-           config_model,
-           x_datanormaliser, x_methods_preprocessing,
-           y_datanormaliser,
-           output_species=config_dataset.output_species,
-           signal_species=config_dataset.signal_species,
-           n_to_sample=100000,
-           visualise=True)
+    if (r2_test > 0.8) or (r2_train > 0.8):
+        config_bio = load_json_as_dict(config_dataset.filenames_train_config)
+        verify(params, rng, decoder,
+            df, cond,
+            config_bio,
+            config_dataset,
+            config_model,
+            x_datanormaliser, x_methods_preprocessing,
+            y_datanormaliser,
+            output_species=config_dataset.output_species,
+            signal_species=config_dataset.signal_species,
+            n_to_sample=hpos['eval_n_to_sample'],
+            visualise=True)
 
-    # Save stats
-    save_stats()

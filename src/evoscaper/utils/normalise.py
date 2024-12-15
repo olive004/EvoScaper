@@ -3,6 +3,8 @@ import jax
 import haiku as hk
 import numpy as np
 from typing import Dict, Any, Tuple, Literal, Union, Optional
+
+from evoscaper.utils.dataclasses import NormalizationSettings
     
 
 class DataNormalizer:
