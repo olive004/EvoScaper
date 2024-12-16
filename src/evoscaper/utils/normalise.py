@@ -313,7 +313,7 @@ class DataNormalizer:
                     x = self.robust_scaling(x)
                 elif method == 'negative':
                     x = self.negative_scaling(x)
-                elif method == 'log':
+                elif method == 'logscale':
                     x = self.log_scaling(x)
                 elif method == 'categorical':
                     x = self.make_categorical(x, n_bins=self.categorical_n_bins, method=self.categorical_method)
@@ -336,7 +336,7 @@ class DataNormalizer:
                     x = self.inverse_robust_scaling(x)
                 elif method == 'negative':
                     x = self.inverse_negative_scaling(x)
-                elif method == 'log':
+                elif method == 'logscale':
                     x = self.inverse_log_scaling(x)
                 elif method == 'categorical':
                     x = self.inverse_categorical(x)
@@ -510,8 +510,8 @@ def make_chain_f(data_norm_settings: NormalizationSettings):
     methods_preprocessing = []
     if data_norm_settings.negative:
         methods_preprocessing.append('negative')
-    if data_norm_settings.log:
-        methods_preprocessing.append('log')
+    if data_norm_settings.logscale:
+        methods_preprocessing.append('logscale')
     if data_norm_settings.categorical:
         methods_preprocessing.append('categorical')
         datanormaliser.categorical_n_bins = data_norm_settings.categorical_n_bins

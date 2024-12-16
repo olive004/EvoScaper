@@ -37,7 +37,7 @@ def save_plot():
     return decorator
 
 
-@save_plot
+@save_plot()
 def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: List[str],
                          title: str, x_label: str, multiple='fill'):
     category_array = np.array(sorted(y_datanormaliser.metadata["category_map"].values())).repeat(
@@ -60,7 +60,7 @@ def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: 
         plt.title(title)
 
 
-@save_plot
+@save_plot()
 def vis_training(saves):
     metrics = ['train_loss', 'val_loss', 'val_accuracy']
     plt.figure(figsize=(6*len(metrics), 5))
@@ -75,7 +75,7 @@ def vis_training(saves):
     plt.suptitle('Training process')
 
 
-@save_plot
+@save_plot()
 def vis_parity(y, pred_y):
     g = sns.scatterplot(x=y.flatten(), y=pred_y.flatten(), alpha=0.1, hue=np.sqrt(
         np.abs(pred_y.flatten() - y.flatten())), palette='viridis')
@@ -90,7 +90,7 @@ def vis_parity(y, pred_y):
         y.flatten(), pred_y.flatten(), multioutput='variance_weighted'))
 
 
-@save_plot
+@save_plot()
 def vis_recon_distribution(x, x_fake, n_to_sample: int):
     fig = plt.figure(figsize=(7*3, 8))
     fig.subplots_adjust(wspace=0.4)
@@ -139,7 +139,7 @@ def vis_recon_distribution(x, x_fake, n_to_sample: int):
     plt.suptitle(f'Interactions for CVAE: {n_to_sample} circuits')
 
 
-@save_plot
+@save_plot()
 def vis_recon_scatter(x, x_fake, show_max: int = 2000):
     fig = plt.figure(figsize=(13, 4))
 
@@ -162,7 +162,7 @@ def vis_recon_scatter(x, x_fake, show_max: int = 2000):
     plt.suptitle(f'CVAE: {show_max} circuits')
 
 
-@save_plot
+@save_plot()
 def vis_histplot_combined_realfake(
         n_categories, df, x_cols, objective_col, y_datanormaliser, y_methods_preprocessing,
         fake_circuits, z, sampled_cond, is_onehot, show_max=300):

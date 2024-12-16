@@ -4,7 +4,6 @@ from typing import Callable
 from bioreaction.misc.misc import load_json_as_dict
 import haiku as hk
 import jax
-import jax.numpy as jnp
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import partial
@@ -12,7 +11,7 @@ from datetime import datetime
 import pandas as pd
 import os
 
-from sklearn.base import r2_score
+from sklearn.metrics import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
 from evoscaper.model.evaluation import estimate_mutual_information_knn
 from evoscaper.model.sampling import sample_reconstructions
@@ -22,7 +21,6 @@ from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import init_data, prep_data
-from evoscaper.utils.math import bin_to_nearest_edge
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_xcols
@@ -55,15 +53,15 @@ def init_optimiser(x, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, 
     return optimiser, optimiser_state
 
 
-def make_training_data(x, cond, y, train_split, n_batches, batch_size):
+def make_training_data(x, cond, train_split, n_batches, batch_size):
     def f_reshape(i): return i.reshape(n_batches, batch_size, i.shape[-1])
 
     x = f_reshape(x)
     y = f_reshape(x)
     cond = f_reshape(cond)
 
-    x_train, cond_train, y_train = x[:int(train_split * n_batches)], cond[:int(
-        train_split * n_batches)], y[:int(train_split * n_batches)]
+    x_train, cond_train, y_train = x[:int(np.max([train_split * n_batches, 1]))], cond[:int(
+        np.max([train_split * n_batches, 1]))], y[:int(np.max([train_split * n_batches, 1]))]
     x_val, cond_val, y_val = x[int(train_split * n_batches):], cond[int(
         train_split * n_batches):], y[int(train_split * n_batches):]
 
@@ -71,11 +69,11 @@ def make_training_data(x, cond, y, train_split, n_batches, batch_size):
 
 
 def load_data(config_dataset: DatasetConfig):
-    data = pd.read_csv(config_dataset.filenames_train_table)
-    data_test = pd.read_csv(config_dataset.filenames_verify_table)
+    data = pd.concat([pd.read_csv(fn)
+                     for fn in config_dataset.filenames_train_table])
     X_COLS = make_xcols(data, config_dataset.x_type,
                         config_dataset.include_diffs)
-    return data, X_COLS, data_test
+    return data, X_COLS
 
 
 def make_savepath(task='_test', top_dir='data'):
@@ -98,8 +96,8 @@ def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
 
 def train_full(params, rng, model,
                x_train, cond_train, y_train, x_val, cond_val, y_val,
-               config_optimisation: OptimizationConfig, config_training: TrainingConfig, 
-               loss_fn: Callable, compute_accuracy: Callable, n_batches: int):
+               config_optimisation: OptimizationConfig, config_training: TrainingConfig,
+               loss_fn: Callable, compute_accuracy: Callable, n_batches: int, task: str):
     optimiser, optimiser_state = init_optimiser(x_train, config_optimisation.learning_rate_sched, config_training.learning_rate,
                                                 config_training.epochs, config_training.l2_reg_alpha, config_optimisation.use_warmup,
                                                 config_optimisation.warmup_epochs, n_batches)
@@ -111,10 +109,11 @@ def train_full(params, rng, model,
                           epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
                           save_every=config_training.print_every, include_params_in_saves=False)
     print('Training complete:', datetime.now() - tstart)
-    save_path = make_savepath()
+    save_path = make_savepath(task=task)
     write_json(saves, out_path=save_path)
-    
-    r2_train = r2_score(y_train.flatten(), model(params, rng, x_train, cond_train).flatten())
+
+    pred_y = model(params, rng, x_train, cond=cond_train)
+    r2_train = r2_score(y_train.flatten(), pred_y.flatten())
     return params, saves, save_path, r2_train
 
 
@@ -137,8 +136,9 @@ def test_conditionality(params, rng, decoder, df, x_cols,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max())
-    
-    mi = estimate_mutual_information_knn(z.reshape(np.prod(z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
+
+    mi = estimate_mutual_information_knn(z.reshape(np.prod(
+        z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
 
     vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
                                    y_datanormaliser, y_methods_preprocessing,
@@ -160,45 +160,46 @@ def test(model, params, rng, decoder, saves, data_test,
         df[config_dataset.objective_col].to_numpy()[:, None])
 
     pred_y = model(params, rng, x, cond)
-    
+
     r2_test = r2_score(x.flatten(), pred_y.flatten())
 
     vis(saves, x, pred_y)
 
     mi = test_conditionality(params, rng, decoder, df, x_cols,
-                        config_dataset, config_norm_y, config_model,
-                        x_datanormaliser, x_methods_preprocessing,
-                        y_datanormaliser, y_methods_preprocessing, cond)
-    
+                             config_dataset, config_norm_y, config_model,
+                             x_datanormaliser, x_methods_preprocessing,
+                             y_datanormaliser, y_methods_preprocessing, cond)
+
     return r2_test, mi
 
 
 def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec):
     for k, v in zip(
-        ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test', 'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec'],
-        [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec]):
+        ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test',
+            'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec'],
+            [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec]):
         hpos[k] = v
     return hpos
 
 
 def main(hpos: pd.Series):
 
-    rng = jax.random.PRNGKey(hpos['seed'])
+    rng = jax.random.PRNGKey(hpos['seed_train'])
     rng_model = jax.random.PRNGKey(hpos['seed_arch'])
     rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
 
     # Configs + data
     (config_norm_x, config_norm_y, config_filter, config_optimisation,
      config_dataset, config_training) = make_configs_initial(hpos)
-    data, x_cols, data_test = load_data(config_dataset)
+    data, x_cols = load_data(config_dataset)
 
     # Init data
-    (df, x, cond, total_ds, n_batches, x_datanormaliser, x_methods_preprocessing,
+    (df, x, cond, total_ds, n_batches, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing,
      y_datanormaliser, y_methods_preprocessing) = init_data(
          data, x_cols, config_dataset.objective_col, config_dataset.output_species, config_dataset.total_ds_max,
          config_training.batch_size, rng_dataset, config_norm_x, config_norm_y, config_filter)
     x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val = make_training_data(
-        x, cond, y, config_dataset.train_split, n_batches, config_training.batch_size)
+        x, cond, config_dataset.train_split, n_batches, BATCH_SIZE)
 
     # Init model
     config_model = make_config_model(x, hpos)
@@ -211,30 +212,39 @@ def main(hpos: pd.Series):
 
     # Train
     params, saves, save_path, r2_train = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
-                               config_optimisation, config_training, loss_fn, compute_accuracy, n_batches)
+                                                    config_optimisation, config_training, loss_fn, compute_accuracy, n_batches,
+                                                    task=f'_hpo_{hpos["index"]}')
 
     # Test & Visualise
+    if config_dataset.use_test_data:
+        data_test = pd.concat([pd.read_csv(fn)
+                              for fn in config_dataset.filenames_verify_table])
+    else:
+        print(
+            f'Warning: not using the test data for evaluation, but the training data instead of {config_dataset.filenames_verify_table}')
+        data_test = data
+
     r2_test, mi = test(model, params, rng, decoder, saves, data_test,
-         config_dataset, config_norm_y, config_model,
-         x_cols, config_filter,
-         x_datanormaliser, x_methods_preprocessing,
-         y_datanormaliser, y_methods_preprocessing)
-    
+                       config_dataset, config_norm_y, config_model,
+                       x_cols, config_filter,
+                       x_datanormaliser, x_methods_preprocessing,
+                       y_datanormaliser, y_methods_preprocessing)
+
     # Save stats
-    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, len(config_model.enc_layers), len(config_model.dec_layers))
+    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, len(
+        config_model.enc_layers), len(config_model.dec_layers))
 
     # Verification
     if (r2_test > 0.8) or (r2_train > 0.8):
         config_bio = load_json_as_dict(config_dataset.filenames_train_config)
         verify(params, rng, decoder,
-            df, cond,
-            config_bio,
-            config_dataset,
-            config_model,
-            x_datanormaliser, x_methods_preprocessing,
-            y_datanormaliser,
-            output_species=config_dataset.output_species,
-            signal_species=config_dataset.signal_species,
-            n_to_sample=hpos['eval_n_to_sample'],
-            visualise=True)
-
+               df, cond,
+               config_bio,
+               config_dataset,
+               config_model,
+               x_datanormaliser, x_methods_preprocessing,
+               y_datanormaliser,
+               output_species=config_dataset.output_species,
+               signal_species=config_dataset.signal_species,
+               n_to_sample=hpos['eval_n_to_sample'],
+               visualise=True)

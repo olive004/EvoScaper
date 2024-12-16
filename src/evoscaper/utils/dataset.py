@@ -18,13 +18,19 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
 
     TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
-    TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
+    if TOTAL_DS < BATCH_SIZE:
+        print(f'TOTAL_DS is less than BATCH_SIZE: {TOTAL_DS} < {BATCH_SIZE}')
+        BATCH_SIZE = TOTAL_DS
+    else:
+        TOTAL_DS = int(TOTAL_DS // BATCH_SIZE * BATCH_SIZE)
+    if TOTAL_DS == 0:
+        raise ValueError('TOTAL_DS is 0')
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
 
     x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
                                                                                                             x_norm_settings, y_norm_settings)
 
-    return df, x, cond, TOTAL_DS, N_BATCHES, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
+    return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
 def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
@@ -36,7 +42,7 @@ def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
     return df
 
 
-def embellish_data(data, transform_sensitivity_nans=True):
+def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-10.0):
     if 'adaptability' not in data.columns:
         data['adaptability'] = calculate_adaptation(
             s=data['sensitivity_wrt_species-6'].values,
@@ -44,7 +50,7 @@ def embellish_data(data, transform_sensitivity_nans=True):
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
-    data['Log sensitivity'] = np.log10(data['sensitivity_wrt_species-6'])
+    data['Log sensitivity'] = np.where(data['sensitivity_wrt_species-6'] == 0, zero_log_replacement, np.log10(data['sensitivity_wrt_species-6']))
     return data
 
 
@@ -104,9 +110,8 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings
                        < np.inf) & data['precision_wrt_species-6'].notna()
 
     df = data[filt]
-    df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(np.float32)
-    df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(
-        lambda x: np.round(x, 1))
+    # df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(
+    #     lambda x: np.round(x, 1))
     df = df.reset_index(drop=True)
 
     return df

@@ -77,7 +77,7 @@ class CVAE(VAE):
 
 
 def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, decoder_activation_final: Callable, USE_CATEGORICAL=False, call_kwargs: dict = {},
-           enc_init='HeNormal', dec_init='HeNormal', activation=jax.nn.leaky_relu):
+           enc_init='HeNormal', dec_init='HeNormal', activation: Callable =jax.nn.leaky_relu):
     encoder = MLPWithActivation(output_sizes=enc_layers + [HIDDEN_SIZE],
                                 w_init=get_initialiser(enc_init),
                                 activation=activation,

@@ -18,6 +18,7 @@ class DatasetConfig:
     filenames_verify_table: List[str]
     filenames_train_config: List[str]
     filenames_verify_config: List[str]
+    use_test_data: bool
 
 
 @dataclass
@@ -37,7 +38,7 @@ class NormalizationSettings:
     Configuration settings for data normalization.
     """
     negative: bool = False
-    log: bool = False
+    logscale: bool = False
     standardise: bool = True
     min_max: bool = False
     robust_scaling: bool = False
