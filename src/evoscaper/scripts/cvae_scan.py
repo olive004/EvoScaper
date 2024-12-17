@@ -21,7 +21,7 @@ from evoscaper.model.shared import get_activation_fn
 from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
-from evoscaper.utils.dataset import init_data, prep_data
+from evoscaper.utils.dataset import init_data, prep_data, make_training_data
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
@@ -55,22 +55,6 @@ def init_optimiser(x, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, 
                                epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches)
     optimiser_state = optimiser.init(x)
     return optimiser, optimiser_state
-
-
-def make_training_data(x, cond, train_split, n_batches, batch_size):
-    def f_reshape(i): return i.reshape(n_batches, batch_size, i.shape[-1])
-    x, cond, y = f_reshape(x), f_reshape(cond), f_reshape(x)
-
-    if n_batches == 1:
-        def f_train(i): return i[:, :int(train_split * batch_size)]
-        def f_val(i): return i[:, :int(train_split * batch_size)]
-    else:
-        def f_train(i): return i[int(np.max([train_split * n_batches, 1]))]
-        def f_val(i): return i[int(np.max([train_split * n_batches, 1]))]
-    x_train, cond_train, y_train = f_train(x), f_train(cond), f_train(y)
-    x_val, cond_val, y_val = f_val(x), f_val(cond), f_val(y)
-
-    return x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val
 
 
 def load_data(config_dataset: DatasetConfig):
@@ -160,7 +144,7 @@ def test(model, params, rng, decoder, saves, data_test,
          x_datanormaliser: DataNormalizer, x_methods_preprocessing,
          y_datanormaliser: DataNormalizer, y_methods_preprocessing):
 
-    df = prep_data(rng, data_test, config_dataset.output_species,
+    df = prep_data(data_test, config_dataset.output_species,
                    config_dataset.objective_col, x_cols, config_filter)
     x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(
         np.concatenate([df[i].values[:, None] for i in x_cols], axis=1).squeeze())

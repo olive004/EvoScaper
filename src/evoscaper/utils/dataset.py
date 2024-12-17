@@ -18,7 +18,7 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
               filter_settings: FilterSettings
               ):
 
-    df = prep_data(rng, data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
+    df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
 
     TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
     if TOTAL_DS < BATCH_SIZE:
@@ -96,6 +96,22 @@ def make_y(df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings):
     cond = y_datanormaliser.create_chain_preprocessor(
         y_methods_preprocessing)(cond)
     return cond, y_datanormaliser, y_methods_preprocessing
+
+
+def make_training_data(x, cond, train_split, n_batches, batch_size):
+    def f_reshape(i): return i.reshape(n_batches, batch_size, i.shape[-1])
+    x, cond, y = f_reshape(x), f_reshape(cond), f_reshape(x)
+
+    if n_batches == 1:
+        def f_train(i): return i[:, :int(train_split * batch_size)]
+        def f_val(i): return i[:, :int(train_split * batch_size)]
+    else:
+        def f_train(i): return i[int(np.max([train_split * n_batches, 1]))]
+        def f_val(i): return i[int(np.max([train_split * n_batches, 1]))]
+    x_train, cond_train, y_train = f_train(x), f_train(cond), f_train(y)
+    x_val, cond_val, y_val = f_val(x), f_val(cond), f_val(y)
+
+    return x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val
 
 
 # Balance preprocess
