@@ -23,6 +23,7 @@ class MLPWithActivation(hk.Module):
                      jax.Array], jax.Array]] = None,
                  activation_final: Optional[Callable[[
                      jax.Array], jax.Array]] = None,
+                 dropout_rate: Optional[float] = None,
                  name: Optional[str] = None):
         super().__init__(name=name)
         self.with_bias = with_bias
@@ -30,6 +31,7 @@ class MLPWithActivation(hk.Module):
         self.b_init = b_init
         self.activation = activation
         self.activation_final = activation_final
+        self.dropout_rate=dropout_rate
         self.layers = self.create_layers(output_sizes)
 
     def create_layers(self, output_sizes: List[int]):
@@ -50,11 +52,10 @@ class MLPWithActivation(hk.Module):
 
     def __call__(self,
                  inputs: Float[Array, " num_interactions"],
-                 dropout_rate: Optional[float] = None,
                  rng=None, inference: bool = False, logging: bool = True) -> Float[Array, " n_head"]:
         for i, layer in enumerate(self.layers):
             kwargs = {}
-            if dropout_rate is not None:
+            if self.dropout_rate is not None:
                 kwargs = {} if not type(layer) == eqx.nn.Dropout else {
                     'inference': inference, 'key': rng}
                 raise NotImplementedError('Dropout not implemented')

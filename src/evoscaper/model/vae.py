@@ -60,16 +60,18 @@ class CVAE(VAE):
         super().__init__(encoder, decoder, embed_size, **hk_kwargs)
 
     def __call__(self, x: Array, cond: Array, deterministic: bool = False,
+                 inference: bool = False,
                  return_muvar: bool = False,
                  logging: bool = True) -> Array:
-        h = self.encoder(jnp.concatenate([x, cond], axis=-1))
+        h = self.encoder(jnp.concatenate(
+            [x, cond], axis=-1), inference=inference)
 
         mu = self.h2mu(h)
         logvar = self.h2logvar(h)
         z = self.reparameterize(mu, logvar, hk.next_rng_key(), deterministic)
         z_cond = jnp.concatenate([z, cond], axis=-1)
 
-        y = self.decoder(z_cond)
+        y = self.decoder(z_cond, inference=inference)
 
         if return_muvar:
             return y, mu, logvar
@@ -77,16 +79,18 @@ class CVAE(VAE):
 
 
 def VAE_fn(enc_layers: List[int], dec_layers: List[int], decoder_head: int, HIDDEN_SIZE: int, decoder_activation_final: Callable, USE_CATEGORICAL=False, call_kwargs: dict = {},
-           enc_init='HeNormal', dec_init='HeNormal', activation: Callable =jax.nn.leaky_relu):
+           enc_init='HeNormal', dec_init='HeNormal', activation: Callable = jax.nn.leaky_relu, dropout_rate=None):
     encoder = MLPWithActivation(output_sizes=enc_layers + [HIDDEN_SIZE],
                                 w_init=get_initialiser(enc_init),
                                 activation=activation,
                                 activation_final=jax.nn.log_softmax if USE_CATEGORICAL else jax.nn.leaky_relu,
+                                dropout_rate=dropout_rate,
                                 name='encoder')
     decoder = MLPWithActivation(output_sizes=[HIDDEN_SIZE] + dec_layers + [decoder_head],
                                 w_init=get_initialiser(dec_init),
                                 activation=activation,
                                 activation_final=decoder_activation_final,
+                                dropout_rate=dropout_rate,
                                 name='decoder')
     # encoder = hk.Sequential(flatten_listlike([[hk.Linear(i), jax.nn.leaky_relu] for i in enc_layers + [HIDDEN_SIZE]]))
     # decoder = hk.Sequential(flatten_listlike([[hk.Linear(i), jax.nn.leaky_relu] for i in [HIDDEN_SIZE] + dec_layers]) + [hk.Linear(decoder_head), jax.nn.sigmoid if USE_SIGMOID_DECODER else jax.nn.leaky_relu])
