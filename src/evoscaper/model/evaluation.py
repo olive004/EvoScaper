@@ -46,4 +46,4 @@ def estimate_mutual_information_knn(
     # Mutual information estimation
     mi = jnp.mean(z_entropy + c_entropy - joint_entropy)
 
-    return float(mi)
+    return mi

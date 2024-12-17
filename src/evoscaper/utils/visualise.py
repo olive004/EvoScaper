@@ -27,10 +27,10 @@ def save_plot():
             result = func(*args, **kwargs)
 
             # Save figure
-            plt.savefig(save_path)
-            plt.close()  # Close to prevent memory leaks
+            plt.tight_layout()
             if save_path is not None:
                 plt.savefig(save_path, transparent=True, dpi=300)
+            plt.close()  # Close to prevent memory leaks
 
             return result
         return wrapper

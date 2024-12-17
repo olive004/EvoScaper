@@ -113,8 +113,8 @@ def train(params, rng, model,
         epochs_no_improve, best_val_loss = early_stopping(
             val_loss, best_val_loss, epochs_no_improve)
         
-        # Stop if no improvement
-        if epochs_no_improve >= patience:
+        # Stop if no improvement or nans
+        if epochs_no_improve >= patience or (np.isnan(val_loss) or np.isnan(val_acc)):
             logging.info(f'Early stopping triggered after {epoch+1} epochs')
             break
         

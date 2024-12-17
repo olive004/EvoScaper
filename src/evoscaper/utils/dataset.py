@@ -1,7 +1,10 @@
 
 
+from functools import partial
 import numpy as np
+import pandas as pd
 import jax
+import jax.numpy as jnp
 from evoscaper.utils.normalise import make_chain_f
 from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
 from sklearn.utils import shuffle
@@ -15,7 +18,7 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
               filter_settings: FilterSettings
               ):
 
-    df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
+    df = prep_data(rng, data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
 
     TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
     if TOTAL_DS < BATCH_SIZE:
@@ -33,12 +36,12 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
-def prep_data(data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
+def prep_data(rng, data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
 
     data = embellish_data(data)
     df = filter_invalids(data, OUTPUT_SPECIES, X_COLS,
                          OBJECTIVE_COL, filter_settings)
-    df = reduce_repeat_samples(df, X_COLS)
+    # df = reduce_repeat_samples(rng, df, X_COLS)
     return df
 
 
@@ -50,7 +53,8 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
-    data['Log sensitivity'] = np.where(data['sensitivity_wrt_species-6'] == 0, zero_log_replacement, np.log10(data['sensitivity_wrt_species-6']))
+    data['Log sensitivity'] = zero_log_replacement 
+    data.loc[data['sensitivity_wrt_species-6'] != 0, 'Log sensitivity'] = np.log10(data[data['sensitivity_wrt_species-6'] != 0]['sensitivity_wrt_species-6'])
     return data
 
 
@@ -117,7 +121,7 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings
     return df
 
 
-def reduce_repeat_samples(df, X_COLS):
+def reduce_repeat_samples(rng, df, X_COLS):
     df = df.reset_index(drop=True)
 
     n_same_circ_max = 100
@@ -126,7 +130,7 @@ def reduce_repeat_samples(df, X_COLS):
     def agg_func(x): return tuple(x)
 
     df.loc[:, X_COLS] = df[X_COLS].apply(lambda x: np.round(x, 1))
-    df_bal = balance_dataset(df, cols=X_COLS, nbin=nbin,
+    df_bal = balance_dataset(rng, df, cols=X_COLS, nbin=nbin,
                              bin_max=n_same_circ_max, use_log=False, func1=agg_func)
     df_bal = df_bal.reset_index(drop=True)
     return df_bal
@@ -144,11 +148,18 @@ def pre_balance(df, cols, use_log, func1):
 # Indexes
 
 
-def find_idxs_keep(bin_edges, i, d, bin_max, to_keep):
+def find_idxs_keep(rng, bin_edges, i, d, bin_max, to_keep):
     edge_lo, edge_hi = bin_edges[i], bin_edges[i+1]
     inds = np.where((d >= edge_lo) & (d <= edge_hi))[0]
-    to_keep = np.concatenate([to_keep, np.random.choice(
-        inds, bin_max, replace=False)]).astype(int)
+    to_keep = np.concatenate([to_keep, jax.random.choice(
+        rng, inds, [bin_max], replace=False)]).astype(int)
+    return to_keep
+
+
+def find_idxs_keep_jax(edge_lo, edge_hi, rng, d, bin_max):
+    (d >= edge_lo) & (d <= edge_hi)
+    inds = jnp.where((d >= edge_lo) & (d <= edge_hi))[0]
+    to_keep = jax.random.choice(rng, inds, [bin_max], replace=False).astype(int)
     return to_keep
 
 
@@ -173,14 +184,45 @@ def rem_idxs(df, to_rem):
 
 # Balance
 
-def balance_dataset(df, cols, nbin, bin_max, use_log, func1=None):
+
+def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30) -> pd.DataFrame:
+    # Create a copy of the DataFrame to avoid modifying the original
+    transformed_df = df.copy()
+    
+    # Compute quantile bin edges
+    # Adding 0 and 1 to capture the full range of the data
+    quantile_edges = np.concatenate([
+        [df[cols].min()],  # Minimum value
+        df[cols].quantile(np.linspace(0, 1, num_bins + 1)[1:-1]),
+        [df[cols].max()]  # Maximum value
+    ])
+    
+    # Ensure unique bin edges (some distributions might have repeated values)
+    quantile_edges = np.unique(quantile_edges)
+    
+    # Create a mapping from original values to their quantile bin edge
+    def map_to_quantile_edge(value):
+        # Find the bin edge that this value falls into
+        bin_index = np.digitize(value, quantile_edges) - 1
+        return quantile_edges[bin_index]
+    
+    # Apply the transformation
+    transformed_df[cols] = df[cols].apply(map_to_quantile_edge)
+    
+    return transformed_df
+
+
+def balance_dataset(rng, df, cols, nbin, bin_max, use_log, func1=None):
     d = pre_balance(df, cols, use_log, func1)
 
     hist, bin_edges = np.histogram(d, bins=nbin)
 
+    # i = np.where(hist > bin_max)[0][0]
+    # ok = transform_to_histogram_bins(df, cols, 15)
+    # to_keep = np.concatenate(jax.vmap(partial(find_idxs_keep_jax, rng=rng, d=np.array(d), bin_max=bin_max))(bin_edges[i], bin_edges[i+1]))
     to_keep = np.array([])
     for i in np.where(hist > bin_max)[0]:
-        to_keep = find_idxs_keep(bin_edges, i, d, bin_max, to_keep)
+        to_keep = find_idxs_keep(rng, bin_edges, i, d, bin_max, to_keep)
         # assert len(to_keep) == np.sum(np.where((hist[:i+1] - bin_max) > 0, hist[:i+1], 0)) - over_count*bin_max, 'something wrong'
 
     if to_keep.size > 0:
