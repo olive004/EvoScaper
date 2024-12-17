@@ -117,7 +117,7 @@ def vis(saves, x, pred_y, top_write_dir):
 
 
 def test_conditionality(params, rng, decoder, df, x_cols,
-                        config_dataset: DatasetConfig, config_norm_y, config_model, top_write_dir,
+                        config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model, top_write_dir,
                         x_datanormaliser, x_methods_preprocessing,
                         y_datanormaliser, y_methods_preprocessing, cond):
     n_categories = config_norm_y.categorical_n_bins
@@ -243,3 +243,4 @@ def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
                signal_species=config_dataset.signal_species,
                n_to_sample=hpos['eval_n_to_sample'],
                visualise=True)
+    return hpos

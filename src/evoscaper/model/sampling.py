@@ -18,11 +18,11 @@ def sample_reconstructions(params, rng, decoder,
     if use_binned_sampling:
         if use_onehot:
             sampled_cond = np.repeat(np.arange(n_categories)[
-                :, None], repeats=n_to_sample//n_categories, axis=1)
+                :, None], repeats=n_to_sample, axis=1)
             sampled_cond = jax.nn.one_hot(sampled_cond, n_categories)
         else:
             sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
-                :, None], repeats=n_to_sample//n_categories, axis=1)[:, :, None]
+                :, None], repeats=n_to_sample, axis=1)[:, :, None]
     else:
         sampled_cond = jax.random.uniform(
             rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
@@ -31,7 +31,8 @@ def sample_reconstructions(params, rng, decoder,
     z = np.repeat(z[None, :], repeats=n_categories, axis=0)
     z = np.concatenate([z, sampled_cond], axis=-1)
 
-    x_fake = jax.vmap(partial(decoder, params=params, rng=rng))(inputs=z)
+    # x_fake = jax.vmap(partial(decoder, params=params, rng=rng))(inputs=z)
+    x_fake = decoder(inputs=z, params=params, rng=rng)
     x_fake = x_datanormaliser.create_chain_preprocessor_inverse(
         x_methods_preprocessing)(x_fake)
 
