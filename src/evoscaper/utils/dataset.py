@@ -36,12 +36,13 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
-def prep_data(rng, data, OUTPUT_SPECIES, OBJECTIVE_COL, X_COLS, filter_settings):
+def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettings):
 
     data = embellish_data(data)
-    df = filter_invalids(data, OUTPUT_SPECIES, X_COLS,
-                         OBJECTIVE_COL, filter_settings)
-    # df = reduce_repeat_samples(rng, df, X_COLS)
+    df = filter_invalids(data, output_species, cols_x,
+                         col_y, filter_settings)
+    df = reduce_repeat_samples(
+        df, cols_x, n_same_circ_max=filter_settings.filt_n_same_x_max, nbin=filter_settings.filt_n_same_x_max_bins)
     return df
 
 
@@ -53,8 +54,9 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
-    data['Log sensitivity'] = zero_log_replacement 
-    data.loc[data['sensitivity_wrt_species-6'] != 0, 'Log sensitivity'] = np.log10(data[data['sensitivity_wrt_species-6'] != 0]['sensitivity_wrt_species-6'])
+    data['Log sensitivity'] = zero_log_replacement
+    data.loc[data['sensitivity_wrt_species-6'] != 0, 'Log sensitivity'] = np.log10(
+        data[data['sensitivity_wrt_species-6'] != 0]['sensitivity_wrt_species-6'])
     return data
 
 
@@ -121,19 +123,12 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings
     return df
 
 
-def reduce_repeat_samples(rng, df, X_COLS):
+def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
     df = df.reset_index(drop=True)
-
-    n_same_circ_max = 100
-    nbin = 300
-    def agg_func(x): return np.sum(x, axis=1)
-    def agg_func(x): return tuple(x)
-
-    df.loc[:, X_COLS] = df[X_COLS].apply(lambda x: np.round(x, 1))
-    df_bal = balance_dataset(rng, df, cols=X_COLS, nbin=nbin,
-                             bin_max=n_same_circ_max, use_log=False, func1=agg_func)
-    df_bal = df_bal.reset_index(drop=True)
-    return df_bal
+    df_lowres = df if nbin is None else transform_to_histogram_bins(
+        df, cols, num_bins=nbin)
+    df_lowres = df_lowres.groupby(cols, as_index=False).head(n_same_circ_max)
+    return df.loc[df_lowres.index].reset_index(drop=True)
 
 
 def pre_balance(df, cols, use_log, func1):
@@ -159,7 +154,8 @@ def find_idxs_keep(rng, bin_edges, i, d, bin_max, to_keep):
 def find_idxs_keep_jax(edge_lo, edge_hi, rng, d, bin_max):
     (d >= edge_lo) & (d <= edge_hi)
     inds = jnp.where((d >= edge_lo) & (d <= edge_hi))[0]
-    to_keep = jax.random.choice(rng, inds, [bin_max], replace=False).astype(int)
+    to_keep = jax.random.choice(
+        rng, inds, [bin_max], replace=False).astype(int)
     return to_keep
 
 
@@ -188,7 +184,7 @@ def rem_idxs(df, to_rem):
 def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30) -> pd.DataFrame:
     # Create a copy of the DataFrame to avoid modifying the original
     transformed_df = df.copy()
-    
+
     # Compute quantile bin edges
     # Adding 0 and 1 to capture the full range of the data
     quantile_edges = np.concatenate([
@@ -196,19 +192,19 @@ def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30) -> p
         df[cols].quantile(np.linspace(0, 1, num_bins + 1)[1:-1]),
         [df[cols].max()]  # Maximum value
     ])
-    
+
     # Ensure unique bin edges (some distributions might have repeated values)
     quantile_edges = np.unique(quantile_edges)
-    
+
     # Create a mapping from original values to their quantile bin edge
     def map_to_quantile_edge(value):
         # Find the bin edge that this value falls into
         bin_index = np.digitize(value, quantile_edges) - 1
         return quantile_edges[bin_index]
-    
+
     # Apply the transformation
     transformed_df[cols] = df[cols].apply(map_to_quantile_edge)
-    
+
     return transformed_df
 
 

@@ -28,8 +28,8 @@ class FilterSettings:
     filt_y_nans: bool = True
     filt_sensitivity_nans: bool = True
     filt_precision_nans: bool = True
-    filt_n_same_x_max: int = 100
-    filt_n_same_x_max_bins: int = 500
+    filt_n_same_x_max: int = 1
+    filt_n_same_x_max_bins: int = 15
 
 
 @dataclass
