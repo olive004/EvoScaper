@@ -19,7 +19,15 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
               ):
 
     df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
+    TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(df, BATCH_SIZE, TOTAL_DS_MAX)
 
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
+                                                                                                            x_norm_settings, y_norm_settings)
+
+    return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
+
+
+def adjust_total_ds(df, BATCH_SIZE, TOTAL_DS_MAX):
     TOTAL_DS = int(np.min([TOTAL_DS_MAX, len(df)]))
     if TOTAL_DS < BATCH_SIZE:
         print(f'TOTAL_DS is less than BATCH_SIZE: {TOTAL_DS} < {BATCH_SIZE}')
@@ -29,11 +37,7 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
     if TOTAL_DS == 0:
         raise ValueError('TOTAL_DS is 0')
     N_BATCHES = int(TOTAL_DS // BATCH_SIZE)
-
-    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
-                                                                                                            x_norm_settings, y_norm_settings)
-
-    return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
+    return TOTAL_DS, N_BATCHES, BATCH_SIZE
 
 
 def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettings):
@@ -64,10 +68,12 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
 def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
             x_norm_settings, y_norm_settings):
 
+    df = df.iloc[jax.random.choice(rng, np.arange(
+        len(df)), [int(np.min([TOTAL_DS, len(df)]))], replace=False)]
     x, x_datanormaliser, x_methods_preprocessing = make_x(
-        df, TOTAL_DS, X_COLS, x_norm_settings)
+        df, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
-        df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings)
+        df, OBJECTIVE_COL, y_norm_settings)
     # x, cond = shuffle(x, cond, random_state=rng)
     shuffled_indices = jax.random.permutation(rng, x.shape[0])
     x, cond = x[shuffled_indices], cond[shuffled_indices]
@@ -79,8 +85,8 @@ def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
     return x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
-def make_x(df, TOTAL_DS, X_COLS, x_norm_settings):
-    x = [df[i].iloc[:TOTAL_DS].values[:, None] for i in X_COLS]
+def make_x(df, X_COLS, x_norm_settings):
+    x = [df[i].values[:, None] for i in X_COLS]
     x = np.concatenate(x, axis=1).squeeze()
 
     x_datanormaliser, x_methods_preprocessing = make_chain_f(x_norm_settings)
@@ -89,9 +95,9 @@ def make_x(df, TOTAL_DS, X_COLS, x_norm_settings):
     return x, x_datanormaliser, x_methods_preprocessing
 
 
-def make_y(df, OBJECTIVE_COL, TOTAL_DS, y_norm_settings):
+def make_y(df, OBJECTIVE_COL, y_norm_settings):
 
-    cond = df[OBJECTIVE_COL].iloc[:TOTAL_DS].to_numpy()[:, None]
+    cond = df[OBJECTIVE_COL].to_numpy()[:, None]
     y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings)
     cond = y_datanormaliser.create_chain_preprocessor(
         y_methods_preprocessing)(cond)
@@ -104,10 +110,10 @@ def make_training_data(x, cond, train_split, n_batches, batch_size):
 
     if n_batches == 1:
         def f_train(i): return i[:, :int(train_split * batch_size)]
-        def f_val(i): return i[:, :int(train_split * batch_size)]
+        def f_val(i): return i[:, int(train_split * batch_size):]
     else:
-        def f_train(i): return i[int(np.max([train_split * n_batches, 1]))]
-        def f_val(i): return i[int(np.max([train_split * n_batches, 1]))]
+        def f_train(i): return i[:int(np.max([train_split * n_batches, 1]))]
+        def f_val(i): return i[int(np.max([train_split * n_batches, 1])):]
     x_train, cond_train, y_train = f_train(x), f_train(cond), f_train(y)
     x_val, cond_val, y_val = f_val(x), f_val(cond), f_val(y)
 
@@ -132,8 +138,6 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings
                        < np.inf) & data['precision_wrt_species-6'].notna()
 
     df = data[filt]
-    # df.loc[:, OBJECTIVE_COL] = df[OBJECTIVE_COL].apply(
-    #     lambda x: np.round(x, 1))
     df = df.reset_index(drop=True)
 
     return df
@@ -145,6 +149,21 @@ def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
         df, cols, num_bins=nbin)
     df_lowres = df_lowres.groupby(cols, as_index=False).head(n_same_circ_max)
     return df.loc[df_lowres.index].reset_index(drop=True)
+
+
+def reduce_repeat_samples_old(rng, df, X_COLS, n_same_circ_max: int = 1, nbin=None):
+    df = df.reset_index(drop=True)
+
+    n_same_circ_max = 100
+    nbin = 300
+    def agg_func(x): return np.sum(x, axis=1)
+    def agg_func(x): return tuple(x)
+
+    df.loc[:, X_COLS] = df[X_COLS].apply(lambda x: np.round(x, 1))
+    df_bal = balance_dataset(rng, df, cols=X_COLS, nbin=nbin,
+                             bin_max=n_same_circ_max, use_log=False, func1=agg_func)
+    df_bal = df_bal.reset_index(drop=True)
+    return df_bal
 
 
 def pre_balance(df, cols, use_log, func1):
@@ -168,7 +187,6 @@ def find_idxs_keep(rng, bin_edges, i, d, bin_max, to_keep):
 
 
 def find_idxs_keep_jax(edge_lo, edge_hi, rng, d, bin_max):
-    (d >= edge_lo) & (d <= edge_hi)
     inds = jnp.where((d >= edge_lo) & (d <= edge_hi))[0]
     to_keep = jax.random.choice(
         rng, inds, [bin_max], replace=False).astype(int)

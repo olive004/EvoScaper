@@ -1,6 +1,7 @@
 
 
 from copy import deepcopy
+from math import isnan
 from typing import Callable
 from bioreaction.misc.misc import load_json_as_dict
 import haiku as hk

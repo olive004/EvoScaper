@@ -99,7 +99,7 @@ def train(params, rng, model,
     saves = {}
     for epoch in range(epochs):
         # Run 
-        (params, optimiser_state), (params_stack, grads, train_loss,
+        (params_new, optimiser_state), (params_stack, grads, train_loss,
                                     val_loss, val_acc) = f((params, optimiser_state), None)
 
         # Save
@@ -114,7 +114,7 @@ def train(params, rng, model,
             val_loss, best_val_loss, epochs_no_improve)
         
         # Stop if no improvement or nans
-        if epochs_no_improve >= patience or (np.isnan(val_loss) or np.isnan(val_acc)):
+        if epochs_no_improve >= patience or (np.isnan(train_loss) or np.isnan(val_loss) or np.isnan(val_acc)):
             logging.info(f'Early stopping triggered after {epoch+1} epochs')
             break
         
