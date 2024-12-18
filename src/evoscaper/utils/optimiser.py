@@ -9,7 +9,7 @@ def make_optimiser(learning_rate_sched: str,
                    use_warmup: bool = False,
                    warmup_epochs: int = 0,
                    n_batches: int = 1,
-                   method: str = 'sgd'):
+                   method: str = 'adam'):
     opt_method = getattr(optax, method)
     if use_warmup:
         warmup_fn = optax.linear_schedule(

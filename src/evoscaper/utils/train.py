@@ -8,6 +8,7 @@ import optax
 import logging
 
 
+@jax.jit
 def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_reg_alpha, optimiser, loss_fn):
 
     (loss, aux), grads = jax.value_and_grad(loss_fn, has_aux=True)(
@@ -36,6 +37,7 @@ def run_batches(params, model, rng,
                            use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, optimiser=optimiser,
                            loss_fn=loss_fn)
 
+    @jax.jit
     def f(carry, inp):
 
         params, optimiser_state = carry[0], carry[1]
