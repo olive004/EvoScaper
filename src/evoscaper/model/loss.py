@@ -46,15 +46,19 @@ def loss_wrapper(
     loss = loss_f(y, pred_y)
 
     # Add L2 loss
+    loss_l2 = None
     if use_l2_reg:
-        loss += sum(
+        loss_l2 = sum(
             l2_loss(w, alpha=l2_reg_alpha)
             for w in jax.tree_util.tree_leaves(params)
         )
+        loss += loss_l2
     # KL divergence
+    loss_kl = None
     if use_kl_div:
-        loss += kl_gaussian(mu, logvar).mean() * kl_weight
-    return loss
+        loss_kl = kl_gaussian(mu, logvar).mean() * kl_weight
+        loss += loss_kl
+    return loss, (loss_l2, loss_kl)
 
 
 def kl_gaussian(mu: jnp.ndarray, logvar: jnp.ndarray) -> jnp.ndarray:
