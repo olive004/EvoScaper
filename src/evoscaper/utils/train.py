@@ -53,13 +53,13 @@ def run_batches(params, model, rng,
     return params, optimiser_state, train_loss, grads
 
 
-def make_saves(train_loss, val_loss, val_acc, include_params_in_saves, params_stack=None, grads=None):
+def make_saves(train_loss, val_loss, val_acc, include_params_in_all_saves, params_stack=None, grads=None):
     saves = {
         'train_loss': np.mean(train_loss),
         'val_loss': np.mean(val_loss),
         'val_accuracy': np.mean(val_acc)
     }
-    if include_params_in_saves:
+    if include_params_in_all_saves:
         saves['params'] = params_stack
         saves['grads'] = grads
     return saves
@@ -80,7 +80,7 @@ def train(params, rng, model,
           optimiser, optimiser_state,
           use_l2_reg, l2_reg_alpha, epochs,
           loss_fn, compute_accuracy,
-          save_every, include_params_in_saves,
+          save_every, include_params_in_all_saves,
           patience: int = 1000):
 
     def f(carry, _):
@@ -99,13 +99,13 @@ def train(params, rng, model,
     saves = {}
     for epoch in range(epochs):
         # Run 
-        (params_new, optimiser_state), (params_stack, grads, train_loss,
+        (params, optimiser_state), (params_stack, grads, train_loss,
                                     val_loss, val_acc) = f((params, optimiser_state), None)
 
         # Save
         if np.mod(epoch, save_every) == 0:
             saves[epoch] = make_saves(
-                train_loss, val_loss, val_acc, include_params_in_saves, params_stack, grads)
+                train_loss, val_loss, val_acc, include_params_in_all_saves, params_stack, grads)
             logging.info(
                 f'Epoch {epoch} / {epochs} -\t\t Train loss: {np.mean(train_loss)}\tVal loss: {val_loss}\tVal accuracy: {val_acc}')
             
