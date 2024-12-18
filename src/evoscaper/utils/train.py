@@ -89,21 +89,26 @@ def train(params, rng, model,
           save_every, include_params_in_all_saves,
           patience: int = 1000):
 
-    def f(carry, _):
-        params, optimiser_state = carry[0], carry[1]
-
-        params, optimiser_state, train_loss, grads, aux_loss = run_batches(
-            params, model, rng, x_train, y_train, cond_train, use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn)
-
-        val_acc, val_loss, aux_val_loss = eval_step(
-            params, rng, model, x_val, y_val, cond_val, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy)
-
-        return (params, optimiser_state), (params, grads, train_loss, val_loss, val_acc, aux_loss, aux_val_loss)
-
     best_val_loss = jnp.inf
     epochs_no_improve = 0
     saves = {}
     for epoch in range(epochs):
+        # Shuffle data
+        _, rng = jax.random.split(rng)
+        perm = jax.random.permutation(rng, len(x_train))
+        x_train = x_train[perm], y_train[perm], cond_train[perm]
+
+        def f(carry, _):
+            params, optimiser_state = carry[0], carry[1]
+
+            params, optimiser_state, train_loss, grads, aux_loss = run_batches(
+                params, model, rng, x_train, y_train, cond_train, use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn)
+
+            val_acc, val_loss, aux_val_loss = eval_step(
+                params, rng, model, x_val, y_val, cond_val, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy)
+
+            return (params, optimiser_state), (params, grads, train_loss, val_loss, val_acc, aux_loss, aux_val_loss)
+        
         # Run
         (params, optimiser_state), (params_stack, grads, train_loss,
                                     val_loss, val_acc, aux_loss, aux_val_loss) = f((params, optimiser_state), None)

@@ -135,7 +135,11 @@ def test_conditionality(params, rng, decoder, df, x_cols,
     vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
                                    y_datanormaliser, y_methods_preprocessing,
                                    fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
-                                   save_path=os.path.join(top_write_dir, 'combined.png'))
+                                   save_path=os.path.join(top_write_dir, 'combined_fill.png'), multiple='fill')
+    vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
+                                   y_datanormaliser, y_methods_preprocessing,
+                                   fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
+                                   save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer')
     return mi
 
 
@@ -244,5 +248,6 @@ def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
                output_species=config_dataset.output_species,
                signal_species=config_dataset.signal_species,
                n_to_sample=hpos['eval_n_to_sample'],
-               visualise=True)
+               visualise=True,
+               top_write_dir=top_write_dir)
     return hpos

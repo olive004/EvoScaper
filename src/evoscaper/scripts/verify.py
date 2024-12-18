@@ -178,9 +178,12 @@ def verify(params, rng, decoder,
            output_species: List[str],
            signal_species: List[str],
            n_to_sample: int = 100000,
-           visualise=True):
+           visualise=True,
+           top_write_dir=None):
 
     config_bio, data_writer = script_preamble(config_bio, None)
+    if top_write_dir is not None:
+        data_writer.top_write_dir = top_write_dir
     config_bio = prepare_config(expand_config(config=config_bio))
 
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
