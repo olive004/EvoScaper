@@ -50,7 +50,7 @@ def test_make_xy():
     x_norm_settings = NormalizationSettings()
     y_norm_settings = NormalizationSettings()
     
-    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, TOTAL_DS, x_cols, y_col,
                                                                                                             x_norm_settings, y_norm_settings)
     
     assert np.allclose(x_datanormaliser.create_chain_preprocessor_inverse(x_methods_preprocessing)(x), df[x_cols].values), 'Inverse transformation of x did not work as expected'

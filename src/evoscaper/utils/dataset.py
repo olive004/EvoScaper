@@ -18,8 +18,9 @@ def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
 
     df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
     TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(df, BATCH_SIZE, TOTAL_DS_MAX)
+    df = df.iloc[jax.random.choice(rng, np.arange(len(df)), [TOTAL_DS], replace=False)]
 
-    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, rng, TOTAL_DS, x_cols, y_col,
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, TOTAL_DS, x_cols, y_col,
                                                                                                             x_norm_settings, y_norm_settings)
 
     return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
@@ -63,18 +64,16 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
 
 
 # Make xy
-def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
+def make_xy(df, TOTAL_DS, X_COLS, OBJECTIVE_COL,
             x_norm_settings, y_norm_settings):
-
-    df_shuff = df.iloc[jax.random.choice(rng, np.arange(len(df)), [TOTAL_DS], replace=False)]
     
     x, x_datanormaliser, x_methods_preprocessing = make_x(
-        df_shuff, X_COLS, x_norm_settings)
+        df, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
-        df_shuff, OBJECTIVE_COL, y_norm_settings)
+        df, OBJECTIVE_COL, y_norm_settings)
 
-    shuffled_indices = jax.random.permutation(rng, x.shape[0])
-    x, cond = x[shuffled_indices], cond[shuffled_indices]
+    # shuffled_indices = jax.random.permutation(rng, x.shape[0])
+    # x, cond = x[shuffled_indices], cond[shuffled_indices]
 
     if x.shape[0] < TOTAL_DS:
         print(
