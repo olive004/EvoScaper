@@ -128,7 +128,8 @@ def test_conditionality(params, rng, decoder, df, x_cols,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max())
 
-    mi = jax.vmap(partial(estimate_mutual_information_knn, k=5))(z, sampled_cond)
+    mi = jax.vmap(partial(estimate_mutual_information_knn, k=5))(
+        z, sampled_cond)
     # mi = estimate_mutual_information_knn(z.reshape(np.prod(
     #     z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
 
@@ -180,9 +181,10 @@ def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
     rng = jax.random.PRNGKey(hpos['seed_train'])
     rng_model = jax.random.PRNGKey(hpos['seed_arch'])
     rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
-    
+
     top_write_dir = os.path.join(top_dir, f'hpo_{hpos["index"]}')
-    if not os.path.exists(top_write_dir): os.makedirs(top_write_dir)
+    if not os.path.exists(top_write_dir):
+        os.makedirs(top_write_dir)
 
     # Configs + data
     (config_norm_x, config_norm_y, config_filter, config_optimisation,
