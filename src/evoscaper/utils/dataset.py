@@ -1,13 +1,11 @@
 
 
-from functools import partial
 import numpy as np
 import pandas as pd
 import jax
 import jax.numpy as jnp
 from evoscaper.utils.normalise import make_chain_f
 from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
-from sklearn.utils import shuffle
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
 
 
@@ -68,13 +66,13 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
 def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
             x_norm_settings, y_norm_settings):
 
-    df = df.iloc[jax.random.choice(rng, np.arange(
-        len(df)), [int(np.min([TOTAL_DS, len(df)]))], replace=False)]
+    df_shuff = df.iloc[jax.random.choice(rng, np.arange(len(df)), [TOTAL_DS], replace=False)]
+    
     x, x_datanormaliser, x_methods_preprocessing = make_x(
-        df, X_COLS, x_norm_settings)
+        df_shuff, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
-        df, OBJECTIVE_COL, y_norm_settings)
-    # x, cond = shuffle(x, cond, random_state=rng)
+        df_shuff, OBJECTIVE_COL, y_norm_settings)
+
     shuffled_indices = jax.random.permutation(rng, x.shape[0])
     x, cond = x[shuffled_indices], cond[shuffled_indices]
 
@@ -87,7 +85,7 @@ def make_xy(df, rng, TOTAL_DS, X_COLS, OBJECTIVE_COL,
 
 def make_x(df, X_COLS, x_norm_settings):
     x = [df[i].values[:, None] for i in X_COLS]
-    x = np.concatenate(x, axis=1).squeeze()
+    x = np.concatenate(x, axis=-1).squeeze()
 
     x_datanormaliser, x_methods_preprocessing = make_chain_f(x_norm_settings)
 

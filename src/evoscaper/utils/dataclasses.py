@@ -39,9 +39,9 @@ class NormalizationSettings:
     """
     negative: bool = False
     logscale: bool = False
-    standardise: bool = True
-    min_max: bool = False
-    robust_scaling: bool = False
+    standardise: bool = False
+    min_max: bool = True
+    robust_scaling: bool = True
     categorical: bool = False
     categorical_onehot: bool = False
     categorical_n_bins: int = 10
