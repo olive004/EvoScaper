@@ -115,9 +115,17 @@ def compute_accuracy_regression(
 
 
 @eqx.filter_jit
-def accuracy_regression(
+def accuracy_regression_new(
     pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
     rtol=1e-3, atol=1e-5
 ) -> Float[Array, ""]:
     # return jnp.mean(jnp.abs(y - pred_y) <= threshold)
     return jnp.mean(jnp.isclose(pred_y, y, rtol=rtol, atol=atol))
+
+
+@eqx.filter_jit
+def accuracy_regression(
+    pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
+    threshold=0.1, **kwargs
+) -> Float[Array, ""]:
+    return jnp.mean(jnp.abs(y - pred_y) <= threshold)
