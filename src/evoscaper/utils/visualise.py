@@ -77,13 +77,13 @@ def vis_training(saves):
 
 @save_plot()
 def vis_parity(y, pred_y):
-    g = sns.scatterplot(x=y.flatten(), y=pred_y.flatten(), alpha=0.1, hue=np.sqrt(
+    g = sns.scatterplot(x=pred_y.flatten(), y=y.flatten(), alpha=0.1, hue=np.sqrt(
         np.abs(pred_y.flatten() - y.flatten())), palette='viridis')
     g.legend_.set_title('Sqare root of difference')
     plt.title(
         f'Actual vs. predicted decoded circuits\nR2: {r2_score(y.flatten(), pred_y.flatten()):.2f}')
-    plt.xlabel('Actual circuit binding energy')
-    plt.ylabel('Predicted circuit binding energy')
+    plt.xlabel('Predicted circuit interactions')
+    plt.ylabel('Actual circuit interactions')
 
     print('The R2 score is ', r2_score(y.flatten(), pred_y.flatten()))
     print('The R2 score with weighted variance is ', r2_score(
