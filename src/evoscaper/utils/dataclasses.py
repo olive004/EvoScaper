@@ -51,20 +51,19 @@ class NormalizationSettings:
 @dataclass
 class ModelConfig:
     seed_arch: int
-    model: str
     decoder_head: int
     hidden_size: int
-    use_sigmoid_decoder: bool = False
-    enc_init: str = 'HeNormal'
-    dec_init: str = 'HeNormal'
-    activation: str = 'leaky_relu'
-    call_kwargs: dict = {}
-    init_model_with_random: bool = False
-
+    call_kwargs: dict
     enc_ls: int
     dec_ls: int
     num_enc_layers: int
     num_dec_layers: int
+    model: str = 'CVAE'
+    use_sigmoid_decoder: bool = False
+    enc_init: str = 'HeNormal'
+    dec_init: str = 'HeNormal'
+    activation: str = 'leaky_relu'
+    init_model_with_random: bool = False
     factor_expanding_ls: int = 1
     factor_contracting_ls: int = 1
     enc_layers: List[int] = field(init=False)

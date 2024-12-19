@@ -23,8 +23,7 @@ def make_config_model(x, hpos):
         num_dec_layers=hpos['num_dec_layers'],
         factor_expanding_ls=hpos['factor_expanding_ls'],
         factor_contracting_ls=hpos['factor_contracting_ls'],
-        enc_layers=hpos['enc_layers'],
-        dec_layers=hpos['dec_layers'],
+        call_kwargs={}
     )
     
 
