@@ -117,7 +117,8 @@ def train(params, rng, model,
         if np.mod(epoch, save_every) == 0:
             saves[epoch] = make_saves(
                 train_loss, val_loss, val_acc, include_params_in_all_saves, params_stack, grads, aux_loss, aux_val_loss)
-            logging.warning(
+        if np.mod(epoch, 10) == 0:
+            logging.info(
                 f'Epoch {epoch} / {epochs} -\t\t Train loss: {np.mean(train_loss)}\tVal loss: {val_loss}\tVal accuracy: {val_acc}')
 
         # Early stopping

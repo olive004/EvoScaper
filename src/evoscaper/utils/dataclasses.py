@@ -1,6 +1,6 @@
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -52,16 +52,33 @@ class NormalizationSettings:
 class ModelConfig:
     seed_arch: int
     model: str
-    enc_layers: List[int]
-    dec_layers: List[int]
     decoder_head: int
     hidden_size: int
-    use_sigmoid_decoder: str
-    enc_init: str
-    dec_init: str
-    activation: str
-    call_kwargs: dict
-    init_model_with_random: bool
+    use_sigmoid_decoder: bool = False
+    enc_init: str = 'HeNormal'
+    dec_init: str = 'HeNormal'
+    activation: str = 'leaky_relu'
+    call_kwargs: dict = {}
+    init_model_with_random: bool = False
+
+    enc_ls: int
+    dec_ls: int
+    num_enc_layers: int
+    num_dec_layers: int
+    factor_expanding_ls: int = 1
+    factor_contracting_ls: int = 1
+    enc_layers: List[int] = field(init=False)
+    dec_layers: List[int] = field(init=False)
+
+    def __post_init__(self):
+        self.enc_layers = [self.enc_ls] * self.num_enc_layers
+        self.dec_layers = [self.dec_ls] * self.num_dec_layers
+        if self.num_enc_layers > 1:
+            self.enc_layers[0] = self.enc_layers[0] * self.factor_expanding_ls
+            self.enc_layers[-1] = self.enc_layers[-1] * self.factor_contracting_ls
+        if self.num_dec_layers > 1:
+            self.dec_layers[0] = self.dec_layers[0] * self.factor_contracting_ls
+            self.dec_layers[-1] = self.dec_layers[-1] * self.factor_expanding_ls
 
 
 @dataclass

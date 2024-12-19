@@ -9,17 +9,22 @@ from evoscaper.utils.dataclasses import (
 def make_config_model(x, hpos):
     return ModelConfig(
         seed_arch=hpos['seed_arch'],
-        decoder_head=x.shape[-1],
-        activation=hpos['activation'],
         model=hpos['model'],
-        enc_layers=hpos['enc_layers'],
-        dec_layers=hpos['dec_layers'],
+        decoder_head=x.shape[-1],
         hidden_size=hpos['hidden_size'],
         use_sigmoid_decoder=hpos['use_sigmoid_decoder'],
         enc_init=hpos['enc_init'],
         dec_init=hpos['dec_init'],
-        call_kwargs={},
+        activation=hpos['activation'],
         init_model_with_random=hpos['init_model_with_random'],
+        enc_ls=hpos['enc_ls'],
+        dec_ls=hpos['dec_ls'],
+        num_enc_layers=hpos['num_enc_layers'],
+        num_dec_layers=hpos['num_dec_layers'],
+        factor_expanding_ls=hpos['factor_expanding_ls'],
+        factor_contracting_ls=hpos['factor_contracting_ls'],
+        enc_layers=hpos['enc_layers'],
+        dec_layers=hpos['dec_layers'],
     )
     
 
