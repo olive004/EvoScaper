@@ -3,13 +3,13 @@
 import optax
 
 
-def make_optimiser(learning_rate_sched: str,
-                   learning_rate, epochs: int = None,
-                   l2_reg_alpha: float = None,
+def make_optimiser(learning_rate_sched: str = 'cosine_decay',
+                   learning_rate = 0.1, epochs: int = 100,
+                   l2_reg_alpha: float = 0.01,
                    use_warmup: bool = False,
                    warmup_epochs: int = 0,
                    n_batches: int = 1,
-                   method: str = 'adam'):
+                   method: str = 'sgd'):
     opt_method = getattr(optax, method)
     if use_warmup:
         warmup_fn = optax.linear_schedule(

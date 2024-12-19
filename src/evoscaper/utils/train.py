@@ -14,7 +14,7 @@ def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_r
     (loss, aux), grads = jax.value_and_grad(loss_fn, has_aux=True)(
         params, rng, model, x, y, use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, cond=cond)
 
-    updates, optimiser_state = optimiser.update(grads, optimiser_state)
+    updates, optimiser_state = optimiser.update(grads, optimiser_state, params)
     params = optax.apply_updates(params, updates)
 
     return params, optimiser_state, loss, grads, aux
@@ -117,7 +117,7 @@ def train(params, rng, model,
         if np.mod(epoch, save_every) == 0:
             saves[epoch] = make_saves(
                 train_loss, val_loss, val_acc, include_params_in_all_saves, params_stack, grads, aux_loss, aux_val_loss)
-            logging.info(
+            logging.warning(
                 f'Epoch {epoch} / {epochs} -\t\t Train loss: {np.mean(train_loss)}\tVal loss: {val_loss}\tVal accuracy: {val_acc}')
 
         # Early stopping
@@ -126,7 +126,7 @@ def train(params, rng, model,
 
         # Stop if no improvement or nans
         if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)):
-            logging.info(f'Early stopping triggered after {epoch+1} epochs')
+            logging.warning(f'Early stopping triggered after {epoch+1} epochs:\nTrain loss: {np.mean(train_loss)}\nVal loss: {val_loss}\nVal accuracy: {val_acc}\nEpochs no improvement: {epochs_no_improve}')
             break
 
     saves[list(saves.keys())[-1]]['params'] = params
