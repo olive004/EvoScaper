@@ -165,7 +165,7 @@ def vis_recon_scatter(x, x_fake, show_max: int = 2000):
 @save_plot()
 def vis_histplot_combined_realfake(
         n_categories, df, x_cols, objective_col, y_datanormaliser, y_methods_preprocessing,
-        fake_circuits, z, sampled_cond, is_onehot, multiple='fill', show_max=300):
+        fake_circuits, z, sampled_cond, is_onehot, multiple='fill', fill: bool = True, show_max=300):
     df = df[~df[objective_col].isna()]
     df[objective_col + '_nearest_edge'] = bin_to_nearest_edge(
         df[objective_col].to_numpy(), n_bins=n_categories)
@@ -177,7 +177,7 @@ def vis_histplot_combined_realfake(
 
         ax = plt.subplot(n_categories, 2, 2*i+1)
         g1 = sns.histplot(fake, element='step', bins=30,
-                          palette='viridis', multiple=multiple)
+                          palette='viridis', multiple=multiple, fill=fill)
         sc = np.array(sorted(np.unique(sampled_cond)))[:, None]
         sc = y_datanormaliser.create_chain_preprocessor_inverse(
             y_methods_preprocessing)(sc)
@@ -191,7 +191,7 @@ def vis_histplot_combined_realfake(
 
         ax = plt.subplot(n_categories, 2, 2*i+2)
         g2 = sns.histplot(real, element='step', bins=30,
-                          palette='magma', multiple=multiple)
+                          palette='magma', multiple=multiple, fill=fill)
         plt.title(
             f'{len(real)} real circuits: {objective_col} = {str(edge)[:6]}')
         sns.move_legend(g2, 'upper left', bbox_to_anchor=(1, 1))

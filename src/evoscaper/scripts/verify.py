@@ -179,7 +179,8 @@ def verify(params, rng, decoder,
            signal_species: List[str],
            n_to_sample: int = 100000,
            visualise=True,
-           top_write_dir=None):
+           top_write_dir=None,
+           return_relevant=False):
 
     config_bio, data_writer = script_preamble(config_bio, None)
     if top_write_dir is not None:
@@ -227,3 +228,6 @@ def verify(params, rng, decoder,
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), y_datanormaliser, model_brn, output_species,
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits)
+    
+    if return_relevant:
+        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond

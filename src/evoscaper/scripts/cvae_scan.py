@@ -18,6 +18,7 @@ from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import VAE_fn
 from evoscaper.model.shared import get_activation_fn
 from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
+from evoscaper.scripts.init_from_hpos import init_from_hpos
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import init_data, prep_data, make_training_data
@@ -25,28 +26,16 @@ from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
 from evoscaper.utils.train import train
-from evoscaper.utils.tuning import make_configs_initial, make_config_model
 from evoscaper.utils.visualise import vis_histplot_combined_realfake, vis_parity, vis_recon_distribution, vis_training
 
 
 TOP_WRITE_DIR = 'data'
 
 
-def init_model(rng, x, cond, config_model: ModelConfig):
-
-    model_fn = partial(VAE_fn, enc_layers=config_model.enc_layers, dec_layers=config_model.dec_layers,
-                       decoder_head=config_model.decoder_head, HIDDEN_SIZE=config_model.hidden_size,
-                       decoder_activation_final=jax.nn.sigmoid if config_model.use_sigmoid_decoder else jax.nn.leaky_relu,
-                       enc_init=config_model.enc_init, dec_init=config_model.dec_init,
-                       activation=get_activation_fn(config_model.activation))
-    model_t = hk.multi_transform(model_fn)
-    if config_model.init_model_with_random:
-        dummy_x = jax.random.normal(rng, x.shape)
-        dummy_cond = jax.random.normal(rng, cond.shape)
-        params = model_t.init(rng, dummy_x, dummy_cond, deterministic=False)
-    params = model_t.init(rng, x, cond, deterministic=False)
-    encoder, decoder, model, h2mu, h2logvar, reparam = model_t.apply
-    return params, encoder, decoder, model, h2mu, h2logvar, reparam
+def make_savepath(task='_test', top_dir=TOP_WRITE_DIR):
+    save_path = make_datetime_str() + '_saves' + task
+    save_path = os.path.join(top_dir, save_path)
+    return save_path
 
 
 def init_optimiser(x, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches):
@@ -54,20 +43,6 @@ def init_optimiser(x, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, 
                                epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches)
     optimiser_state = optimiser.init(x)
     return optimiser, optimiser_state
-
-
-def load_data(config_dataset: DatasetConfig):
-    data = pd.concat([pd.read_csv(fn)
-                     for fn in config_dataset.filenames_train_table])
-    X_COLS = make_xcols(data, config_dataset.x_type,
-                        config_dataset.include_diffs)
-    return data, X_COLS
-
-
-def make_savepath(task='_test', top_dir=TOP_WRITE_DIR):
-    save_path = make_datetime_str() + '_saves' + task
-    save_path = os.path.join(top_dir, save_path)
-    return save_path
 
 
 def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
@@ -95,7 +70,7 @@ def train_full(params, rng, model,
                           use_l2_reg=config_training.use_l2_reg, l2_reg_alpha=config_training.l2_reg_alpha,
                           epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
                           save_every=config_training.print_every, include_params_in_all_saves=False)
-    
+
     print('Training complete:', datetime.now() - tstart)
 
     pred_y = model(params, rng, x_train, cond=cond_train)
@@ -135,11 +110,11 @@ def test_conditionality(params, rng, decoder, df, x_cols,
     vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
                                    y_datanormaliser, y_methods_preprocessing,
                                    fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
-                                   save_path=os.path.join(top_write_dir, 'combined_fill.png'), multiple='fill')
+                                   save_path=os.path.join(top_write_dir, 'combined_fill.png'), multiple='fill', fill=True)
     vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
                                    y_datanormaliser, y_methods_preprocessing,
                                    fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
-                                   save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer')
+                                   save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
     return mi
 
 
@@ -179,33 +154,16 @@ def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_tes
     return hpos
 
 
-def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
+def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
 
-    rng = jax.random.PRNGKey(hpos['seed_train'])
-    rng_model = jax.random.PRNGKey(hpos['seed_arch'])
-    rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
-
-    top_write_dir = os.path.join(top_dir, f'hpo_{hpos["index"]}')
-    if not os.path.exists(top_write_dir):
-        os.makedirs(top_write_dir)
-
-    # Configs + data
-    (config_norm_x, config_norm_y, config_filter, config_optimisation,
-     config_dataset, config_training) = make_configs_initial(hpos)
-    data, x_cols = load_data(config_dataset)
-
-    # Init data
-    (df, x, cond, total_ds, n_batches, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing,
-     y_datanormaliser, y_methods_preprocessing) = init_data(
-         data, x_cols, config_dataset.objective_col, config_dataset.output_species, config_dataset.total_ds_max,
-         config_training.batch_size, rng_dataset, config_norm_x, config_norm_y, config_filter)
-    x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val = make_training_data(
-        x, cond, config_dataset.train_split, n_batches, BATCH_SIZE)
-
-    # Init model
-    config_model = make_config_model(x, hpos)
-    params, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
-        rng_model, x, cond, config_model)
+    (
+        rng, rng_model, rng_dataset,
+        config_norm_x, config_norm_y, config_filter, config_optimisation, config_dataset, config_training, config_model,
+        data, x_cols, df,
+        x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val,
+        total_ds, n_batches, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing,
+        params, encoder, decoder, model, h2mu, h2logvar, reparam
+    ) = init_from_hpos(hpos, top_write_dir)
 
     # Losses
     loss_fn, compute_accuracy = make_loss(
@@ -218,8 +176,7 @@ def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
 
     # Test & Visualise
     if config_dataset.use_test_data:
-        data_test = pd.concat([pd.read_csv(fn)
-                              for fn in config_dataset.filenames_verify_table])
+        data_test = pd.read_csv(config_dataset.filenames_verify_table)
     else:
         print(
             f'Warning: not using the test data for evaluation, but the training data instead of {config_dataset.filenames_verify_table}')
@@ -241,6 +198,7 @@ def main(hpos: pd.Series, top_dir=TOP_WRITE_DIR):
         verify(params, rng, decoder,
                df, cond,
                config_bio,
+               config_norm_y,
                config_dataset,
                config_model,
                x_datanormaliser, x_methods_preprocessing,
