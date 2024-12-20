@@ -177,6 +177,7 @@ def verify(params, rng, decoder,
            y_datanormaliser: DataNormalizer,
            output_species: List[str],
            signal_species: List[str],
+           input_species: List[str],
            n_to_sample: int = 100000,
            visualise=True,
            top_write_dir=None,
@@ -193,7 +194,9 @@ def verify(params, rng, decoder,
                                            use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                            cond_min=cond.min(), cond_max=cond.max())
 
-    input_species = df[df['sample_name'].notna()]['sample_name'].unique()
+    # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
+    if config_bio.get('circuit_generation', {}).get('species_count') is not None:
+        assert len(input_species) == config_bio.get('circuit_generation', {}).get('species_count'), f'Wrong number of input species {input_species}'
     config_bio.update(expand_model_config(config_bio, {}, input_species))
 
     fake_circuits_reshaped = np.array(list(map(partial(make_symmetrical_matrix_from_sequence_nojax,

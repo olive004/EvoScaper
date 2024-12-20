@@ -205,6 +205,8 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
                y_datanormaliser,
                output_species=config_dataset.output_species,
                signal_species=config_dataset.signal_species,
+               input_species=data[data['sample_name'].notna()
+                                  ]['sample_name'].unique(),
                n_to_sample=hpos['eval_n_to_sample'],
                visualise=True,
                top_write_dir=top_write_dir)
