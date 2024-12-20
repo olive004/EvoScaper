@@ -77,7 +77,7 @@ def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
             loss_wrapper, loss_f=mse_loss, use_l2_reg=use_l2_reg, use_kl_div=use_kl_div, kl_weight=kl_weight)
     else:
         raise NotImplementedError(f'Loss type {loss_type} not implemented')
-    compute_accuracy = partial(accuracy_regression, rtol=1e-3, atol=1e-5)
+    compute_accuracy = partial(accuracy_regression, threshold=0.1)
     return loss_fn, compute_accuracy
 
 

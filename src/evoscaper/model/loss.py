@@ -115,7 +115,7 @@ def compute_accuracy_regression(
 
 
 @eqx.filter_jit
-def accuracy_regression_new(
+def accuracy_regression_exact(
     pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
     rtol=1e-3, atol=1e-5
 ) -> Float[Array, ""]:
