@@ -5,6 +5,7 @@ from numbers import Number
 from typing import Tuple
 import numpy as np
 import jax.numpy as jnp
+import jax
 
 
 def arrayise(d):
@@ -50,6 +51,33 @@ def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
     n[np.triu_indices(side_length)] = arr
     symmetric_matrix = n + n.T - np.diag(np.diag(n))
     return symmetric_matrix
+
+
+def make_symmetrical_matrix_from_sequence(arr: jnp.ndarray, side_length: int) -> jnp.ndarray:
+    """Base function to create a single symmetric matrix.
+    This function operates on a single array and will be vmapped."""
+    rows, cols = jnp.triu_indices(side_length)
+    matrix = jnp.zeros((side_length, side_length))
+    matrix = matrix.at[rows, cols].set(arr)
+    symmetric_matrix = matrix + matrix.T
+    diagonal_mask = jnp.eye(side_length, dtype=bool)
+    symmetric_matrix = symmetric_matrix.at[diagonal_mask].multiply(0.5)
+    return symmetric_matrix
+
+def make_batch_symmetrical_matrices(arrs: jnp.ndarray, side_length: int) -> jnp.ndarray:
+    """Vectorized version that handles batches of arrays.
+    
+    Args:
+        arrs: Array of shape (batch_size, n_elements) where n_elements is the 
+             number of elements needed for upper triangle
+        side_length: The dimension of each output square matrix
+    
+    Returns:
+        Array of shape (batch_size, side_length, side_length) containing 
+        symmetric matrices
+    """
+    return jax.vmap(lambda x: make_symmetrical_matrix_from_sequence(x, side_length))(arrs)
+
 
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:

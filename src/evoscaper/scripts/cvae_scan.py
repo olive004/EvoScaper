@@ -107,14 +107,14 @@ def test_conditionality(params, rng, decoder, df, x_cols,
     # mi = estimate_mutual_information_knn(z.reshape(np.prod(
     #     z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
 
-    vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
-                                   y_datanormaliser, y_methods_preprocessing,
-                                   fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
-                                   save_path=os.path.join(top_write_dir, 'combined_fill.png'), multiple='fill', fill=True)
-    vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
-                                   y_datanormaliser, y_methods_preprocessing,
-                                   fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
-                                   save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
+    # vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
+    #                                y_datanormaliser, y_methods_preprocessing,
+    #                                fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
+    #                                save_path=os.path.join(top_write_dir, 'combined_fill.png'), multiple='fill', fill=True)
+    # vis_histplot_combined_realfake(n_categories, df, x_cols, config_dataset.objective_col,
+    #                                y_datanormaliser, y_methods_preprocessing,
+    #                                fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
+    #                                save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
     return mi
 
 
@@ -193,8 +193,11 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
         config_model.enc_layers), len(config_model.dec_layers))
 
     # Verification
-    if (r2_test > 0.8) or (r2_train > 0.8):
-        config_bio = load_json_as_dict(config_dataset.filenames_train_config)
+    if True: # if (r2_test > 0.8) or (r2_train > 0.8):
+        val_config = load_json_as_dict(config_dataset.filenames_train_config)
+        config_bio = {}
+        for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
+            config_bio.update(val_config['base_configs_ensemble'][k])
         verify(params, rng, decoder,
                df, cond,
                config_bio,
@@ -207,7 +210,7 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
                signal_species=config_dataset.signal_species,
                input_species=data[data['sample_name'].notna()
                                   ]['sample_name'].unique(),
-               n_to_sample=hpos['eval_n_to_sample'],
+               n_to_sample=int(hpos['eval_n_to_sample']),
                visualise=True,
                top_write_dir=top_write_dir)
     return hpos

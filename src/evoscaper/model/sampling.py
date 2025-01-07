@@ -1,7 +1,7 @@
 
 
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -13,7 +13,8 @@ def sample_reconstructions(params, rng, decoder,
                            n_categories: Optional[int], n_to_sample: int, hidden_size: int,
                            x_datanormaliser: DataNormalizer, x_methods_preprocessing: List[str],
                            use_binned_sampling: bool = True, use_onehot: bool = False,
-                           cond_min: Optional[float] = 0, cond_max: Optional[float] = 1):
+                           cond_min: Optional[float] = 0, cond_max: Optional[float] = 1,
+                           impose_final_range: Optional[Tuple[float]] = None):
 
     if use_binned_sampling:
         if use_onehot:
@@ -35,5 +36,8 @@ def sample_reconstructions(params, rng, decoder,
     x_fake = decoder(inputs=z, params=params, rng=rng)
     x_fake = x_datanormaliser.create_chain_preprocessor_inverse(
         x_methods_preprocessing)(x_fake)
+    
+    if impose_final_range is not None:
+        x_fake = jnp.clip(x_fake, impose_final_range[0], impose_final_range[1])
 
     return x_fake, z, sampled_cond
