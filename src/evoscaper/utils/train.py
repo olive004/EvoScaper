@@ -72,9 +72,12 @@ def make_saves(train_loss, val_loss, val_acc, include_params_in_all_saves, param
     return saves
 
 
-def early_stopping(val_loss, best_val_loss, epochs_no_improve):
-    if val_loss > best_val_loss:
-        best_val_loss = val_loss
+def early_stopping(val_loss, best_val_loss, val_acc, best_val_acc, epochs_no_improve):
+    if (val_loss < best_val_loss) or (val_acc < best_val_acc):
+        if (val_loss < best_val_loss):
+            best_val_loss = val_loss
+        elif (val_acc > best_val_acc):
+            best_val_acc = val_acc
         epochs_no_improve = 0
     else:
         epochs_no_improve += 1
@@ -90,7 +93,9 @@ def train(params, rng, model,
           patience: int = 1000):
 
     best_val_loss = jnp.inf
+    best_val_acc = 0
     epochs_no_improve = 0
+    info_early_stop = ''
     saves = {}
     for epoch in range(epochs):
         # Shuffle data
@@ -123,15 +128,16 @@ def train(params, rng, model,
 
         # Early stopping
         epochs_no_improve, best_val_loss = early_stopping(
-            val_loss, best_val_loss, epochs_no_improve)
+            val_loss, best_val_loss, val_acc, best_val_acc, epochs_no_improve)
 
         # Stop if no improvement or nans
-        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)):
-            logging.warning(f'Early stopping triggered after {epoch+1} epochs:\nTrain loss: {np.mean(train_loss)}\nVal loss: {val_loss}\nVal accuracy: {val_acc}\nEpochs no improvement: {epochs_no_improve}')
+        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)) or (val_acc > 0.99):
+            info_early_stop = f'Early stopping triggered after {epoch+1} epochs:\nTrain loss: {np.mean(train_loss)}\nVal loss: {val_loss}\nVal accuracy: {val_acc}\nEpochs no improvement: {epochs_no_improve}'
+            logging.warning(info_early_stop)
             break
 
     saves[list(saves.keys())[-1]]['params'] = params
-    return params, saves
+    return params, saves, info_early_stop
 
 
 

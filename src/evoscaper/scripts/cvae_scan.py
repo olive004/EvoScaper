@@ -38,10 +38,11 @@ def make_savepath(task='_test', top_dir=TOP_WRITE_DIR):
     return save_path
 
 
-def init_optimiser(x, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches):
+def init_optimiser(params, learning_rate_sched, learning_rate, epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches, opt_method):
     optimiser = make_optimiser(learning_rate_sched, learning_rate,
-                               epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches)
-    optimiser_state = optimiser.init(x)
+                               epochs, l2_reg_alpha, use_warmup, warmup_epochs, n_batches,
+                               opt_method)
+    optimiser_state = optimiser.init(params)
     return optimiser, optimiser_state
 
 
@@ -60,16 +61,16 @@ def train_full(params, rng, model,
                x_train, cond_train, y_train, x_val, cond_val, y_val,
                config_optimisation: OptimizationConfig, config_training: TrainingConfig,
                loss_fn: Callable, compute_accuracy: Callable, n_batches: int, task: str, top_write_dir: str):
-    optimiser, optimiser_state = init_optimiser(x_train, config_optimisation.learning_rate_sched, config_training.learning_rate,
+    optimiser, optimiser_state = init_optimiser(params, config_optimisation.learning_rate_sched, config_training.learning_rate,
                                                 config_training.epochs, config_training.l2_reg_alpha, config_optimisation.use_warmup,
-                                                config_optimisation.warmup_epochs, n_batches)
+                                                config_optimisation.warmup_epochs, n_batches, config_optimisation.opt_method)
     tstart = datetime.now()
-    params, saves = train(params, rng, model,
-                          x_train, cond_train, y_train, x_val, cond_val, y_val,
-                          optimiser, optimiser_state,
-                          use_l2_reg=config_training.use_l2_reg, l2_reg_alpha=config_training.l2_reg_alpha,
-                          epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
-                          save_every=config_training.print_every, include_params_in_all_saves=False)
+    params, saves, info_early_stop = train(params, rng, model,
+                                           x_train, cond_train, y_train, x_val, cond_val, y_val,
+                                           optimiser, optimiser_state,
+                                           use_l2_reg=config_training.use_l2_reg, l2_reg_alpha=config_training.l2_reg_alpha,
+                                           epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
+                                           save_every=config_training.print_every, include_params_in_all_saves=False)
 
     print('Training complete:', datetime.now() - tstart)
 
@@ -79,7 +80,7 @@ def train_full(params, rng, model,
     save_path = make_savepath(task=task, top_dir=top_write_dir)
     write_json(deepcopy(saves), out_path=save_path)
 
-    return params, saves, save_path, r2_train
+    return params, saves, save_path, r2_train, info_early_stop
 
 
 def vis(saves, x, pred_y, top_write_dir):
@@ -145,11 +146,11 @@ def test(model, params, rng, decoder, saves, data_test,
     return r2_test, mi
 
 
-def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec):
+def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec, info_early_stop):
     for k, v in zip(
         ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test',
-            'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec'],
-            [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec]):
+            'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec', 'info_early_stop'],
+            [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec, info_early_stop]):
         hpos[k] = v
     return hpos
 
@@ -170,9 +171,9 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
         config_training.loss_func, config_training.use_l2_reg, config_training.use_kl_div, config_training.kl_weight)
 
     # Train
-    params, saves, save_path, r2_train = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
-                                                    config_optimisation, config_training, loss_fn, compute_accuracy, n_batches,
-                                                    task=f'_hpo_{hpos["index"]}', top_write_dir=top_write_dir)
+    params, saves, save_path, r2_train, info_early_stop = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
+                                                                     config_optimisation, config_training, loss_fn, compute_accuracy, n_batches,
+                                                                     task=f'_hpo_{hpos["index"]}', top_write_dir=top_write_dir)
 
     # Test & Visualise
     if config_dataset.use_test_data:
@@ -190,10 +191,11 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, len(
-        config_model.enc_layers), len(config_model.dec_layers))
+        config_model.enc_layers), len(config_model.dec_layers), info_early_stop)
 
     # Verification
-    if True: # if (r2_test > 0.8) or (r2_train > 0.8):
+    # if True:  
+    if (r2_test > 0.8) or (r2_train > 0.8):
         val_config = load_json_as_dict(config_dataset.filenames_train_config)
         config_bio = {}
         for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:

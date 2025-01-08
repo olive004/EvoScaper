@@ -39,14 +39,14 @@ def save_plot():
 
 @save_plot()
 def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: List[str],
-                         title: str, x_label: str, multiple='fill'):
+                         title: str, x_label: str, multiple='fill', show=False):
     category_array = np.array(sorted(y_datanormaliser.metadata["category_map"].values())).repeat(
         len(analytic)//len(y_datanormaliser.metadata["category_map"]))
 
     fig = plt.figure(figsize=(13, 4))
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
-        title = title + f': species {output_specie}'
+        title_curr = title + f': species {output_specie}'
         output_idx = [ii.name for ii in model_brn.species].index(output_specie)
         df_s = pd.DataFrame(columns=[x_label, 'VAE conditional input'],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array[:, None]], axis=-1))
@@ -57,7 +57,10 @@ def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: 
                      log_scale=[True, False], multiple=multiple, bins=20, hue='VAE conditional input', palette='viridis')
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-        plt.title(title)
+        plt.title(title_curr)
+        
+    if show:
+        plt.show()
 
 
 @save_plot()
