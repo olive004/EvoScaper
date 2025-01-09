@@ -17,8 +17,7 @@ from evoscaper.model.evaluation import estimate_mutual_information_knn
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import VAE_fn
 from evoscaper.model.shared import get_activation_fn
-from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
-from evoscaper.scripts.init_from_hpos import init_from_hpos
+from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import init_data, prep_data, make_training_data
@@ -44,17 +43,6 @@ def init_optimiser(params, learning_rate_sched, learning_rate, epochs, l2_reg_al
                                opt_method)
     optimiser_state = optimiser.init(params)
     return optimiser, optimiser_state
-
-
-def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
-
-    if loss_type == 'mse':
-        loss_fn = partial(
-            loss_wrapper, loss_f=mse_loss, use_l2_reg=use_l2_reg, use_kl_div=use_kl_div, kl_weight=kl_weight)
-    else:
-        raise NotImplementedError(f'Loss type {loss_type} not implemented')
-    compute_accuracy = partial(accuracy_regression, threshold=0.1)
-    return loss_fn, compute_accuracy
 
 
 def train_full(params, rng, model,
@@ -164,7 +152,10 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
         x, cond, y, x_train, cond_train, y_train, x_val, cond_val, y_val,
         total_ds, n_batches, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing,
         params, encoder, decoder, model, h2mu, h2logvar, reparam
-    ) = init_from_hpos(hpos, top_write_dir)
+    ) = init_from_hpos(hpos)
+
+    if not os.path.exists(top_write_dir):
+        os.makedirs(top_write_dir)
 
     # Losses
     loss_fn, compute_accuracy = make_loss(

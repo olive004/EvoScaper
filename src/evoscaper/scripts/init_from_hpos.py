@@ -5,6 +5,7 @@ import jax
 import os
 import pandas as pd
 import haiku as hk
+from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
 from evoscaper.model.shared import get_activation_fn
 from evoscaper.model.vae import VAE_fn
 from evoscaper.utils.dataclasses import DatasetConfig, ModelConfig
@@ -37,13 +38,10 @@ def init_model(rng, x, cond, config_model: ModelConfig):
     return params, encoder, decoder, model, h2mu, h2logvar, reparam
 
 
-def init_from_hpos(hpos: pd.Series, top_write_dir: str):
+def init_from_hpos(hpos: pd.Series):
     rng = jax.random.PRNGKey(hpos['seed_train'])
     rng_model = jax.random.PRNGKey(hpos['seed_arch'])
     rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
-
-    if not os.path.exists(top_write_dir):
-        os.makedirs(top_write_dir)
 
     # Configs + data
     (config_norm_x, config_norm_y, config_filter, config_optimisation,
@@ -71,3 +69,14 @@ def init_from_hpos(hpos: pd.Series, top_write_dir: str):
         total_ds, n_batches, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing,
         params, encoder, decoder, model, h2mu, h2logvar, reparam
     )
+
+
+def make_loss(loss_type: str, use_l2_reg, use_kl_div, kl_weight):
+
+    if loss_type == 'mse':
+        loss_fn = partial(
+            loss_wrapper, loss_f=mse_loss, use_l2_reg=use_l2_reg, use_kl_div=use_kl_div, kl_weight=kl_weight)
+    else:
+        raise NotImplementedError(f'Loss type {loss_type} not implemented')
+    compute_accuracy = partial(accuracy_regression, threshold=0.1)
+    return loss_fn, compute_accuracy
