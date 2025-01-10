@@ -95,20 +95,26 @@ def make_x(df, X_COLS, x_norm_settings):
     x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(x)
     return x, x_datanormaliser, x_methods_preprocessing
 
+    
+def get_conds(col, df, y_datanormaliser, y_methods_preprocessing):
+    cond = df[col].to_numpy()[:, None]
+    cond = y_datanormaliser.create_chain_preprocessor(
+        y_methods_preprocessing)(cond, col=col)
+    return cond
+
+
+def concat_conds(objective_cols, df, y_datanormaliser, y_methods_preprocessing):
+    cond = get_conds(objective_cols[0], df, y_datanormaliser, y_methods_preprocessing)
+    for k in objective_cols[1:]:
+        cond = np.concatenate([cond, get_conds(k, df, y_datanormaliser, y_methods_preprocessing)], axis=-1)
+    return cond
+
 
 def make_y(df, objective_cols, y_norm_settings):
 
     y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings, cols=objective_cols)
+    cond = concat_conds(objective_cols, df, y_datanormaliser, y_methods_preprocessing)
     
-    def get_conds(col):
-        cond = df[col].to_numpy()[:, None]
-        cond = y_datanormaliser.create_chain_preprocessor(
-            y_methods_preprocessing)(cond, col=col)
-        return cond
-    
-    cond = get_conds(objective_cols[0])
-    for k in objective_cols[1:]:
-        cond = np.concatenate([cond, get_conds(k)], axis=-1)
     return cond, y_datanormaliser, y_methods_preprocessing
 
 

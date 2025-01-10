@@ -20,7 +20,7 @@ from evoscaper.model.shared import get_activation_fn
 from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
-from evoscaper.utils.dataset import init_data, prep_data, make_training_data
+from evoscaper.utils.dataset import prep_data, concat_conds
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
@@ -88,6 +88,7 @@ def test_conditionality(params, rng, decoder, df, x_cols,
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=n_categories, n_to_sample=10000, hidden_size=config_model.hidden_size,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
+                                                            objective_cols=config_dataset.objective_col,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max())
 
@@ -117,8 +118,8 @@ def test(model, params, rng, decoder, saves, data_test,
                    config_dataset.objective_col, x_cols, config_filter)
     x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(
         np.concatenate([df[i].values[:, None] for i in x_cols], axis=1).squeeze())
-    cond = y_datanormaliser.create_chain_preprocessor(y_methods_preprocessing)(
-        df[config_dataset.objective_col].to_numpy()[:, None])
+    
+    cond = concat_conds(config_dataset.objective_col, df, y_datanormaliser, y_methods_preprocessing)
 
     pred_y = model(params, rng, x, cond)
 

@@ -39,7 +39,10 @@ def save_plot():
 
 @save_plot()
 def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: List[str],
-                         title: str, x_label: str, multiple='fill', show=False):
+                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, **kwargs):
+    if f == sns.histplot:
+        for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
+            kwargs.setdefault(k, v)
     category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
         len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
 
@@ -53,12 +56,13 @@ def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: 
         df_s['VAE conditional input'] = df_s['VAE conditional input'].astype(
             float).apply(lambda x: f'{x:.2f}')
         ax = plt.subplot(1, 2, i+1)
-        sns.histplot(df_s, x=x_label, element='step',
-                     log_scale=[True, False], multiple=multiple, bins=20, hue='VAE conditional input', palette='viridis')
+        f(df_s, x=x_label,
+          multiple=multiple, hue='VAE conditional input', palette='viridis',
+          **kwargs)
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
         plt.title(title_curr)
-        
+
     if show:
         plt.show()
 
@@ -173,7 +177,7 @@ def vis_histplot_combined_realfake(
     df = df[~df[k].isna()]
     df[k + '_nearest_edge'] = bin_to_nearest_edge(
         df[k].to_numpy(), n_bins=n_categories)
-    
+
     fig = plt.figure(figsize=(10*2, n_categories*5))
     for i, (zi, fake, edge) in enumerate(zip(z, fake_circuits, sorted(df[k + '_nearest_edge'].unique()))):
         real = df[df[k + '_nearest_edge']
