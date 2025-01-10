@@ -1,5 +1,6 @@
 
 
+from typing import Iterable
 import numpy as np
 import pandas as pd
 import jax
@@ -9,18 +10,18 @@ from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
 
 
-def init_data(data, x_cols: list, y_col: str, OUTPUT_SPECIES: list,
+def init_data(data, x_cols: Iterable[str], objective_cols: Iterable[str], OUTPUT_SPECIES: list,
               TOTAL_DS_MAX, BATCH_SIZE, rng,
               x_norm_settings: NormalizationSettings,
               y_norm_settings: NormalizationSettings,
               filter_settings: FilterSettings
               ):
 
-    df = prep_data(data, OUTPUT_SPECIES, y_col, x_cols, filter_settings)
+    df = prep_data(data, OUTPUT_SPECIES, objective_cols, x_cols, filter_settings)
     TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(df, BATCH_SIZE, TOTAL_DS_MAX)
     df = df.iloc[jax.random.choice(rng, np.arange(len(df)), [TOTAL_DS], replace=False)]
 
-    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, TOTAL_DS, x_cols, y_col,
+    x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, TOTAL_DS, x_cols, objective_cols,
                                                                                                             x_norm_settings, y_norm_settings)
 
     return df, x, cond, TOTAL_DS, N_BATCHES, BATCH_SIZE, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
@@ -50,27 +51,30 @@ def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettin
 
 
 def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-10.0):
-    if 'adaptability' not in data.columns:
-        data['adaptability'] = calculate_adaptation(
+    if 'adaptation' not in data.columns:
+        data['adaptation'] = calculate_adaptation(
             s=data['sensitivity_wrt_species-6'].values,
             p=data['precision_wrt_species-6'].values)
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
-    data['Log sensitivity'] = zero_log_replacement
-    data.loc[data['sensitivity_wrt_species-6'] != 0, 'Log sensitivity'] = np.log10(
-        data[data['sensitivity_wrt_species-6'] != 0]['sensitivity_wrt_species-6'])
+    def make_log(k, data):
+        data[f'Log {k.split("_")[0]}'] = zero_log_replacement
+        data.loc[data[k] != 0, f'Log {k.split("_")[0]}'] = np.log10(data[data[k] != 0][k])
+        return data
+    data = make_log('sensitivity_wrt_species-6', data)
+    data = make_log('precision_wrt_species-6', data)
     return data
 
 
 # Make xy
-def make_xy(df, TOTAL_DS, X_COLS, OBJECTIVE_COL,
+def make_xy(df, TOTAL_DS, X_COLS, objective_cols: Iterable[str],
             x_norm_settings, y_norm_settings):
     
     x, x_datanormaliser, x_methods_preprocessing = make_x(
         df, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
-        df, OBJECTIVE_COL, y_norm_settings)
+        df, objective_cols, y_norm_settings)
 
     # shuffled_indices = jax.random.permutation(rng, x.shape[0])
     # x, cond = x[shuffled_indices], cond[shuffled_indices]
@@ -92,12 +96,19 @@ def make_x(df, X_COLS, x_norm_settings):
     return x, x_datanormaliser, x_methods_preprocessing
 
 
-def make_y(df, OBJECTIVE_COL, y_norm_settings):
+def make_y(df, objective_cols, y_norm_settings):
 
-    cond = df[OBJECTIVE_COL].to_numpy()[:, None]
-    y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings)
-    cond = y_datanormaliser.create_chain_preprocessor(
-        y_methods_preprocessing)(cond)
+    y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings, cols=objective_cols)
+    
+    def get_conds(col):
+        cond = df[col].to_numpy()[:, None]
+        cond = y_datanormaliser.create_chain_preprocessor(
+            y_methods_preprocessing)(cond, col=col)
+        return cond
+    
+    cond = get_conds(objective_cols[0])
+    for k in objective_cols[1:]:
+        cond = np.concatenate([cond, get_conds(k)], axis=-1)
     return cond, y_datanormaliser, y_methods_preprocessing
 
 
@@ -119,14 +130,15 @@ def make_training_data(x, cond, train_split, n_batches, batch_size):
 
 # Balance preprocess
 
-def filter_invalids(data, OUTPUT_SPECIES, X_COLS, OBJECTIVE_COL, filter_settings: FilterSettings):
+def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_settings: FilterSettings):
 
     filt = data['sample_name'].isin(OUTPUT_SPECIES)
     if filter_settings.filt_x_nans:
         filt = filt & data[X_COLS].notna().all(axis=1)
     if filter_settings.filt_y_nans:
-        filt = filt & data[OBJECTIVE_COL].notna() & (
-            np.abs(data[OBJECTIVE_COL]) < np.inf)
+        for k in objective_cols:
+            filt = filt & data[k].notna() & (
+            np.abs(data[k]) < np.inf)
     if filter_settings.filt_sensitivity_nans:
         filt = filt & (np.abs(data['sensitivity_wrt_species-6'])
                        < np.inf) & data['sensitivity_wrt_species-6'].notna()

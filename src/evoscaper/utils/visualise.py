@@ -40,8 +40,8 @@ def save_plot():
 @save_plot()
 def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: List[str],
                          title: str, x_label: str, multiple='fill', show=False):
-    category_array = np.array(sorted(y_datanormaliser.metadata["category_map"].values())).repeat(
-        len(analytic)//len(y_datanormaliser.metadata["category_map"]))
+    category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
+        len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
 
     fig = plt.figure(figsize=(13, 4))
     fig.subplots_adjust(wspace=0.6)
@@ -169,13 +169,14 @@ def vis_recon_scatter(x, x_fake, show_max: int = 2000):
 def vis_histplot_combined_realfake(
         n_categories, df, x_cols, objective_col, y_datanormaliser, y_methods_preprocessing,
         fake_circuits, z, sampled_cond, is_onehot, multiple='fill', fill: bool = True, show_max=300):
-    df = df[~df[objective_col].isna()]
-    df[objective_col + '_nearest_edge'] = bin_to_nearest_edge(
-        df[objective_col].to_numpy(), n_bins=n_categories)
+    k = objective_col[0]
+    df = df[~df[k].isna()]
+    df[k + '_nearest_edge'] = bin_to_nearest_edge(
+        df[k].to_numpy(), n_bins=n_categories)
     
     fig = plt.figure(figsize=(10*2, n_categories*5))
-    for i, (zi, fake, edge) in enumerate(zip(z, fake_circuits, sorted(df[objective_col + '_nearest_edge'].unique()))):
-        real = df[df[objective_col + '_nearest_edge']
+    for i, (zi, fake, edge) in enumerate(zip(z, fake_circuits, sorted(df[k + '_nearest_edge'].unique()))):
+        real = df[df[k + '_nearest_edge']
                   == edge][x_cols].to_numpy()
 
         ax = plt.subplot(n_categories, 2, 2*i+1)
@@ -186,17 +187,17 @@ def vis_histplot_combined_realfake(
             y_methods_preprocessing)(sc)
         if is_onehot:
             plt.title(
-                f'{len(fake)} fake circuits: {objective_col} = {y_datanormaliser.metadata["category_map"][i]:.2f}')
+                f'{len(fake)} fake circuits: {k} = {y_datanormaliser.metadata[k]["category_map"][i]:.2f}')
         else:
             plt.title(
-                f'{len(fake)} fake circuits: {objective_col} = {str(sc.flatten()[i])[:6]}')
+                f'{len(fake)} fake circuits: {k} = {str(sc.flatten()[i])[:6]}')
         sns.move_legend(g1, 'upper left', bbox_to_anchor=(1, 1))
 
         ax = plt.subplot(n_categories, 2, 2*i+2)
         g2 = sns.histplot(real, element='step', bins=30,
                           palette='magma', multiple=multiple, fill=fill)
         plt.title(
-            f'{len(real)} real circuits: {objective_col} = {str(edge)[:6]}')
+            f'{len(real)} real circuits: {k} = {str(edge)[:6]}')
         sns.move_legend(g2, 'upper left', bbox_to_anchor=(1, 1))
 
-    plt.suptitle(f'CVAE: circuit comparison fake vs. real', fontsize=14)
+    plt.suptitle(f'CVAE: circuit comparison fake vs. real ({k})', fontsize=14)

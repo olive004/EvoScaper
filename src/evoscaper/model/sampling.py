@@ -10,8 +10,9 @@ from evoscaper.utils.normalise import DataNormalizer
 
 
 def sample_reconstructions(params, rng, decoder,
-                           n_categories: Optional[int], n_to_sample: int, hidden_size: int,
+                           n_categories: int, n_to_sample: int, hidden_size: int,
                            x_datanormaliser: DataNormalizer, x_methods_preprocessing: List[str],
+                           objective_cols: List[str],
                            use_binned_sampling: bool = True, use_onehot: bool = False,
                            cond_min: Optional[float] = 0, cond_max: Optional[float] = 1,
                            impose_final_range: Optional[Tuple[float]] = None):
@@ -21,6 +22,12 @@ def sample_reconstructions(params, rng, decoder,
             sampled_cond = np.repeat(np.arange(n_categories)[
                 :, None], repeats=n_to_sample, axis=1)
             sampled_cond = jax.nn.one_hot(sampled_cond, n_categories)
+            for k in objective_cols[1:]:
+                sampled_cond2 = np.repeat(np.arange(n_categories)[
+                    :, None], repeats=n_to_sample, axis=1)
+                sampled_cond2 = jax.nn.one_hot(sampled_cond2, n_categories)
+                sampled_cond = np.concatenate(
+                    [sampled_cond, sampled_cond2], axis=-1)
         else:
             sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
                 :, None], repeats=n_to_sample, axis=1)[:, :, None]
@@ -36,7 +43,7 @@ def sample_reconstructions(params, rng, decoder,
     x_fake = decoder(inputs=z, params=params, rng=rng)
     x_fake = x_datanormaliser.create_chain_preprocessor_inverse(
         x_methods_preprocessing)(x_fake)
-    
+
     if impose_final_range is not None:
         x_fake = jnp.clip(x_fake, impose_final_range[0], impose_final_range[1])
 

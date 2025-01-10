@@ -205,6 +205,7 @@ def verify(params, rng, decoder,
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=config_norm_y.categorical_n_bins, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
+                                                            objective_cols=config_dataset.objective_col,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range)
 

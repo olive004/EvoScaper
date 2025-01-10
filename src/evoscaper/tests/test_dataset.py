@@ -35,7 +35,7 @@ def test_prep_data():
     df = prep_data(data=data, output_species=['foo'], col_y='Log sensitivity', cols_x=['x', 'y', 'z'], filter_settings=FilterSettings())
     assert len(df) == 2, 'Filtering did not work as expected'
     
-    df = prep_data(data=data, output_species=['foo'], col_y='adaptability', cols_x=['x', 'y', 'z'], filter_settings=FilterSettings())
+    df = prep_data(data=data, output_species=['foo'], col_y='adaptation', cols_x=['x', 'y', 'z'], filter_settings=FilterSettings())
     assert len(df) == 1, 'Filtering adaptation did not work as expected'
     
     

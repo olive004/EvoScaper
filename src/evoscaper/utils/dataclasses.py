@@ -8,7 +8,7 @@ from typing import List
 class DatasetConfig:
     seed_dataset: int
     include_diffs: bool
-    objective_col: str
+    objective_col: List[str]
     output_species: List[str]
     signal_species: List[str]
     total_ds_max: int
@@ -19,6 +19,9 @@ class DatasetConfig:
     filenames_train_config: List[str]
     filenames_verify_config: List[str]
     use_test_data: bool
+    
+    def __post_init__(self):
+        self.objective_col = [self.objective_col] if isinstance(self.objective_col, str) else list(self.objective_col)
 
 
 @dataclass

@@ -2,10 +2,10 @@ import jax.numpy as jnp
 import jax
 import haiku as hk
 import numpy as np
-from typing import Dict, Any, Tuple, Literal, Union, Optional
+from typing import Dict, Any, List, Tuple, Literal, Union, Optional
 
 from evoscaper.utils.dataclasses import NormalizationSettings
-    
+
 
 class DataNormalizer:
     """
@@ -13,12 +13,16 @@ class DataNormalizer:
     Supports multiple normalization techniques with inverse transformations
     """
 
-    def __init__(self, categorical_n_bins: int = 10, categorical_method: str = 'equal_width'):
-        self.metadata: Dict[str, Any] = {}
+    def __init__(self, categorical_n_bins: int = 10, categorical_method: str = 'equal_width', cols_separate: Optional[list] = None):
         self.categorical_n_bins = categorical_n_bins
         self.categorical_method = categorical_method
+        self.cols_separate = cols_separate
+        if cols_separate:
+            self.metadata: Dict[str, Any] = {col: {} for col in cols_separate}
+        else:
+            self.metadata: Dict[str, Any] = {}
 
-    def standardise(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def standardise(self, data: jnp.ndarray, col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Standardize data to have zero mean and unit variance
 
@@ -38,16 +42,21 @@ class DataNormalizer:
 
         standardized = (data - mean) / std
 
-        self.metadata.update({
+        k = {
             'mean': mean,
             'std': std
-        })
+        }
+        if col:
+            self.metadata[col].update(k)
+        else:
+            self.metadata.update(k)
 
         return standardized
 
     def inverse_standardise(
         self,
-        normalized_data: jnp.ndarray
+        normalized_data: jnp.ndarray,
+        col=None
     ) -> jnp.ndarray:
         """
         Reverse standardise transformation
@@ -59,12 +68,14 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        return normalized_data * self.metadata['std'] + self.metadata['mean']
+        d = self.metadata[col] if col else self.metadata
+        return normalized_data * d['std'] + d['mean']
 
     def min_max_scaling(
         self,
         data: jnp.ndarray,
-        feature_range: Tuple[float, float] = (0, 1)
+        feature_range: Tuple[float, float] = (0, 1),
+        col=None
     ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
         """
         Scale features to a given range using min-max scaling
@@ -90,16 +101,22 @@ class DataNormalizer:
         scaled = ((data - min_val) / scale) * \
             (max_range - min_range) + min_range
 
-        self.metadata.update({
+        k = {
             'min_val': min_val,
             'scale': scale,
             'feature_range': feature_range
-        })
+        }
+        if col:
+            self.metadata[col].update(k)
+        else:
+            self.metadata.update(k)
+
         return scaled
 
     def inverse_min_max_scaling(
         self,
-        normalized_data: jnp.ndarray
+        normalized_data: jnp.ndarray,
+        col=None
     ) -> jnp.ndarray:
         """
         Reverse min-max scaling transformation
@@ -111,15 +128,16 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        min_range, max_range = self.metadata['feature_range']
+        d = self.metadata[col] if col else self.metadata
+        min_range, max_range = d['feature_range']
 
         # Reverse the feature range scaling
         unscaled = (normalized_data - min_range) / (max_range - min_range)
 
         # Reverse the min-max transformation
-        return unscaled * self.metadata['scale'] + self.metadata['min_val']
+        return unscaled * d['scale'] + d['min_val']
 
-    def robust_scaling(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def robust_scaling(self, data: jnp.ndarray, col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Scale features using median and interquartile range
 
@@ -140,16 +158,21 @@ class DataNormalizer:
 
         robust_scaled = (data - median) / iqr
 
-        self.metadata.update({
+        k = {
             'median': median,
             'iqr': iqr
-        })
+        }
+        if col:
+            self.metadata[col].update(k)
+        else:
+            self.metadata.update(k)
 
         return robust_scaled
 
     def inverse_robust_scaling(
         self,
         normalized_data: jnp.ndarray,
+        col=None
     ) -> jnp.ndarray:
         """
         Reverse robust scaling transformation
@@ -161,9 +184,10 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        return normalized_data * self.metadata['iqr'] + self.metadata['median']
+        d = self.metadata[col] if col else self.metadata
+        return normalized_data * d['iqr'] + d['median']
 
-    def make_categorical(self, data: jnp.ndarray, n_bins: int=10, method='equal_width') -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def make_categorical(self, data: jnp.ndarray, n_bins: int = 10, method='equal_width', col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Convert continuous data to categorical data
 
@@ -191,14 +215,19 @@ class DataNormalizer:
             method=method
         )
 
-        if 'category_map' not in self.metadata:
-            category_map = dict(zip(np.arange(n_bins), [np.mean([bin_edges[i], bin_edges[i+1]]) for i in range(n_bins)]))
-            self.metadata.update({
-                'category_map': category_map
-            })
+        category_map = dict(zip(np.arange(n_bins), [np.mean(
+            [bin_edges[i], bin_edges[i+1]]) for i in range(n_bins)]))
+
+        k = {
+            'category_map': category_map
+        }
+        if col:
+            self.metadata[col].update(k)
+        else:
+            self.metadata.update(k)
         return categorical_data
-    
-    def inverse_categorical(self, data: jnp.array):
+
+    def inverse_categorical(self, data: jnp.array, col=None):
         """
         Convert categorical data back to continuous data
 
@@ -208,8 +237,9 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Continuous data
         """
-        return np.vectorize(self.metadata['category_map'].get)(data)
-    
+        d = self.metadata[col] if col else self.metadata
+        return np.vectorize(d['category_map'].get)(data)
+
     def categorical_onehot(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         """
         Convert continuous data to one-hot encoded categorical data
@@ -225,7 +255,7 @@ class DataNormalizer:
         onehot_data = jax.nn.one_hot(data, int(data.max() + 1)).squeeze()
 
         return onehot_data
-    
+
     def inverse_onehot(self, onehot_data: jnp.ndarray) -> jnp.ndarray:
         """
         Convert one-hot encoded data back to categorical data
@@ -303,20 +333,21 @@ class DataNormalizer:
         Returns:
             hk.Module: A normalization layer with forward and inverse methods
         """
-        def chain_preprocess(x):
+        def chain_preprocess(x, col=None):
             for method in methods:
                 if method == 'standardise':
-                    x = self.standardise(x)
+                    x = self.standardise(x, col=col)
                 elif method == 'min_max':
-                    x = self.min_max_scaling(x)
+                    x = self.min_max_scaling(x, col=col)
                 elif method == 'robust_scaling':
-                    x = self.robust_scaling(x)
+                    x = self.robust_scaling(x, col=col)
                 elif method == 'negative':
                     x = self.negative_scaling(x)
                 elif method == 'logscale':
                     x = self.log_scaling(x)
                 elif method == 'categorical':
-                    x = self.make_categorical(x, n_bins=self.categorical_n_bins, method=self.categorical_method)
+                    x = self.make_categorical(
+                        x, n_bins=self.categorical_n_bins, method=self.categorical_method, col=col)
                 elif method == 'categorical_onehot':
                     x = self.categorical_onehot(x)
                 else:
@@ -326,20 +357,20 @@ class DataNormalizer:
         return chain_preprocess
 
     def create_chain_preprocessor_inverse(self, methods: list):
-        def chain_inverse_preprocess(x):
+        def chain_inverse_preprocess(x, col=None):
             for method in reversed(methods):
                 if method == 'standardise':
-                    x = self.inverse_standardise(x)
+                    x = self.inverse_standardise(x, col=col)
                 elif method == 'min_max':
-                    x = self.inverse_min_max_scaling(x)
+                    x = self.inverse_min_max_scaling(x, col=col)
                 elif method == 'robust_scaling':
-                    x = self.inverse_robust_scaling(x)
+                    x = self.inverse_robust_scaling(x, col=col)
                 elif method == 'negative':
                     x = self.inverse_negative_scaling(x)
                 elif method == 'logscale':
                     x = self.inverse_log_scaling(x)
                 elif method == 'categorical':
-                    x = self.inverse_categorical(x)
+                    x = self.inverse_categorical(x, col=col)
                 elif method == 'categorical_onehot':
                     x = self.inverse_onehot(x)
                 else:
@@ -504,9 +535,9 @@ class ContinuousToCategorical:
         return summary
 
 
-def make_chain_f(data_norm_settings: NormalizationSettings):
+def make_chain_f(data_norm_settings: NormalizationSettings, cols: Optional[List[str]] = None):
     """ Helper function """
-    datanormaliser = DataNormalizer()
+    datanormaliser = DataNormalizer(cols_separate=cols)
     methods_preprocessing = []
     if data_norm_settings.negative:
         methods_preprocessing.append('negative')
