@@ -39,9 +39,9 @@ def init_model(rng, x, cond, config_model: ModelConfig):
 
 
 def init_from_hpos(hpos: pd.Series):
-    rng = jax.random.PRNGKey(hpos['seed_train'])
-    rng_model = jax.random.PRNGKey(hpos['seed_arch'])
-    rng_dataset = jax.random.PRNGKey(hpos['seed_dataset'])
+    rng = jax.random.PRNGKey(int(hpos['seed_train']))
+    rng_model = jax.random.PRNGKey(int(hpos['seed_arch']))
+    rng_dataset = jax.random.PRNGKey(int(hpos['seed_dataset']))
 
     # Configs + data
     (config_norm_x, config_norm_y, config_filter, config_optimisation,
