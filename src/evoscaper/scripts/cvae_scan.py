@@ -58,7 +58,9 @@ def train_full(params, rng, model,
                                            optimiser, optimiser_state,
                                            use_l2_reg=config_training.use_l2_reg, l2_reg_alpha=config_training.l2_reg_alpha,
                                            epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
-                                           save_every=config_training.print_every, include_params_in_all_saves=False)
+                                           save_every=config_training.print_every, include_params_in_all_saves=False, 
+                                           use_grad_clipping=config_training.use_grad_clipping,
+                                           patience=config_training.patience)
 
     print('Training complete:', datetime.now() - tstart)
 

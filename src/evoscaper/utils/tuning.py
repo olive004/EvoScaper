@@ -46,7 +46,8 @@ def make_configs_initial(hpos: pd.Series):
         l2_reg_alpha=hpos['l2_reg_alpha'],
         use_kl_div=hpos['use_kl_div'],
         kl_weight=hpos['kl_weight'],
-        print_every=hpos['print_every']
+        print_every=hpos['print_every'],
+        use_grad_clipping=hpos.get('use_grad_clipping', False)
     )
     config_optimisation = OptimizationConfig(**{s: hpos[s] for s in OptimizationConfig.__annotations__.keys()})
     config_dataset = DatasetConfig(**{s: hpos[s] for s in DatasetConfig.__annotations__.keys()})

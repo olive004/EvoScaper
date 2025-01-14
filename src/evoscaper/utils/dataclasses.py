@@ -97,6 +97,7 @@ class TrainingConfig:
     use_kl_div: bool
     kl_weight: float
     print_every: int
+    use_grad_clipping: bool
 
 
 @dataclass

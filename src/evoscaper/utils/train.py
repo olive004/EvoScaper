@@ -9,12 +9,13 @@ import logging
 
 
 # @jax.jit
-def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_reg_alpha, optimiser, loss_fn):
+def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_reg_alpha, optimiser, loss_fn, use_grad_clipping: bool):
 
     (loss, aux), grads = jax.value_and_grad(loss_fn, has_aux=True)(
         params, rng, model, x, y, use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, cond=cond)
     
-    clipped_grads = clip_gradients(grads, max_norm=1.0)
+    if use_grad_clipping:
+        clipped_grads = clip_gradients(grads, max_norm=1.0)
 
     updates, optimiser_state = optimiser.update(clipped_grads, optimiser_state, params)
     params = optax.apply_updates(params, updates)
@@ -33,11 +34,11 @@ def eval_step(params, rng, model, x, y, cond, use_l2_reg, l2_reg_alpha, loss_fn,
 
 def run_batches(params, model, rng,
                 x_batch, y_batch, cond_batch,
-                use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn):
+                use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn, use_grad_clipping):
 
     f_train_step = partial(train_step, model=model, rng=rng,
                            use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, optimiser=optimiser,
-                           loss_fn=loss_fn)
+                           loss_fn=loss_fn, use_grad_clipping=use_grad_clipping)
 
     # @jax.jit
     def f(carry, inp):
@@ -120,6 +121,7 @@ def train(params, rng, model,
           use_l2_reg, l2_reg_alpha, epochs,
           loss_fn, compute_accuracy,
           save_every, include_params_in_all_saves,
+          use_grad_clipping,
           patience: int = 1000):
 
     best_val_loss = jnp.inf
@@ -139,7 +141,7 @@ def train(params, rng, model,
             params, optimiser_state = carry[0], carry[1]
 
             params, optimiser_state, train_loss, grads, aux_loss = run_batches(
-                params, model, rng, x_train, y_train, cond_train, use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn)
+                params, model, rng, x_train, y_train, cond_train, use_l2_reg, l2_reg_alpha, optimiser, optimiser_state, loss_fn, use_grad_clipping)
 
             val_acc, val_loss, aux_val_loss = eval_step(
                 params, rng, model, x_val, y_val, cond_val, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy)
@@ -163,7 +165,7 @@ def train(params, rng, model,
             val_loss, best_val_loss, val_acc, best_val_acc, epochs_no_improve)
 
         # Stop if no improvement or nans
-        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)) or (val_acc > 0.99):
+        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)) or (val_acc > 0.995):
             info_early_stop = f'Early stopping triggered after {epoch+1} epochs:\nTrain loss: {np.mean(train_loss)}\nVal loss: {val_loss}\nVal accuracy: {val_acc}\nEpochs no improvement: {epochs_no_improve}'
             logging.warning(info_early_stop)
             break

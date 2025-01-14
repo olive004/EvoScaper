@@ -68,7 +68,7 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        d = self.metadata[col] if col else self.metadata
+        d = self.metadata[col] if col is not None else self.metadata
         return normalized_data * d['std'] + d['mean']
 
     def min_max_scaling(
@@ -128,7 +128,7 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        d = self.metadata[col] if col else self.metadata
+        d = self.metadata[col] if col is not None else self.metadata
         min_range, max_range = d['feature_range']
 
         # Reverse the feature range scaling
@@ -184,7 +184,7 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Original scale data
         """
-        d = self.metadata[col] if col else self.metadata
+        d = self.metadata[col] if col is not None else self.metadata
         return normalized_data * d['iqr'] + d['median']
 
     def make_categorical(self, data: jnp.ndarray, n_bins: int = 10, method='equal_width', col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
@@ -237,7 +237,7 @@ class DataNormalizer:
         Returns:
             jnp.ndarray: Continuous data
         """
-        d = self.metadata[col] if col else self.metadata
+        d = self.metadata[col] if col is not None else self.metadata
         return np.vectorize(d['category_map'].get)(data)
 
     def categorical_onehot(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
