@@ -39,9 +39,10 @@ def estimate_mutual_information_knn(
     joint = jnp.concatenate([z, c], axis=-1)
 
     # Estimate entropy terms
-    z_entropy = jnp.log(knn_distances(z) + 1e-10)
-    c_entropy = jnp.log(knn_distances(c) + 1e-10)
-    joint_entropy = jnp.log(knn_distances(joint) + 1e-10)
+    eps = 1e-10
+    z_entropy = jnp.log(knn_distances(z) + eps)
+    c_entropy = jnp.log(knn_distances(c) + eps)
+    joint_entropy = jnp.log(knn_distances(joint) + eps)
 
     # Mutual information estimation
     mi = jnp.mean(z_entropy + c_entropy - joint_entropy)

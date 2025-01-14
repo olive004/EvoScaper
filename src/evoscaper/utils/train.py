@@ -13,11 +13,13 @@ def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_r
 
     (loss, aux), grads = jax.value_and_grad(loss_fn, has_aux=True)(
         params, rng, model, x, y, use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, cond=cond)
+    
+    clipped_grads = clip_gradients(grads, max_norm=1.0)
 
-    updates, optimiser_state = optimiser.update(grads, optimiser_state, params)
+    updates, optimiser_state = optimiser.update(clipped_grads, optimiser_state, params)
     params = optax.apply_updates(params, updates)
 
-    return params, optimiser_state, loss, grads, aux
+    return params, optimiser_state, loss, clipped_grads, aux
 
 
 def eval_step(params, rng, model, x, y, cond, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy):
@@ -72,6 +74,34 @@ def make_saves(train_loss, val_loss, val_acc, include_params_in_all_saves, param
     return saves
 
 
+def clip_gradients(gradients, max_norm):
+    """
+    Clip gradients to have a maximum norm of max_norm.
+    
+    Args:
+        gradients: PyTree of gradients
+        max_norm: float, maximum norm for gradients
+        
+    Returns:
+        PyTree of clipped gradients
+    """
+    # Calculate global norm across all parameters
+    global_norm = jnp.sqrt(
+        sum(jnp.sum(jnp.square(x)) for x in jax.tree_util.tree_leaves(gradients))
+    )
+    
+    # Calculate clip ratio
+    clip_ratio = jnp.minimum(max_norm / (global_norm + 1e-6), 1.0)
+    
+    # Apply clipping
+    clipped_gradients = jax.tree_map(
+        lambda x: x * clip_ratio,
+        gradients
+    )
+    
+    return clipped_gradients
+
+
 def early_stopping(val_loss, best_val_loss, val_acc, best_val_acc, epochs_no_improve):
     if (val_loss < best_val_loss) or (val_acc < best_val_acc):
         if (val_loss < best_val_loss):
@@ -98,6 +128,8 @@ def train(params, rng, model,
     info_early_stop = ''
     saves = {}
     for epoch in range(epochs):
+        if epoch == 118:
+            print('here')
         # Shuffle data
         _, rng = jax.random.split(rng)
         perm = jax.random.permutation(rng, len(x_train))
