@@ -1,9 +1,6 @@
 
 
-import jax
 import jax.numpy as jnp
-import numpy as np
-from typing import Callable, Tuple
 
 
 def estimate_mutual_information_knn(
