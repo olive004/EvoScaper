@@ -15,12 +15,12 @@ def train_step(params, x, y, cond, optimiser_state, model, rng, use_l2_reg, l2_r
         params, rng, model, x, y, use_l2_reg=use_l2_reg, l2_reg_alpha=l2_reg_alpha, cond=cond)
     
     if use_grad_clipping:
-        clipped_grads = clip_gradients(grads, max_norm=1.0)
+        grads = clip_gradients(grads, max_norm=1.0)
 
-    updates, optimiser_state = optimiser.update(clipped_grads, optimiser_state, params)
+    updates, optimiser_state = optimiser.update(grads, optimiser_state, params)
     params = optax.apply_updates(params, updates)
 
-    return params, optimiser_state, loss, clipped_grads, aux
+    return params, optimiser_state, loss, grads, aux
 
 
 def eval_step(params, rng, model, x, y, cond, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy):

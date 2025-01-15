@@ -128,3 +128,39 @@ def accuracy_regression(
     threshold=0.1, **kwargs
 ) -> Float[Array, ""]:
     return jnp.mean(jnp.abs(y - pred_y) <= threshold)
+
+
+@eqx.filter_jit
+def contrastive_loss(z, c, temperature=0.5):
+    """
+    Compute contrastive loss between latent representations and conditions
+
+    Args:
+        z: Batch of latent representations [batch_size, latent_dim]
+        c: Batch of conditions [batch_size, condition_dim]
+        temperature (float): Temperature parameter for scaling similarities
+    """
+    batch_size = z.shape[0]
+
+
+    # Normalize embeddings
+    z_norm = F.normalize(z, dim=1)
+    c_norm = F.normalize(c, dim=1)
+
+    # Compute similarities
+    similarity_matrix = torch.matmul(z_norm, c_norm.T) / temperature
+
+    # Positive pairs are on the diagonal
+    positives = torch.diag(similarity_matrix)
+
+    # All other pairs are negatives
+    negatives = similarity_matrix.view(-1)
+
+    # Create labels: 1 for positive pairs, 0 for negative pairs
+    labels = torch.zeros_like(negatives)
+    labels[torch.arange(0, batch_size * batch_size, batch_size + 1)] = 1
+
+    # Compute NCE loss
+    nce_loss = F.binary_cross_entropy_with_logits(negatives, labels)
+
+    return nce_loss
