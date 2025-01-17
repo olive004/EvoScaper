@@ -38,13 +38,22 @@ def save_plot():
 
 
 @save_plot()
-def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: List[str],
-                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, **kwargs):
+def vis_sampled_histplot(analytic, model_brn, output_species: List[str], category_array: bool,
+                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, n_max_bins_display=10, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
-    category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
-        len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
+
+    def bin_array(array, n_bins):
+        bins = np.linspace(array.min(), array.max(), n_bins + 1)
+        bin_indices = np.digitize(array, bins) - 1
+        return bin_indices
+    
+    if not is_categorical:
+        category_array = bin_array(category_array, n_max_bins_display)
+    
+    # category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
+    #     len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
 
     fig = plt.figure(figsize=(13, 4))
     fig.subplots_adjust(wspace=0.6)
@@ -52,7 +61,7 @@ def vis_sampled_histplot(analytic, y_datanormaliser, model_brn, output_species: 
         title_curr = title + f': species {output_specie}'
         output_idx = [ii.name for ii in model_brn.species].index(output_specie)
         df_s = pd.DataFrame(columns=[x_label, 'VAE conditional input'],
-                            data=np.concatenate([analytic[:, output_idx][:, None], category_array[:, None]], axis=-1))
+                            data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         df_s['VAE conditional input'] = df_s['VAE conditional input'].astype(
             float).apply(lambda x: f'{x:.2f}')
         ax = plt.subplot(1, 2, i+1)

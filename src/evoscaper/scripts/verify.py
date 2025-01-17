@@ -203,7 +203,8 @@ def verify(params, rng, decoder,
     config_bio = prepare_config(expand_config(config=config_bio))
 
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
-                                                            n_categories=config_norm_y.categorical_n_bins, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
+                                                            n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10, 
+                                                            n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             objective_cols=config_dataset.objective_col,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
@@ -241,7 +242,7 @@ def verify(params, rng, decoder,
     analytics['overshoot'] = np.array(analytics['overshoot'])
 
     if visualise:
-        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], y_datanormaliser, model_brn, output_species,
+        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], y_datanormaliser, model_brn, output_species,
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))

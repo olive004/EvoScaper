@@ -32,8 +32,10 @@ def sample_reconstructions(params, rng, decoder,
             sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
                 :, None], repeats=n_to_sample, axis=1)[:, :, None]
     else:
-        sampled_cond = jax.random.uniform(
-            rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
+        sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
+            :, None], repeats=n_to_sample, axis=1)[:, :, None]
+        # sampled_cond = jax.random.uniform(
+        #     rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
 
     z = jax.random.normal(rng, (n_to_sample, hidden_size))
     z = np.repeat(z[None, :], repeats=n_categories, axis=0)
