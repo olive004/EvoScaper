@@ -85,10 +85,10 @@ def vis(saves, x, pred_y, top_write_dir):
 def test_conditionality(params, rng, decoder, df, x_cols,
                         config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model, top_write_dir,
                         x_datanormaliser, x_methods_preprocessing,
-                        y_datanormaliser, y_methods_preprocessing, cond):
+                        y_datanormaliser, y_methods_preprocessing, cond, n_to_sample=1000):
     n_categories = config_norm_y.categorical_n_bins
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
-                                                            n_categories=n_categories, n_to_sample=10000, hidden_size=config_model.hidden_size,
+                                                            n_categories=n_categories, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             objective_cols=config_dataset.objective_col,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
@@ -129,10 +129,14 @@ def test(model, params, rng, decoder, saves, data_test,
 
     vis(saves, x, pred_y, top_write_dir)
 
-    mi = test_conditionality(params, rng, decoder, df, x_cols,
+    try:
+        mi = test_conditionality(params, rng, decoder, df, x_cols,
                              config_dataset, config_norm_y, config_model, top_write_dir,
                              x_datanormaliser, x_methods_preprocessing,
                              y_datanormaliser, y_methods_preprocessing, cond)
+    except Exception as e:
+        print(f'Error in test_conditionality: {e}')
+        mi = None
 
     return r2_test, mi
 
