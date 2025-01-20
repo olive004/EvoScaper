@@ -41,3 +41,4 @@ else
     cd ..
 fi
 pip3 install -e src/core-bioreaction-simulation
+pip3 install -e .

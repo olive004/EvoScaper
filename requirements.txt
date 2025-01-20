@@ -5,7 +5,7 @@ autopep8
 boto3
 # chex==0.1.81
 # git+https://github.com/deepmind/chex.git
-diffrax==0.3.1
+diffrax==0.5.0
 dm-haiku  #==0.0.11
 equinox
 flax
