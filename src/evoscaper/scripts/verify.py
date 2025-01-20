@@ -244,9 +244,9 @@ def verify(params, rng, decoder,
     if visualise:
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
-        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], y_datanormaliser, model_brn, output_species,
+        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
-        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), y_datanormaliser, model_brn, output_species,
+        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits)
 

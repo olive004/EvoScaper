@@ -39,19 +39,11 @@ def save_plot():
 
 @save_plot()
 def vis_sampled_histplot(analytic, model_brn, output_species: List[str], category_array: bool,
-                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, n_max_bins_display=10, **kwargs):
+                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
 
-    def bin_array(array, n_bins):
-        bins = np.linspace(array.min(), array.max(), n_bins + 1)
-        bin_indices = np.digitize(array, bins) - 1
-        return bin_indices
-    
-    if not is_categorical:
-        category_array = bin_array(category_array, n_max_bins_display)
-    
     # category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
     #     len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
 
