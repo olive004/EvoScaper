@@ -73,7 +73,8 @@ def sim(y00, forward_rates, reverse_rates,
         t0, t1, dt0, dt1,
         save_steps, max_steps,
         stepsize_controller,
-        dt1_factor=5):
+        dt1_factor=5,
+        threshold=0.01):
     """ Concentrations should be in the form [circuits, time, species] """
 
     rate_max = np.max([np.max(forward_rates),
@@ -98,14 +99,14 @@ def sim(y00, forward_rates, reverse_rates,
                                 )))
 
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=t1-t0, sim_func=sim_func, t0=t0,
-                                       t1=t1, threshold=0.1, reverse_rates=reverse_rates, disable_logging=True)
+                                       t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
     print('Steady states found. Now calculating signal response')
 
     # Signal
     y0m = y0 * ((signal_onehot == 0) * 1) + y00 * signal_target * signal_onehot
     ys, ts = simulate_steady_states(y0m, total_time=t1-t0, sim_func=sim_func, t0=t0,
-                                    t1=t1, threshold=0.1, reverse_rates=reverse_rates, disable_logging=True)
+                                    t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
     ys = np.concatenate([y0m, ys.squeeze()[:, :-1, :]], axis=1)
 
     analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
