@@ -147,7 +147,7 @@ def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[st
     return model_brn, qreactions, ordered_species, postproc
 
 
-def save(data_writer, analytics, ys, ts, y0m, fake_circuits):
+def save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond):
     print(data_writer.top_write_dir)
     data_writer.output(data=analytics, out_type='json', out_name='analytics')
     data_writer.output(data=ys, out_type='npy', out_name='ys')
@@ -155,6 +155,8 @@ def save(data_writer, analytics, ys, ts, y0m, fake_circuits):
     data_writer.output(data=y0m, out_type='npy', out_name='y0m')
     data_writer.output(data=fake_circuits, out_type='npy',
                        out_name='fake_circuits')
+    data_writer.output(data=sampled_cond, out_type='npy',
+                       out_name='sampled_cond')
 
 
 def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
@@ -253,7 +255,7 @@ def verify(params, rng, decoder,
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
-    save(data_writer, analytics, ys, ts, y0m, fake_circuits)
+    save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
 
     if return_relevant:
         return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond
