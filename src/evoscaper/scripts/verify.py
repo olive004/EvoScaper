@@ -177,6 +177,15 @@ def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, save_steps, max_steps, forward_rates, reverse_rates
 
 
+def prep_cfg(config_bio, input_species):
+    
+    config_bio = prepare_config(expand_config(config=config_bio))
+    if config_bio.get('circuit_generation', {}).get('species_count') is not None:
+        assert len(input_species) == config_bio.get('circuit_generation', {}).get(
+            'species_count'), f'Wrong number of input species {input_species}'
+    config_bio.update(expand_model_config(config_bio, {}, input_species))
+    return config_bio
+
 def verify(params, rng, decoder,
            df: pd.DataFrame, cond,
            config_bio: dict,
@@ -200,7 +209,6 @@ def verify(params, rng, decoder,
             purpose=config_bio['experiment']['purpose'], out_location=top_write_dir)
     config_bio, data_writer = script_preamble(
         config_bio, data_writer=data_writer)
-    config_bio = prepare_config(expand_config(config=config_bio))
 
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10, 
@@ -211,10 +219,7 @@ def verify(params, rng, decoder,
                                                             cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range)
 
     # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
-    if config_bio.get('circuit_generation', {}).get('species_count') is not None:
-        assert len(input_species) == config_bio.get('circuit_generation', {}).get(
-            'species_count'), f'Wrong number of input species {input_species}'
-    config_bio.update(expand_model_config(config_bio, {}, input_species))
+    config_bio = prep_cfg(config_bio, input_species)
 
     fake_circuits_reshaped = make_batch_symmetrical_matrices(
         fake_circuits.reshape(-1, fake_circuits.shape[-1]), side_length=len(input_species))
