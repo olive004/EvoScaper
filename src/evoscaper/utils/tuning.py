@@ -28,6 +28,9 @@ def make_config_model(x, hpos):
     
 
 def make_configs_initial(hpos: pd.Series):
+    def create_generic(cls):
+        return cls(**{s: hpos[s] if s in hpos else None for s in cls.__annotations__.keys()})
+        
     config_norm_x = NormalizationSettings(
         **{s.replace('prep_x_', ''): hpos[s] for s in hpos.index if 'prep_x' in s})
     config_norm_y = NormalizationSettings(
@@ -52,8 +55,8 @@ def make_configs_initial(hpos: pd.Series):
     #     temperature=hpos.get('temperature', 1.0),
     #     contrastive_func=hpos.get('contrastive_func', 'info_nce')
     # )
-    config_training = TrainingConfig(**{s: hpos[s] for s in TrainingConfig.__annotations__.keys()})
-    config_optimisation = OptimizationConfig(**{s: hpos[s] for s in OptimizationConfig.__annotations__.keys()})
-    config_dataset = DatasetConfig(**{s: hpos[s] for s in DatasetConfig.__annotations__.keys()})
+    config_training = create_generic(TrainingConfig)
+    config_optimisation = create_generic(OptimizationConfig)
+    config_dataset = create_generic(DatasetConfig)
     
     return config_norm_x, config_norm_y, config_filter, config_optimisation, config_dataset, config_training

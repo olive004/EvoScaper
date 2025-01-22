@@ -152,44 +152,105 @@ def normalize_embeddings(embeddings: jnp.ndarray) -> jnp.ndarray:
     return embeddings / (norms + 1e-8)
 
 
-@eqx.filter_jit
-def contrastive_loss_fn(anchor: jnp.ndarray,
-                       positive: jnp.ndarray,
-                       temperature: float = 0.1,
-                       normalize: bool = True) -> Tuple[jnp.ndarray, jnp.ndarray]:
-    """
-    Compute contrastive loss for self-supervised learning.
+# @eqx.filter_jit
+# def contrastive_loss_fn(anchor: jnp.ndarray,
+#                        positive: jnp.ndarray,
+#                        temperature: float = 0.1,
+#                        normalize: bool = True) -> Tuple[jnp.ndarray, jnp.ndarray]:
+#     """
+#     Compute contrastive loss for self-supervised learning.
     
-    Args:
-        anchor: Anchor embeddings of shape (batch_size, embedding_dim)
-        positive: Positive embeddings of shape (batch_size, embedding_dim)
-        temperature: Temperature parameter for scaling similarities
-        normalize: Whether to L2 normalize embeddings
+#     Args:
+#         anchor: Anchor embeddings of shape (batch_size, embedding_dim)
+#         positive: Positive embeddings of shape (batch_size, embedding_dim)
+#         temperature: Temperature parameter for scaling similarities
+#         normalize: Whether to L2 normalize embeddings
     
-    Returns:
-        Tuple of (loss, similarities matrix)
-    """
-    batch_size = anchor.shape[0]
+#     Returns:
+#         Tuple of (loss, similarities matrix)
+#     """
+#     batch_size = anchor.shape[0]
     
-    # Normalize embeddings if requested
-    if normalize:
-        anchor = normalize_embeddings(anchor)
-        positive = normalize_embeddings(positive)
+#     # Normalize embeddings if requested
+#     if normalize:
+#         anchor = normalize_embeddings(anchor)
+#         positive = normalize_embeddings(positive)
     
-    # Compute similarities between all possible pairs
-    anchor_dot_positive = jnp.dot(anchor, positive.T)  # (batch_size, batch_size)
+#     # Compute similarities between all possible pairs
+#     anchor_dot_positive = jnp.dot(anchor, positive.T)  # (batch_size, batch_size)
     
-    # Scale similarities by temperature
-    scaled_similarities = anchor_dot_positive / temperature
+#     # Scale similarities by temperature
+#     scaled_similarities = anchor_dot_positive / temperature
     
-    # For each anchor, the positive example is on the diagonal
-    labels = jnp.eye(batch_size)
+#     # For each anchor, the positive example is on the diagonal
+#     labels = jnp.eye(batch_size)
     
-    # Compute cross entropy loss
-    log_softmax = jax.nn.log_softmax(scaled_similarities, axis=1)
-    loss = -jnp.sum(labels * log_softmax) / batch_size
+#     # Compute cross entropy loss
+#     log_softmax = jax.nn.log_softmax(scaled_similarities, axis=1)
+#     loss = -jnp.sum(labels * log_softmax) / batch_size
     
-    return loss, scaled_similarities
+#     return loss, scaled_similarities
+
+
+def contrastive_loss_fn(anchor: jnp.ndarray):
+    # vv = cond[0, :5]
+
+    # norms = jnp.sqrt(jnp.sum(vv ** 2, axis=1, keepdims=True))
+    # vv = vv / (norms + 1e-12)
+    # jnp.dot(vv, vv.T), vv[:10], jnp.dot(vv[0], vv[0]), vv[np.where(jnp.dot(vv, vv.T) == jnp.dot(vv, vv.T).min())[0]]
+
+
+
+    # n_bins = 5
+    # bins = jnp.linspace(0, 1, n_bins)
+    # ooo = jax.nn.one_hot(jnp.digitize(vv[..., 0], bins), n_bins)
+
+
+    # def l1_norm(x, y):
+    #     return jnp.sum(jnp.abs(x - y), axis=1)
+
+    # l1_norm(vv[:, :, None], vv.T)
+    # y_dist = jnp.power(jnp.dot(vv, vv.T), 3)
+
+    # h = encoder(params, PRNG, np.concatenate([x, cond], axis=-1))
+    # h_vv = h[0, :5]
+    # norms = jnp.sqrt(jnp.sum(h_vv ** 2, axis=1, keepdims=True))
+    # h_vv = h_vv / (norms + 1e-12)
+
+
+    # jnp.power(h_vv, (y_dist[0] < 0.9)[:, None])
+
+    # neg = y_dist # < 0.9
+    # pos = y_dist # >= 0.9
+    # # jnp.dot(neg, pos.T), pos, neg
+
+    # temperature = 1
+    # batch_size = h_vv.shape[0]
+
+    # anchor_dot_positive = jnp.dot(h_vv, h_vv.T)
+    # scaled_similarities = anchor_dot_positive / temperature
+    # labels = jnp.eye(batch_size)
+
+    # log_softmax = jax.nn.log_softmax(scaled_similarities, axis=1)
+    # loss = -jnp.sum(labels * log_softmax) / batch_size
+
+
+    # mask_self_samples = jnp.where(jnp.eye(scaled_similarities.shape[0]) == 0, 1, 0)
+
+    # -jnp.log(
+    #     scaled_similarities ** y_dist + 
+    #     (1 - scaled_similarities) ** y_dist + 
+    #     1e-8), pos
+
+    # scaled_similarities, y_dist, scaled_similarities ** y_dist, (1 - scaled_similarities) ** y_dist
+
+
+    # jax.nn.log_softmax(scaled_similarities * (y_dist >= 0.9) * mask_self_samples, axis=1), scaled_similarities * (y_dist >= 0.9) * mask_self_samples
+    # # -jnp.log(scaled_similarities * (y_dist >= 0.9) * mask_self_samples)
+    # # scaled_similarities * (y_dist >= 0.9) * mask_self_samples
+
+    scaled_similarities * (y_dist - 0.9) * mask_self_samples
+
 
 
 def contrastive_distance_labels(y, distance_metric='dot'):
