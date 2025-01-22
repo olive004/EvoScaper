@@ -39,11 +39,14 @@ def loss_wrapper(
     use_l2_reg=False, l2_reg_alpha: Float = None,
     use_kl_div=False,
     kl_weight: Float = 1.0,
+    use_contrastive_loss: bool = False,
+    temperature: float = 1.0,
+    batch_size_max_contloss = 64,
     **model_call_kwargs
 ) -> Float[Array, ""]:
 
-    pred_y, mu, logvar = model(
-        params, rng, x, return_muvar=True, **model_call_kwargs)
+    pred_y, mu, logvar, h = model(
+        params, rng, x, return_all=True, **model_call_kwargs)
     loss = loss_f(y, pred_y)
 
     # Add L2 loss
@@ -54,11 +57,16 @@ def loss_wrapper(
             for w in jax.tree_util.tree_leaves(params)
         )
         loss += loss_l2
+    
     # KL divergence
     loss_kl = None
     if use_kl_div:
         loss_kl = kl_gaussian(mu, logvar).mean() * kl_weight
         loss += loss_kl
+    
+    # Contrastive loss
+    if use_contrastive_loss:
+        implement_contrastive_loss(h, y, temperature, batch_size_max_contloss)
     return loss, (loss_l2, loss_kl)
 
 
@@ -76,6 +84,10 @@ def kl_gaussian(mu: jnp.ndarray, logvar: jnp.ndarray) -> jnp.ndarray:
 
 # def recon_loss(y_true, y_pred):
 # 	return jnp.sum(binary_cross_entropy(y_true, y_pred), axis=-1)
+
+
+def l1_norm(x, y):
+    return jnp.sum(jnp.abs(x - y), axis=1)
 
 
 def l2_loss(weights, alpha):
@@ -132,55 +144,15 @@ def accuracy_regression(
 
 
 @eqx.filter_jit
-def contrastive_loss(z, c, temperature=0.5):
-    """
-    Compute contrastive loss between latent representations and conditions
-
-    Args:
-        z: Batch of latent representations [batch_size, latent_dim]
-        c: Batch of conditions [batch_size, condition_dim]
-        temperature (float): Temperature parameter for scaling similarities
-    """
-    batch_size = z.shape[0]
-
-
-    # Normalize embeddings
-    z_norm = F.normalize(z, dim=1)
-    c_norm = F.normalize(c, dim=1)
-
-    # Compute similarities
-    similarity_matrix = torch.matmul(z_norm, c_norm.T) / temperature
-
-    # Positive pairs are on the diagonal
-    positives = torch.diag(similarity_matrix)
-
-    # All other pairs are negatives
-    negatives = similarity_matrix.view(-1)
-
-    # Create labels: 1 for positive pairs, 0 for negative pairs
-    labels = torch.zeros_like(negatives)
-    labels[torch.arange(0, batch_size * batch_size, batch_size + 1)] = 1
-
-    # Compute NCE loss
-    nce_loss = F.binary_cross_entropy_with_logits(negatives, labels)
-
-    return nce_loss
-
-
-
 def normalize_embeddings(embeddings: jnp.ndarray) -> jnp.ndarray:
     """
     Normalize embeddings to unit length.
-    
-    Args:
-        embeddings: Array of shape (batch_size, embedding_dim)
-    
-    Returns:
-        Normalized embeddings with same shape
     """
     norms = jnp.sqrt(jnp.sum(embeddings ** 2, axis=1, keepdims=True))
     return embeddings / (norms + 1e-8)
 
+
+@eqx.filter_jit
 def contrastive_loss_fn(anchor: jnp.ndarray,
                        positive: jnp.ndarray,
                        temperature: float = 0.1,
@@ -218,3 +190,33 @@ def contrastive_loss_fn(anchor: jnp.ndarray,
     loss = -jnp.sum(labels * log_softmax) / batch_size
     
     return loss, scaled_similarities
+
+
+def contrastive_distance_labels(y, distance_metric='dot'):
+    
+    if distance_metric == 'dot':
+        yy = normalize_embeddings(y)
+        distance = jnp.power(jnp.dot(yy, yy.T), 2)
+
+    elif distance_metric == 'l1_norm':
+        distance = l1_norm(y[:, :, None], y.T)
+        
+    return distance
+
+
+def implement_contrastive_loss(h, y, temperature, batch_size_max_contloss, similarity_threshold = 0.9):
+    # batch_size = h.shape[0]
+    # if batch_size > batch_size_max_contloss:
+    #     h.reshape()
+        
+    def implement_batch(h, y):
+        y_distances = contrastive_distance_labels(y)
+        
+        loss = 0
+        for y_dist in y_distances:
+            anchor = h[y_dist < similarity_threshold]
+            positive = h[y_dist > similarity_threshold]
+            contrastive_loss_fn(anchor, positive, temperature)
+        
+    for h_i, y_i in zip(h, y):
+        implement_batch()

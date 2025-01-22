@@ -17,9 +17,12 @@ def init_data(data, x_cols: Iterable[str], objective_cols: Iterable[str], OUTPUT
               filter_settings: FilterSettings
               ):
 
-    df = prep_data(data, OUTPUT_SPECIES, objective_cols, x_cols, filter_settings)
-    TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(df, BATCH_SIZE, TOTAL_DS_MAX)
-    df = df.iloc[jax.random.choice(rng, np.arange(len(df)), [TOTAL_DS], replace=False)]
+    df = prep_data(data, OUTPUT_SPECIES, objective_cols,
+                   x_cols, filter_settings)
+    TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(
+        df, BATCH_SIZE, TOTAL_DS_MAX)
+    df = df.iloc[jax.random.choice(rng, np.arange(len(df)), [
+                                   TOTAL_DS], replace=False)]
 
     x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing = make_xy(df, TOTAL_DS, x_cols, objective_cols,
                                                                                                             x_norm_settings, y_norm_settings)
@@ -58,9 +61,11 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
+
     def make_log(k, data):
         data[f'Log {k.split("_")[0]}'] = zero_log_replacement
-        data.loc[data[k] != 0, f'Log {k.split("_")[0]}'] = np.log10(data[data[k] != 0][k])
+        data.loc[data[k] != 0, f'Log {k.split("_")[0]}'] = np.log10(
+            data[data[k] != 0][k])
         return data
     data = make_log('sensitivity_wrt_species-6', data)
     data = make_log('precision_wrt_species-6', data)
@@ -70,7 +75,7 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
 # Make xy
 def make_xy(df, TOTAL_DS, X_COLS, objective_cols: Iterable[str],
             x_norm_settings, y_norm_settings):
-    
+
     x, x_datanormaliser, x_methods_preprocessing = make_x(
         df, X_COLS, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
@@ -95,7 +100,7 @@ def make_x(df, X_COLS, x_norm_settings):
     x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(x)
     return x, x_datanormaliser, x_methods_preprocessing
 
-    
+
 def get_conds(col, df, y_datanormaliser, y_methods_preprocessing):
     cond = df[col].to_numpy()[:, None]
     cond = y_datanormaliser.create_chain_preprocessor(
@@ -104,17 +109,21 @@ def get_conds(col, df, y_datanormaliser, y_methods_preprocessing):
 
 
 def concat_conds(objective_cols, df, y_datanormaliser, y_methods_preprocessing):
-    cond = get_conds(objective_cols[0], df, y_datanormaliser, y_methods_preprocessing)
+    cond = get_conds(objective_cols[0], df,
+                     y_datanormaliser, y_methods_preprocessing)
     for k in objective_cols[1:]:
-        cond = np.concatenate([cond, get_conds(k, df, y_datanormaliser, y_methods_preprocessing)], axis=-1)
+        cond = np.concatenate(
+            [cond, get_conds(k, df, y_datanormaliser, y_methods_preprocessing)], axis=-1)
     return cond
 
 
 def make_y(df, objective_cols, y_norm_settings):
 
-    y_datanormaliser, y_methods_preprocessing = make_chain_f(y_norm_settings, cols=objective_cols)
-    cond = concat_conds(objective_cols, df, y_datanormaliser, y_methods_preprocessing)
-    
+    y_datanormaliser, y_methods_preprocessing = make_chain_f(
+        y_norm_settings, cols=objective_cols)
+    cond = concat_conds(objective_cols, df, y_datanormaliser,
+                        y_methods_preprocessing)
+
     return cond, y_datanormaliser, y_methods_preprocessing
 
 
@@ -138,19 +147,29 @@ def make_training_data(x, cond, train_split, n_batches, batch_size):
 
 def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_settings: FilterSettings):
 
+    # Sensitivity and precision
     filt = data['sample_name'].isin(OUTPUT_SPECIES)
     if filter_settings.filt_x_nans:
         filt = filt & data[X_COLS].notna().all(axis=1)
     if filter_settings.filt_y_nans:
         for k in objective_cols:
             filt = filt & data[k].notna() & (
-            np.abs(data[k]) < np.inf)
+                np.abs(data[k]) < np.inf)
     if filter_settings.filt_sensitivity_nans:
         filt = filt & (np.abs(data['sensitivity_wrt_species-6'])
                        < np.inf) & data['sensitivity_wrt_species-6'].notna()
     if filter_settings.filt_precision_nans:
         filt = filt & (np.abs(data['precision_wrt_species-6'])
                        < np.inf) & data['precision_wrt_species-6'].notna()
+
+    # Response time
+    if filter_settings.filt_response_time_high:
+
+        data['response_time_wrt_species-6'] = np.where(
+            data['response_time_wrt_species-6'] < np.inf, data['response_time_wrt_species-6'], np.nan)
+
+        filt = filt & (data['response_time_wrt_species-6'] < (filter_settings.filt_response_time_perc_max *
+                np.nanmax(data['response_time_wrt_species-6']))) & (data['sample_name'] == 'RNA_2')
 
     df = data[filt]
     df = df.reset_index(drop=True)

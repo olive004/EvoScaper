@@ -32,7 +32,7 @@ class FilterSettings:
     filt_sensitivity_nans: bool = True
     filt_precision_nans: bool = True
     filt_response_time_high: bool = False
-    filt_response_time_perc_max = 0.7
+    filt_response_time_perc_max = 0.8
     filt_n_same_x_max: int = 1
     filt_n_same_x_max_bins: int = 15
 
@@ -103,6 +103,7 @@ class TrainingConfig:
     use_contrastive_loss: bool
     temperature: float
     contrastive_func: str
+    batch_size_max_contloss: int
 
 
 @dataclass

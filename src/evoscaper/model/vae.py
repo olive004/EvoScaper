@@ -61,7 +61,7 @@ class CVAE(VAE):
 
     def __call__(self, x: Array, cond: Array, deterministic: bool = False,
                  inference: bool = False,
-                 return_muvar: bool = False,
+                 return_all: bool = False,
                  logging: bool = True) -> Array:
         h = self.encoder(jnp.concatenate(
             [x, cond], axis=-1), inference=inference)
@@ -73,8 +73,8 @@ class CVAE(VAE):
 
         y = self.decoder(z_cond, inference=inference)
 
-        if return_muvar:
-            return y, mu, logvar
+        if return_all:
+            return y, mu, logvar, h
         return y
 
 
