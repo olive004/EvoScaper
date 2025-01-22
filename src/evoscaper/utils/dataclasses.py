@@ -98,6 +98,7 @@ class TrainingConfig:
     kl_weight: float
     print_every: int
     use_grad_clipping: bool
+    use_contrastive_loss: bool
 
 
 @dataclass

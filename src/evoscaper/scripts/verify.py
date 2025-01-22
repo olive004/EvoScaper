@@ -181,13 +181,14 @@ def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
 
 
 def prep_cfg(config_bio, input_species):
-    
+
     config_bio = prepare_config(expand_config(config=config_bio))
     if config_bio.get('circuit_generation', {}).get('species_count') is not None:
         assert len(input_species) == config_bio.get('circuit_generation', {}).get(
             'species_count'), f'Wrong number of input species {input_species}'
     config_bio.update(expand_model_config(config_bio, {}, input_species))
     return config_bio
+
 
 def verify(params, rng, decoder,
            df: pd.DataFrame, cond,
@@ -205,7 +206,8 @@ def verify(params, rng, decoder,
            top_write_dir=None,
            return_relevant=False,
            data_writer=None,
-           impose_final_range=None):
+           impose_final_range=None,
+           use_binned_sampling: bool = True):
 
     if top_write_dir is not None:
         data_writer = ResultWriter(
@@ -214,12 +216,12 @@ def verify(params, rng, decoder,
         config_bio, data_writer=data_writer)
 
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
-                                                            n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10, 
+                                                            n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10,
                                                             n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             objective_cols=config_dataset.objective_col,
-                                                            use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
-                                                            cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range)
+                                                            use_binned_sampling=use_binned_sampling, use_onehot=config_norm_y.categorical_onehot,
+                                                            cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range, n_objectives=len(config_dataset.objective_col))
 
     # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
     config_bio = prep_cfg(config_bio, input_species)
