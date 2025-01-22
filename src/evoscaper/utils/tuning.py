@@ -34,22 +34,25 @@ def make_configs_initial(hpos: pd.Series):
         **{s.replace('prep_y_', ''): hpos[s] for s in hpos.index if 'prep_y' in s})
     config_filter = FilterSettings(
         **{s: hpos[s] for s in hpos.index if 'filt' in s})
-    config_training = TrainingConfig(
-        batch_size=hpos['batch_size'],
-        epochs=hpos['epochs'],
-        patience=hpos['patience'],
-        learning_rate=hpos['learning_rate'],
-        loss_func=hpos['loss_func'],
-        use_dropout=hpos['use_dropout'],
-        dropout_rate=hpos['dropout_rate'],
-        use_l2_reg=hpos['use_l2_reg'],
-        l2_reg_alpha=hpos['l2_reg_alpha'],
-        use_kl_div=hpos['use_kl_div'],
-        kl_weight=hpos['kl_weight'],
-        print_every=hpos['print_every'],
-        use_grad_clipping=hpos.get('use_grad_clipping', False),
-        use_contrastive_loss=hpos.get('use_contrastive_loss', False)
-    )
+    # config_training = TrainingConfig(
+    #     batch_size=hpos['batch_size'],
+    #     epochs=hpos['epochs'],
+    #     patience=hpos['patience'],
+    #     learning_rate=hpos['learning_rate'],
+    #     loss_func=hpos['loss_func'],
+    #     use_dropout=hpos['use_dropout'],
+    #     dropout_rate=hpos['dropout_rate'],
+    #     use_l2_reg=hpos['use_l2_reg'],
+    #     l2_reg_alpha=hpos['l2_reg_alpha'],
+    #     use_kl_div=hpos['use_kl_div'],
+    #     kl_weight=hpos['kl_weight'],
+    #     print_every=hpos['print_every'],
+    #     use_grad_clipping=hpos.get('use_grad_clipping', False),
+    #     use_contrastive_loss=hpos.get('use_contrastive_loss', False),
+    #     temperature=hpos.get('temperature', 1.0),
+    #     contrastive_func=hpos.get('contrastive_func', 'info_nce')
+    # )
+    config_training = TrainingConfig(**{s: hpos[s] for s in TrainingConfig.__annotations__.keys()})
     config_optimisation = OptimizationConfig(**{s: hpos[s] for s in OptimizationConfig.__annotations__.keys()})
     config_dataset = DatasetConfig(**{s: hpos[s] for s in DatasetConfig.__annotations__.keys()})
     

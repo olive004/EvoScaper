@@ -1,5 +1,6 @@
 
 
+from typing import Tuple
 from jaxtyping import Array, Float, Int  # https://github.com/google/jaxtyping
 from sklearn.metrics import r2_score
 import jax.numpy as jnp
@@ -164,3 +165,56 @@ def contrastive_loss(z, c, temperature=0.5):
     nce_loss = F.binary_cross_entropy_with_logits(negatives, labels)
 
     return nce_loss
+
+
+
+def normalize_embeddings(embeddings: jnp.ndarray) -> jnp.ndarray:
+    """
+    Normalize embeddings to unit length.
+    
+    Args:
+        embeddings: Array of shape (batch_size, embedding_dim)
+    
+    Returns:
+        Normalized embeddings with same shape
+    """
+    norms = jnp.sqrt(jnp.sum(embeddings ** 2, axis=1, keepdims=True))
+    return embeddings / (norms + 1e-8)
+
+def contrastive_loss_fn(anchor: jnp.ndarray,
+                       positive: jnp.ndarray,
+                       temperature: float = 0.1,
+                       normalize: bool = True) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    """
+    Compute contrastive loss for self-supervised learning.
+    
+    Args:
+        anchor: Anchor embeddings of shape (batch_size, embedding_dim)
+        positive: Positive embeddings of shape (batch_size, embedding_dim)
+        temperature: Temperature parameter for scaling similarities
+        normalize: Whether to L2 normalize embeddings
+    
+    Returns:
+        Tuple of (loss, similarities matrix)
+    """
+    batch_size = anchor.shape[0]
+    
+    # Normalize embeddings if requested
+    if normalize:
+        anchor = normalize_embeddings(anchor)
+        positive = normalize_embeddings(positive)
+    
+    # Compute similarities between all possible pairs
+    anchor_dot_positive = jnp.dot(anchor, positive.T)  # (batch_size, batch_size)
+    
+    # Scale similarities by temperature
+    scaled_similarities = anchor_dot_positive / temperature
+    
+    # For each anchor, the positive example is on the diagonal
+    labels = jnp.eye(batch_size)
+    
+    # Compute cross entropy loss
+    log_softmax = jax.nn.log_softmax(scaled_similarities, axis=1)
+    loss = -jnp.sum(labels * log_softmax) / batch_size
+    
+    return loss, scaled_similarities
