@@ -19,9 +19,10 @@ class DatasetConfig:
     filenames_train_config: List[str]
     filenames_verify_config: List[str]
     use_test_data: bool
-    
+
     def __post_init__(self):
-        self.objective_col = [self.objective_col] if isinstance(self.objective_col, str) else list(self.objective_col)
+        self.objective_col = [self.objective_col] if isinstance(
+            self.objective_col, str) else list(self.objective_col)
 
 
 @dataclass
@@ -32,7 +33,7 @@ class FilterSettings:
     filt_sensitivity_nans: bool = True
     filt_precision_nans: bool = True
     filt_response_time_high: bool = False
-    filt_response_time_perc_max = 0.8
+    filt_response_time_perc_max: float = 0.8
     filt_n_same_x_max: int = 1
     filt_n_same_x_max_bins: int = 15
 
@@ -79,10 +80,13 @@ class ModelConfig:
         self.dec_layers = [self.dec_ls] * self.num_dec_layers
         if self.num_enc_layers > 1:
             self.enc_layers[0] = self.enc_layers[0] * self.factor_expanding_ls
-            self.enc_layers[-1] = self.enc_layers[-1] * self.factor_contracting_ls
+            self.enc_layers[-1] = self.enc_layers[-1] * \
+                self.factor_contracting_ls
         if self.num_dec_layers > 1:
-            self.dec_layers[0] = self.dec_layers[0] * self.factor_contracting_ls
-            self.dec_layers[-1] = self.dec_layers[-1] * self.factor_expanding_ls
+            self.dec_layers[0] = self.dec_layers[0] * \
+                self.factor_contracting_ls
+            self.dec_layers[-1] = self.dec_layers[-1] * \
+                self.factor_expanding_ls
 
 
 @dataclass
@@ -101,9 +105,10 @@ class TrainingConfig:
     print_every: int
     use_grad_clipping: bool
     use_contrastive_loss: bool
-    temperature: float
     contrastive_func: str
-    batch_size_max_contloss: int
+    temperature: float = 1.0
+    threshold_similarity = 0.9
+    power_factor_distance = 3
 
 
 @dataclass
@@ -112,6 +117,7 @@ class OptimizationConfig:
     opt_method: str
     opt_min_lr: float
     opt_min_delta: float
+
     learning_rate_sched: str
     use_warmup: bool
     warmup_epochs: int
