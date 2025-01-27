@@ -58,7 +58,7 @@ def train_full(params, rng, model,
                                            optimiser, optimiser_state, config_training,
                                            epochs=config_training.epochs, loss_fn=loss_fn, compute_accuracy=compute_accuracy,
                                            save_every=config_training.print_every, include_params_in_all_saves=False, 
-                                           patience=config_training.patience)
+                                           patience=config_training.patience, threshold_early_val_acc=config_training.threshold_early_val_acc)
 
     print('Training complete:', datetime.now() - tstart)
 

@@ -94,6 +94,7 @@ class TrainingConfig:
     batch_size: int
     epochs: int
     patience: int
+    threshold_early_val_acc: float
     learning_rate: float
     loss_func: str
     use_dropout: bool

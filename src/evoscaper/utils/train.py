@@ -14,13 +14,13 @@ from evoscaper.utils.dataclasses import TrainingConfig
 def train_step(params, x, y, cond, optimiser_state, model, rng, config_training: TrainingConfig, optimiser, loss_fn):
 
     (loss, aux), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-        params, rng, model, x, y, use_l2_reg=config_training.use_l2_reg, 
+        params, rng, model, x, y, use_l2_reg=config_training.use_l2_reg,
         l2_reg_alpha=config_training.l2_reg_alpha, cond=cond,
-        use_kl_div=config_training.use_kl_div, kl_weight=config_training.kl_weight, 
+        use_kl_div=config_training.use_kl_div, kl_weight=config_training.kl_weight,
         use_contrastive_loss=config_training.use_contrastive_loss,
-        temperature=config_training.temperature, threshold_similarity=config_training.threshold_similarity, 
+        temperature=config_training.temperature, threshold_similarity=config_training.threshold_similarity,
         power_factor_distance=config_training.power_factor_distance)
-    
+
     if config_training.use_grad_clipping:
         grads = clip_gradients(grads, max_norm=1.0)
 
@@ -32,21 +32,21 @@ def train_step(params, x, y, cond, optimiser_state, model, rng, config_training:
 
 def eval_step(params, rng, model, x, y, cond, config_training: TrainingConfig, loss_fn, compute_accuracy):
     """ Return the average of loss and accuracy on validation data """
-    
+
     def batch_loss(x, y, cond):
-        
+
         loss, aux = loss_fn(params, rng, model, x, y, use_l2_reg=config_training.use_l2_reg,
                             l2_reg_alpha=config_training.l2_reg_alpha, cond=cond,
-                            use_kl_div=config_training.use_kl_div, kl_weight=config_training.kl_weight, 
+                            use_kl_div=config_training.use_kl_div, kl_weight=config_training.kl_weight,
                             use_contrastive_loss=config_training.use_contrastive_loss,
-                            temperature=config_training.temperature, threshold_similarity=config_training.threshold_similarity, 
+                            temperature=config_training.temperature, threshold_similarity=config_training.threshold_similarity,
                             power_factor_distance=config_training.power_factor_distance)
         return loss, aux
-    
+
     loss, aux = jax.vmap(batch_loss)(x, y, cond)
     loss = jnp.mean(loss)
     aux = jax.tree_util.tree_map(lambda x: jnp.mean(x), aux)
-    
+
     pred_y = model(params, rng, x, cond=cond)
     acc = compute_accuracy(pred_y, y)
     return acc, loss, aux
@@ -84,13 +84,19 @@ def make_saves(train_loss, val_loss, val_acc, include_params_in_all_saves, param
         'val_accuracy': np.mean(val_acc),
     }
     if aux_loss is not None:
-        saves['l2_loss'] = np.mean(aux_loss[0]) if aux_loss[0] is not None else None
-        saves['kl_loss'] = np.mean(aux_loss[1]) if aux_loss[1] is not None else None
-        saves['contrastive_loss'] = np.mean(aux_loss[2]) if aux_loss[2] is not None else None
+        saves['l2_loss'] = np.mean(
+            aux_loss[0]) if aux_loss[0] is not None else None
+        saves['kl_loss'] = np.mean(
+            aux_loss[1]) if aux_loss[1] is not None else None
+        saves['contrastive_loss'] = np.mean(
+            aux_loss[2]) if aux_loss[2] is not None else None
     if aux_val_loss is not None:
-        saves['l2_loss'] = np.mean(aux_val_loss[0]) if aux_val_loss[0] is not None else None
-        saves['kl_loss'] = np.mean(aux_val_loss[1]) if aux_val_loss[1] is not None else None
-        saves['contrastive_loss'] = np.mean(aux_val_loss[2]) if aux_val_loss[2] is not None else None
+        saves['l2_loss'] = np.mean(
+            aux_val_loss[0]) if aux_val_loss[0] is not None else None
+        saves['kl_loss'] = np.mean(
+            aux_val_loss[1]) if aux_val_loss[1] is not None else None
+        saves['contrastive_loss'] = np.mean(
+            aux_val_loss[2]) if aux_val_loss[2] is not None else None
     if include_params_in_all_saves:
         saves['params'] = params_stack
         saves['grads'] = grads
@@ -100,28 +106,29 @@ def make_saves(train_loss, val_loss, val_acc, include_params_in_all_saves, param
 def clip_gradients(gradients, max_norm):
     """
     Clip gradients to have a maximum norm of max_norm.
-    
+
     Args:
         gradients: PyTree of gradients
         max_norm: float, maximum norm for gradients
-        
+
     Returns:
         PyTree of clipped gradients
     """
     # Calculate global norm across all parameters
     global_norm = jnp.sqrt(
-        sum(jnp.sum(jnp.square(x)) for x in jax.tree_util.tree_leaves(gradients))
+        sum(jnp.sum(jnp.square(x))
+            for x in jax.tree_util.tree_leaves(gradients))
     )
-    
+
     # Calculate clip ratio
     clip_ratio = jnp.minimum(max_norm / (global_norm + 1e-6), 1.0)
-    
+
     # Apply clipping
     clipped_gradients = jax.tree_map(
         lambda x: x * clip_ratio,
         gradients
     )
-    
+
     return clipped_gradients
 
 
@@ -143,7 +150,8 @@ def train(params, rng, model,
           config_training: TrainingConfig, epochs,
           loss_fn, compute_accuracy,
           save_every, include_params_in_all_saves,
-          patience: int = 1000):
+          patience: int = 1000,
+          threshold_early_val_acc: float = 0.995):
 
     best_val_loss = jnp.inf
     best_val_acc = 0
@@ -166,7 +174,7 @@ def train(params, rng, model,
                 params, rng, model, x_val, y_val, cond_val, config_training, loss_fn, compute_accuracy)
 
             return (params, optimiser_state), (params, grads, train_loss, val_loss, val_acc, aux_loss, aux_val_loss)
-        
+
         # Run
         (params, optimiser_state), (params_stack, grads, train_loss,
                                     val_loss, val_acc, aux_loss, aux_val_loss) = f((params, optimiser_state), None)
@@ -184,17 +192,13 @@ def train(params, rng, model,
             val_loss, best_val_loss, val_acc, best_val_acc, epochs_no_improve)
 
         # Stop if no improvement or nans
-        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)) or (val_acc > 0.995):
+        if (epochs_no_improve > patience) or (np.isnan(np.mean(train_loss)) or np.isnan(val_loss) or np.isnan(val_acc)) or (val_acc > threshold_early_val_acc):
             info_early_stop = f'Early stopping triggered after {epoch+1} epochs:\nTrain loss: {np.mean(train_loss)}\nVal loss: {val_loss}\nVal accuracy: {val_acc}\nEpochs no improvement: {epochs_no_improve}'
             logging.warning(info_early_stop)
             break
 
     saves[list(saves.keys())[-1]]['params'] = params
     return params, saves, info_early_stop
-
-
-
-
 
 
 # from functools import partial
@@ -302,7 +306,7 @@ def train(params, rng, model,
 #                 params, rng, model, x_val, y_val, cond_val, use_l2_reg, l2_reg_alpha, loss_fn, compute_accuracy)
 
 #             return (params, optimiser_state), (params, grads, train_loss, val_loss, val_acc, aux_loss, aux_val_loss)
-        
+
 #         # Run
 #         (params, optimiser_state), (params_stack, grads, train_loss,
 #                                     val_loss, val_acc, aux_loss, aux_val_loss) = f((params, optimiser_state), None)
