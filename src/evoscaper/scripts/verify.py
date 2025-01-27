@@ -74,13 +74,15 @@ def sim(y00, forward_rates, reverse_rates,
         save_steps, max_steps,
         stepsize_controller,
         dt1_factor=5,
-        threshold=0.01):
+        threshold=0.01,
+        total_time=None):
     """ Concentrations should be in the form [circuits, time, species] """
 
     rate_max = np.max([np.max(forward_rates),
                        np.max(reverse_rates)])
     dt0 = np.min([1 / (5 * rate_max), dt0])
     dt1 = dt1_factor * dt0
+    total_time = t1 - t0 if total_time is None else total_time
 
     sim_func = jax.jit(jax.vmap(partial(bioreaction_sim_dfx_expanded,
                                 t0=t0, t1=t1, dt0=dt0,
