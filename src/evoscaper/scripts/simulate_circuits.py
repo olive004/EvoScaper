@@ -137,9 +137,6 @@ def main(top_write_dir=None, cfg_path=None):
     analytics, ys, ts, y0m, y00s, ts0 = simulate_interactions(
         interactions, input_species, config)
     
-    
-    analytics['sensitivity_wrt_species-6'] 
-    
     save({'analytics.json': analytics,
           'ys.npy': ys, 'ts.npy': ts, 'y0m.npy': y0m, 'y00s.npy': y00s, 'ts0.npy': ts0,
           'interactions.npy': interactions,
