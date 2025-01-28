@@ -11,12 +11,12 @@ from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 
 
 def save(returns_kwrgs, top_write_dir):
-    for i, l in returns_kwrgs.items():
+    for l, v in returns_kwrgs.items():
         ext = os.path.splitext(l)
         if ext == 'npy':
-            np.save(os.path.join(top_write_dir, l), i)
+            np.save(os.path.join(top_write_dir, l), v)
         elif ext == 'json':
-            write_json(i, os.path.join(top_write_dir, 'analytics.json'))
+            write_json(v, os.path.join(top_write_dir, 'analytics.json'))
     print(top_write_dir)
 
 
@@ -77,20 +77,20 @@ def main(top_write_dir, cfg_path=None):
                 'association_binding_rate': 1000000
             },
             'circuit_generation': {
-                'repetitions': 12000,
+                'repetitions': 700000,
                 'species_count': 3,
                 'sequence_length': 20,
                 'generator_protocol': 'random',
                 'proportion_to_mutate': 0.5,
                 'template': None,
-                'seed': 9
+                'seed': 4
             },
             'simulation': {
                 't0': 0,
-                't1': 500,
+                't1': 1000,
                 'dt0': 0.1,
                 'dt1': 0.1,
-                'threshold_steady_states': 0.005,
+                'threshold_steady_states': 0.001,
                 'total_time': 30000
             },
         }
@@ -100,11 +100,15 @@ def main(top_write_dir, cfg_path=None):
         config.update(config_bio['base_configs_ensemble']
                       ['mutation_effect_on_interactions_signal'])
 
-    input_species = make_inputs(config['circuit_generation']['species_count'], config['system_type'])
+    input_species = make_inputs(
+        config['circuit_generation']['species_count'], config['system_type'])
     config = prep_cfg(config, input_species)
-    interactions = get_interactions(config['circuit_generation'])
+    interactions = generate_energies(**config['circuit_generation'])
 
     os.make_dirs(top_write_dir, exist_ok=True)
 
-    analytics_perturbed, ys, ts, y0m, y00s, ts0 = simulate_interactions(
+    analytics, ys, ts, y0m, y00s, ts0 = simulate_interactions(
         interactions, input_species, config)
+    save({'analytics.json': analytics,
+          'ys.npy': ys, 'ts.npy': ts, 'y0m.npy': y0m, 'y00s.npy': y00s, 'ts0.npy': ts0,
+          'config.json': config}, top_write_dir)
