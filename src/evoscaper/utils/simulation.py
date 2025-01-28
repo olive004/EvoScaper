@@ -1,19 +1,104 @@
 
 
+from datetime import datetime
 from typing import List
 from synbio_morpher.srv.parameter_prediction.simulator import RawSimulationHandling
 from synbio_morpher.utils.results.analytics.timeseries import generate_analytics
 from synbio_morpher.utils.common.setup import prepare_config, expand_config, expand_model_config
 from synbio_morpher.utils.misc.type_handling import flatten_listlike, get_unique
 from synbio_morpher.utils.modelling.deterministic import bioreaction_sim_dfx_expanded
-from synbio_morpher.utils.modelling.solvers import simulate_steady_states, make_stepsize_controller
+from synbio_morpher.utils.modelling.solvers import make_stepsize_controller
+# from synbio_morpher.utils.modelling.solvers import simulate_steady_states, make_stepsize_controller
 from bioreaction.model.data_tools import construct_model_fromnames
 from bioreaction.model.data_containers import BasicModel, QuantifiedReactions
 from functools import partial
 
 import numpy as np
 import jax
+import jax.numpy as jnp
 import diffrax as dfx
+
+
+# 
+def num_unsteadied(comparison, threshold):
+    return np.sum(np.abs(comparison) > threshold)
+
+
+def did_sim_break(y):
+    if (np.sum(np.isnan(y)) > 0):
+        raise ValueError(
+            f'Simulation failed - some runs ({np.sum(np.isnan(y))/np.size(y) * 100} %) go to nan. Try lowering dt.')
+    if (np.sum(y == np.inf) > 0):
+        raise ValueError(
+            f'Simulation failed - some runs ({np.sum(y == np.inf)/np.size(y) * 100} %) go to inf. Try lowering dt.')
+
+
+# @eqx.jit
+# @jax.jit
+def simulate_steady_states(y0, total_time, sim_func, t0, t1,
+                           threshold=0.1, disable_logging=False,
+                           **sim_kwargs):
+    """ Simulate a function sim_func for a chunk of time in steps of t1 - t0, starting at 
+    t0 and running until either the steady states have been reached (specified via threshold) 
+    or until the total_time as has been reached. Assumes batching.
+
+    Args:
+    y0: initial state, shape = (batch, time, vars)
+    t0: initial time
+    t1: simulation chunk end time
+    total_time: total time to run the simulation function over
+    sim_kwargs: any (batchable) arguments left to give the simulation function,
+        for example rates or other parameters. First arg must be y0
+    threshold: minimum difference between the final states of two consecutive runs 
+        for the state to be considered steady
+    """
+
+    ti = t0
+    iter_time = datetime.now()
+    # ys = y0
+    # ys_full = ys
+    # ts_full = 0
+    while True:
+        if ti == t0:
+            y00 = y0
+        else:
+            y00 = ys[:, -1, :]
+
+        ts, ys = sim_func(y00, **sim_kwargs)
+
+        if np.sum(np.argmax(ts >= np.inf)) > 0:
+            ys = ys[:, :np.argmax(ts >= np.inf), :]
+            ts = ts[:, :np.argmax(ts >= np.inf)] + ti
+        else:
+            ys = ys
+            ts = ts + ti
+
+        did_sim_break(ys)
+
+        if ti == t0:
+            ys_full = ys
+            ts_full = ts
+        else:
+            ys_full = np.concatenate([ys_full, ys], axis=1)
+            ts_full = np.concatenate([ts_full, ts], axis=1)
+
+        ti += t1 - t0
+
+        if ys.shape[1] > 1:
+            fderiv = jnp.gradient(ys[:, -5:, :], axis=1)[:, -1, :]
+        else:
+            fderiv = ys[:, -1, :] - y00
+        if (num_unsteadied(fderiv, threshold) == 0) or (ti >= total_time):
+            if not disable_logging:
+                print('Done: ', datetime.now() - iter_time)
+            break
+        if not disable_logging:
+            print('Steady states: ', ti, ' iterations. ', num_unsteadied(fderiv, threshold), ' left to steady out. ', datetime.now() - iter_time)
+
+    if ts_full.ndim > 1:
+        ts_full = ts_full[0]
+    return np.array(ys_full), np.array(ts_full)
+# 
 
 
 def compute_analytics(y, t, labels, signal_onehot):
@@ -39,7 +124,7 @@ def make_rates(x_type, fake_circuits_reshaped, postproc):
 
 
 def prep_sim_noconfig(signal_species, qreactions, fake_circuits_reshaped,
-             forward_rates, reverse_rates, signal_target, t0, t1, dt0, dt1, stepsize_controller):
+                      forward_rates, reverse_rates, signal_target, t0, t1, dt0, dt1, stepsize_controller):
     config_bio = {'signal': {'function_kwargs': {'target': signal_target}},
                   'simulation': {'t0': t0, 't1': t1, 'dt0': dt0, 'dt1': dt1, 'stepsize_controller': stepsize_controller}}
     return prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
@@ -53,9 +138,14 @@ def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
         [r.species.name in signal_species for r in qreactions.reactants], 1, 0)
 
     def make_flat_triangle(matrices):
-        return np.array(list(map(lambda i: i[np.triu_indices(n=matrices.shape[-1])], matrices)))
-    forward_rates, reverse_rates = make_flat_triangle(
-        forward_rates), make_flat_triangle(reverse_rates)
+        n = matrices.shape[-1]
+        rows, cols = jnp.triu_indices(n)
+
+        # Use advanced indexing that works with vmap
+        return matrices[..., rows, cols]
+
+    forward_rates, reverse_rates = jax.vmap(make_flat_triangle)(
+        forward_rates), jax.vmap(make_flat_triangle)(reverse_rates)
     signal_target = config_bio['signal']['function_kwargs']['target']
     y00 = np.repeat(np.array([r.quantity for r in qreactions.reactants])[
                     None, None, :], repeats=len(fake_circuits_reshaped), axis=0)
@@ -155,15 +245,24 @@ def sim(y00, forward_rates, reverse_rates,
                                 #     t0=t0, t1=t1, dt0=dt0, dt1=dt1)
                                 )))
 
+    time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=t1-t0, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
-    print('Steady states found. Now calculating signal response')
+    minutes, seconds = divmod(
+        (datetime.now() - time_start).total_seconds(), 60)
+    print(
+        f'Steady states found after {int(minutes)} mins and {int(seconds)} secs. Now calculating signal response')
 
     # Signal
     y0m = y0 * ((signal_onehot == 0) * 1) + y00 * signal_target * signal_onehot
+    time_start = datetime.now()
     ys, ts = simulate_steady_states(y0m, total_time=t1-t0, sim_func=sim_func, t0=t0,
                                     t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
+    minutes, seconds = divmod(
+        (datetime.now() - time_start).total_seconds(), 60)
+    print(
+        f'Signal response found after {int(minutes)} mins and {int(seconds)} secs.')
     ys = np.concatenate([y0m, ys.squeeze()[:, :-1, :]], axis=1)
 
     analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
