@@ -99,7 +99,7 @@ def main(top_write_dir=None, cfg_path=None):
                 't1': 1000,
                 'dt0': 0.001,
                 'dt1': 0.5,
-                'threshold_steady_states': 0.0001,
+                'threshold_steady_states': 0.001,
                 'total_time': 30000,
                 'stepsize_controller': 'adaptive',
                 'use_initial_to_add_signal': False,
