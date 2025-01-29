@@ -3,6 +3,7 @@
 import numpy as np
 import os
 import jax
+import pandas as pd
 
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import setup_model, make_rates, prep_sim, sim, prep_cfg
@@ -63,6 +64,34 @@ def make_inputs(species_count, system_type):
     return [f'{system_type}_{i}' for i in range(species_count)]
 
 
+def summarise_simulated_cicruits(analytics, config, interactions):
+    n_species = config['circuit_generation']['species_count']
+    data = pd.DataFrame.from_dict(
+        {k: np.array(v)[..., -n_species:].flatten() for k, v in analytics.items()})
+    data['sample_name'] = np.repeat(np.array(make_inputs(n_species, config['system_type']))[:, None],
+                                    repeats=len(data) // n_species, axis=1).T.flatten()
+    data['circuit_name'] = np.repeat(
+        np.arange(len(data) // n_species), repeats=n_species)
+    data['mutation_name'] = 'ref_circuit'
+    data['mutation_num'] = 0
+    data['mutation_type'] = '[]'
+    data['mutation_positions'] = '[]'
+    data['path_to_template_circuit'] = ''
+    interactions_flat = jax.vmap(
+        lambda x: x[np.triu_indices(n_species)])(interactions)
+    idxs = np.array(np.triu_indices(n_species)).T
+    idxs_same = np.where(idxs[:, 0] == idxs[:, 1])[0]
+    idxs_diff = np.where(idxs[:, 0] != idxs[:, 1])[0]
+    data['num_interacting'] = np.repeat(
+        (interactions_flat != 0)[:, idxs_diff].sum(axis=1), repeats=n_species)
+    data['num_self_interacting'] = np.repeat(
+        (interactions_flat != 0)[:, idxs_same].sum(axis=1), repeats=n_species)
+    for ii, (i, j) in enumerate(idxs):
+        data[f'energies_{i}-{j}'] = np.repeat(
+            interactions_flat[:, ii], repeats=n_species)
+    return data
+
+
 def main(top_write_dir=None, cfg_path=None):
 
     if top_write_dir is None:
@@ -113,9 +142,9 @@ def main(top_write_dir=None, cfg_path=None):
 
     input_species = make_inputs(
         config['circuit_generation']['species_count'], config['system_type'])
-    
+
     config = prep_cfg(config, input_species)
-    
+
     interactions = generate_energies(
         n_circuits=config['circuit_generation'].get("repetitions", 1),
         n_species=config['circuit_generation'].get("species_count", 3), len_seq=config['circuit_generation']["sequence_length"],
@@ -129,11 +158,14 @@ def main(top_write_dir=None, cfg_path=None):
 
     analytics, ys, ts, y0m, y00s, ts0 = simulate_interactions(
         interactions, input_species, config)
-    
+
     save({'analytics.json': analytics,
           'ys.npy': ys, 'ts.npy': ts, 'y0m.npy': y0m, 'y00s.npy': y00s, 'ts0.npy': ts0,
           'interactions.npy': interactions,
           'config.json': config}, top_write_dir)
+
+    data = summarise_simulated_cicruits(analytics, config, interactions)
+    save({'tabulated_mutation_info.json': data}, top_write_dir)
 
 
 if '__main__' == __name__:
