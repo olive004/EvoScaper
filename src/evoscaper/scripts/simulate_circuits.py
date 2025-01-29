@@ -4,7 +4,6 @@ import numpy as np
 import os
 import jax
 
-from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import setup_model, make_rates, prep_sim, sim, prep_cfg
 from evoscaper.utils.math import make_batch_symmetrical_matrices
@@ -106,7 +105,7 @@ def main(top_write_dir=None, cfg_path=None):
                 't1': 1000,
                 'dt0': 0.001,
                 'dt1': 0.5,
-                'threshold_steady_states': 0.001,
+                'threshold_steady_states': 0.0001,
                 'total_time': 30000,
                 'stepsize_controller': 'adaptive',
                 'use_initial_to_add_signal': False,
