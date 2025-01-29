@@ -86,20 +86,20 @@ def main(top_write_dir=None, cfg_path=None):
                 'association_binding_rate': 1000000
             },
             'circuit_generation': {
-                'repetitions': 700000,
+                'repetitions': 1000000,
                 'species_count': 3,
                 'sequence_length': 20,
                 'generator_protocol': 'random',
                 'proportion_to_mutate': 0.5,
                 'template': None,
-                'seed': 4
+                'seed': 5
             },
             'simulation': {
                 't0': 0,
-                't1': 1000,
+                't1': 2000,
                 'dt0': 0.001,
                 'dt1': 0.5,
-                'threshold_steady_states': 0.001,
+                'threshold_steady_states': 0.0001,
                 'total_time': 30000,
                 'stepsize_controller': 'adaptive',
                 'use_initial_to_add_signal': False,
