@@ -40,14 +40,8 @@ def simulate_interactions(interactions, input_species, config):
     forward_rates, reverse_rates = make_rates(
         config['x_type'], interactions_reshaped, postproc)
 
-    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
+    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         config['signal_species'], qreactions, interactions_reshaped, config, forward_rates, reverse_rates)
-
-    #
-    threshold = 0.005  # config['simulation']['threshold_steady_states']
-    t1 = 500
-    total_time = 30000
-    #
 
     print('Starting sim')
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
@@ -56,7 +50,7 @@ def simulate_interactions(interactions, input_species, config):
                                             t0, t1, dt0, dt1,
                                             save_steps, max_steps,
                                             stepsize_controller,
-                                            threshold=threshold,
+                                            threshold=threshold_steady_states,
                                             total_time=total_time)
     analytics['Log sensitivity'] = np.log10(
         analytics['sensitivity_wrt_species-6'])

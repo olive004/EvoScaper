@@ -19,7 +19,7 @@ import jax.numpy as jnp
 import diffrax as dfx
 
 
-# 
+#
 def num_unsteadied(comparison, threshold):
     return np.sum(np.abs(comparison) > threshold)
 
@@ -93,12 +93,13 @@ def simulate_steady_states(y0, total_time, sim_func, t0, t1,
                 print('Done: ', datetime.now() - iter_time)
             break
         if not disable_logging:
-            print('Steady states: ', ti, ' iterations. ', num_unsteadied(fderiv, threshold), ' left to steady out. ', datetime.now() - iter_time)
+            print('Steady states: ', ti, ' iterations. ', num_unsteadied(
+                fderiv, threshold), ' left to steady out. ', datetime.now() - iter_time)
 
     if ts_full.ndim > 1:
         ts_full = ts_full[0]
     return np.array(ys_full), np.array(ts_full)
-# 
+#
 
 
 def compute_analytics(y, t, labels, signal_onehot):
@@ -149,11 +150,12 @@ def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
     signal_target = config_bio['signal']['function_kwargs']['target']
     y00 = np.repeat(np.array([r.quantity for r in qreactions.reactants])[
                     None, None, :], repeats=len(fake_circuits_reshaped), axis=0)
-    t0, t1, dt0, dt1, stepsize_controller = config_bio['simulation']['t0'], config_bio['simulation'][
-        't1'], config_bio['simulation']['dt0'], config_bio['simulation']['dt1'], config_bio['simulation']['stepsize_controller']
+    t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = config_bio['simulation']['t0'], config_bio['simulation'][
+        't1'], config_bio['simulation']['dt0'], config_bio['simulation']['dt1'], config_bio['simulation'][
+            'stepsize_controller'], config_bio['simulation'].get('threshold_steady_states', 0.01), config_bio['simulation'].get('total_time', 30000)
     save_steps, max_steps = 50, 16**5
 
-    return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, save_steps, max_steps, forward_rates, reverse_rates
+    return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
 
 
 def prep_cfg(config_bio, input_species):
