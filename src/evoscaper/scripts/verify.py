@@ -78,7 +78,7 @@ def verify(params, rng, decoder,
     forward_rates, reverse_rates = make_rates(
         config_dataset.x_type, fake_circuits_reshaped, postproc)
 
-    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
+    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
 
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
@@ -86,7 +86,8 @@ def verify(params, rng, decoder,
                                             signal_onehot, signal_target,
                                             t0, t1, dt0, dt1,
                                             save_steps, max_steps,
-                                            stepsize_controller, threshold=threshold_steady_states)
+                                            stepsize_controller, threshold=threshold_steady_states,
+                                            total_time=total_time)
 
     analytics['sensitivity_wrt_species-6'] = np.array(
         analytics['sensitivity_wrt_species-6'])
