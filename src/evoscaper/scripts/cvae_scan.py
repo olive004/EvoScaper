@@ -92,8 +92,8 @@ def test_conditionality(params, rng, decoder, df, x_cols,
                                                             use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=cond.min(), cond_max=cond.max())
 
-    mi = jax.vmap(partial(estimate_mutual_information_knn, k=5))(
-        z, sampled_cond)
+    mi = np.mean(jax.vmap(partial(estimate_mutual_information_knn, k=5))(
+        z, sampled_cond))
     # mi = estimate_mutual_information_knn(z.reshape(np.prod(
     #     z.shape[:-1]), z.shape[-1]), sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1]), k=5)
 
