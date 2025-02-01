@@ -8,6 +8,7 @@ import pandas as pd
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import setup_model, make_rates, prep_sim, sim, prep_cfg
 from evoscaper.utils.math import make_batch_symmetrical_matrices
+from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from synbio_morpher.utils.data.fake_data_generation.energies import generate_energies
 from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict, write_json
 
@@ -98,6 +99,7 @@ def main(top_write_dir=None, cfg_path=None):
         top_write_dir = os.path.join(
             'notebooks', 'data', 'simulate_circuits', make_datetime_str())
 
+    data_dir = 'data'
     if cfg_path is None:
         config = {
             'signal_species': ['RNA_0'],
@@ -115,6 +117,8 @@ def main(top_write_dir=None, cfg_path=None):
                 'association_binding_rate': 1000000
             },
             'circuit_generation': {
+                'use_dataset': True,
+                'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
                 'repetitions': 1000000,
                 'species_count': 3,
                 'sequence_length': 20,
@@ -145,15 +149,20 @@ def main(top_write_dir=None, cfg_path=None):
 
     config = prep_cfg(config, input_species)
 
-    interactions = generate_energies(
-        n_circuits=config['circuit_generation'].get("repetitions", 1),
-        n_species=config['circuit_generation'].get("species_count", 3), len_seq=config['circuit_generation']["sequence_length"],
-        p_null=config['circuit_generation'].get("perc_non_interacting", 0.3),
-        symmetrical=True if config.get(
-            "system_type", "RNA") == 'RNA' else False,
-        type_energies=config.get("system_type", "RNA"),
-        seed=config['circuit_generation'].get("seed", 0))
-
+    if config['circuit_generation']['use_dataset']:
+        data = pd.read_csv(config['circuit_generation']['dataset_src'])
+        n_species = len(data[~data['sample_name'].isna()]['sample_name'].unique())
+        interactions = data[data['sample_name'] == 'RNA_2'][get_true_interaction_cols(data, 'energies', remove_symmetrical=False)].values.reshape(-1, n_species, n_species)
+    else:
+        interactions = generate_energies(
+            n_circuits=config['circuit_generation'].get("repetitions", 1),
+            n_species=config['circuit_generation'].get("species_count", 3), len_seq=config['circuit_generation']["sequence_length"],
+            p_null=config['circuit_generation'].get("perc_non_interacting", 0.3),
+            symmetrical=True if config.get(
+                "system_type", "RNA") == 'RNA' else False,
+            type_energies=config.get("system_type", "RNA"),
+            seed=config['circuit_generation'].get("seed", 0))
+    
     os.makedirs(top_write_dir, exist_ok=True)
 
     analytics, ys, ts, y0m, y00s, ts0 = simulate_interactions(
