@@ -169,7 +169,7 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
             data['response_time_wrt_species-6'] < np.inf, data['response_time_wrt_species-6'], np.nan)
 
         filt = filt & (data['response_time_wrt_species-6'] < (filter_settings.filt_response_time_perc_max *
-                np.nanmax(data['response_time_wrt_species-6']))) & (data['sample_name'] == 'RNA_2')
+                                                              np.nanmax(data['response_time_wrt_species-6']))) & (data['sample_name'] == 'RNA_2')
 
     df = data[filt]
     df = df.reset_index(drop=True)
@@ -178,11 +178,17 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
 
 
 def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
+    
     df = df.reset_index(drop=True)
-    df_lowres = df if nbin is None else transform_to_histogram_bins(
-        df, cols, num_bins=nbin)
-    df_lowres = df_lowres.groupby(cols, as_index=False).head(n_same_circ_max)
-    return df.loc[df_lowres.index].reset_index(drop=True)
+    
+    if (n_same_circ_max == 1) and (nbin is None):
+        df = df.loc[~df[cols].duplicated(keep='first')]
+    else:
+        df_lowres = df if nbin is None else transform_to_histogram_bins(
+            df, cols, num_bins=nbin)
+        df_lowres = df_lowres.groupby(cols, as_index=False).head(n_same_circ_max)
+        df = df.loc[df_lowres.index].reset_index(drop=True)
+    return df
 
 
 def reduce_repeat_samples_old(rng, df, X_COLS, n_same_circ_max: int = 1, nbin=None):
@@ -249,29 +255,38 @@ def rem_idxs(df, to_rem):
 # Balance
 
 
-def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30) -> pd.DataFrame:
+def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30, use_quantile=False) -> pd.DataFrame:
     # Create a copy of the DataFrame to avoid modifying the original
     transformed_df = df.copy()
 
-    # Compute quantile bin edges
-    # Adding 0 and 1 to capture the full range of the data
-    quantile_edges = np.concatenate([
-        [df[cols].min()],  # Minimum value
-        df[cols].quantile(np.linspace(0, 1, num_bins + 1)[1:-1]),
-        [df[cols].max()]  # Maximum value
-    ])
+    if use_quantile:
+        # Compute quantile bin edges
+        # Adding 0 and 1 to capture the full range of the data
+        quantile_edges = np.concatenate([
+            [df[cols].min()],  # Minimum value
+            df[cols].quantile(np.linspace(0, 1, num_bins + 1)[1:-1]),
+            [df[cols].max()]  # Maximum value
+        ])
+        quantile_edges = np.unique(quantile_edges)
 
-    # Ensure unique bin edges (some distributions might have repeated values)
-    quantile_edges = np.unique(quantile_edges)
+        # Create a mapping from original values to their quantile bin edge
+        def map_to_quantile_edge(value):
+            # Find the bin edge that this value falls into
+            bin_index = np.digitize(value, quantile_edges) - 1
+            return quantile_edges[bin_index]
 
-    # Create a mapping from original values to their quantile bin edge
-    def map_to_quantile_edge(value):
-        # Find the bin edge that this value falls into
-        bin_index = np.digitize(value, quantile_edges) - 1
-        return quantile_edges[bin_index]
+        f_map = map_to_quantile_edge
+
+    else:
+        hist, bin_edges = np.histogram(df[cols].to_numpy().flatten(), bins=num_bins)
+
+        def map_to_linear_edge(value):
+            bin_index = np.digitize(value, bin_edges) - 1
+            return bin_edges[bin_index]
+        f_map = map_to_linear_edge
 
     # Apply the transformation
-    transformed_df[cols] = df[cols].apply(map_to_quantile_edge)
+    transformed_df[cols] = df[cols].apply(f_map)
 
     return transformed_df
 
