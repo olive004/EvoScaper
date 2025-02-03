@@ -112,7 +112,7 @@ def test(model, params, rng, decoder, saves, data_test,
          config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model: ModelConfig,
          x_cols, config_filter: FilterSettings, top_write_dir,
          x_datanormaliser: DataNormalizer, x_methods_preprocessing,
-         y_datanormaliser: DataNormalizer, y_methods_preprocessing):
+         y_datanormaliser: DataNormalizer, y_methods_preprocessing, visualise=True):
 
     df = prep_data(data_test, config_dataset.output_species,
                    config_dataset.objective_col, x_cols, config_filter)
@@ -125,7 +125,8 @@ def test(model, params, rng, decoder, saves, data_test,
 
     r2_test = r2_score(x.flatten(), pred_y.flatten())
 
-    vis(saves, x, pred_y, top_write_dir)
+    if visualise:
+        vis(saves, x, pred_y, top_write_dir)
 
     try:
         mi = test_conditionality(params, rng, decoder, df, x_cols,
@@ -173,7 +174,7 @@ def main(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR):
 
     # Test & Visualise
     if config_dataset.use_test_data:
-        data_test = pd.read_csv(config_dataset.filenames_verify_table)
+        data_test = pd.read_csv(config_dataset.filenames_verify_table) if config_dataset.filenames_verify_table.endswith('.csv') else pd.read_json(config_dataset.filenames_verify_table)
     else:
         print(
             f'Warning: not using the test data for evaluation, but the training data instead of {config_dataset.filenames_verify_table}')

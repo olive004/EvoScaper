@@ -15,10 +15,16 @@ from evoscaper.utils.tuning import make_configs_initial, make_config_model
 
 
 def load_data(config_dataset: DatasetConfig):
-    if os.path.splitext(config_dataset.filenames_train_table)[1] == '.json':
-        data = pd.read_json(config_dataset.filenames_train_table)
-    else:
-        data = pd.read_csv(config_dataset.filenames_train_table)
+    def load(fn):
+        if os.path.splitext(fn)[1] == '.json':
+            data = pd.read_json(fn)
+        else:
+            data = pd.read_csv(fn)
+        return data
+    data = load(config_dataset.filenames_train_table)
+    # data_test = data
+    # if config_dataset.use_test_data:
+    #     data_test = load(config_dataset.filenames_verify_table)
     X_COLS = make_xcols(data, config_dataset.x_type,
                         config_dataset.include_diffs)
     return data, X_COLS
