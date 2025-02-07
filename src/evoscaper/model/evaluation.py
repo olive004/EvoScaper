@@ -49,10 +49,10 @@ def estimate_mutual_information_knn(
 
 def calc_prompt_adherence(pred, real, thresh_recall):
     """ Arrays should be of shape (n_samples, n_objectives) """
-    
+
     diff = jnp.abs(pred - real)
     recall = (diff < thresh_recall).sum() / len(diff)
     recall_m = diff.mean(axis=0)
     recall_s = diff.std(axis=0)
-    
-    return
+
+    return recall, recall_m, recall_s
