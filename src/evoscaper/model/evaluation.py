@@ -52,7 +52,7 @@ def calc_prompt_adherence(pred, real, thresh_recall):
 
     diff = jnp.abs(pred - real)
     recall = (diff < thresh_recall).sum() / len(diff)
-    recall_m = diff.mean(axis=0)
-    recall_s = diff.std(axis=0)
+    diff_m = diff.mean(axis=0)
+    diff_s = diff.std(axis=0)
 
-    return recall, recall_m, recall_s
+    return recall, diff_m, diff_s
