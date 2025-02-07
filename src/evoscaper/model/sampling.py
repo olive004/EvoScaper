@@ -16,8 +16,9 @@ def sample_reconstructions(params, rng, decoder,
                            objective_cols: List[str],
                            use_binned_sampling: bool = True, use_onehot: bool = False,
                            cond_min: Optional[float] = 0, cond_max: Optional[float] = 1,
-                           impose_final_range: Optional[Tuple[float]] = None,
-                           n_objectives: int = 1):
+                           impose_final_range: Optional[Tuple[float]] = None):
+
+    n_objectives = len(objective_cols)
 
     if use_binned_sampling:
         if use_onehot:
@@ -31,15 +32,18 @@ def sample_reconstructions(params, rng, decoder,
                 sampled_cond = np.concatenate(
                     [sampled_cond, sampled_cond2], axis=-1)
         else:
-            sampled_cond_nonrepeated = np.array(list(itertools.product(*([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-            sampled_cond = np.repeat(sampled_cond_nonrepeated, repeats=n_to_sample, axis=1).reshape(n_categories ** n_objectives, n_to_sample, n_objectives)
+            sampled_cond_nonrepeated = np.array(list(itertools.product(
+                *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
+            sampled_cond = np.repeat(sampled_cond_nonrepeated, repeats=n_to_sample, axis=1).reshape(
+                n_categories ** n_objectives, n_to_sample, n_objectives)
     else:
         sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
             :, None], repeats=n_to_sample, axis=1)[:, :, None]
         # sampled_cond = jax.random.uniform(
         #     rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
 
-    z = jax.random.normal(rng, (n_categories ** n_objectives, n_to_sample, hidden_size))
+    z = jax.random.normal(
+        rng, (n_categories ** n_objectives, n_to_sample, hidden_size))
     z = np.concatenate([z, sampled_cond], axis=-1)
 
     # x_fake = jax.vmap(partial(decoder, params=params, rng=rng))(inputs=z)

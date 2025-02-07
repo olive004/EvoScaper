@@ -64,7 +64,7 @@ def verify(params, rng, decoder,
                                                             x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
                                                             objective_cols=config_dataset.objective_col,
                                                             use_binned_sampling=use_binned_sampling, use_onehot=config_norm_y.categorical_onehot,
-                                                            cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range, n_objectives=len(config_dataset.objective_col))
+                                                            cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range)
 
     # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
     config_bio = prep_cfg(config_bio, input_species)

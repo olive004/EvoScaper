@@ -45,3 +45,6 @@ def estimate_mutual_information_knn(
     mi = jnp.mean(z_entropy + c_entropy - joint_entropy)
 
     return mi
+
+
+# def calc_prompt_adherence(sampled_cond)
