@@ -47,11 +47,12 @@ def estimate_mutual_information_knn(
     return mi
 
 
-def calc_prompt_adherence(pred, real, thresh_recall):
+def calc_prompt_adherence(pred, real, perc_recall):
     """ Arrays should be of shape (n_samples, n_objectives) """
 
     diff = jnp.abs(pred - real)
-    recall = (diff < thresh_recall).sum() / len(diff)
+    thresh_recall = jnp.max(diff, axis=0) * perc_recall
+    recall = (diff < thresh_recall).sum(axis=0) / diff.shape[0]
     diff_m = diff.mean(axis=0)
     diff_s = diff.std(axis=0)
 

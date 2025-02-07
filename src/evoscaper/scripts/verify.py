@@ -10,6 +10,7 @@ import numpy as np
 import jax
 import pandas as pd
 
+from evoscaper.model.evaluation import calc_prompt_adherence
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.utils.dataclasses import DatasetConfig, ModelConfig, NormalizationSettings
 from evoscaper.utils.math import make_batch_symmetrical_matrices
@@ -94,6 +95,13 @@ def verify(params, rng, decoder,
     analytics['precision_wrt_species-6'] = np.array(
         analytics['precision_wrt_species-6'])
     analytics['overshoot'] = np.array(analytics['overshoot'])
+    analytics['Log sensitivity'] = np.log10(
+        analytics['sensitivity_wrt_species-6'])
+    analytics['Log precision'] = np.log10(analytics['precision_wrt_species-6'])
+
+    recall, diffs_mean, diffs_std = calc_prompt_adherence(sampled_cond, np.concatenate(
+        [analytics[k][:, None] for k in config_dataset.objective_col]), perc_recall=0.1)
+    adh = {'recall': recall, 'diffs_mean': diffs_mean, 'diffs_std': diffs_std}
 
     if visualise:
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
@@ -103,6 +111,7 @@ def verify(params, rng, decoder,
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
+    data_writer.output(data=adh, out_type='json', out_name='recall')
 
     if return_relevant:
-        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond
+        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond, adh
