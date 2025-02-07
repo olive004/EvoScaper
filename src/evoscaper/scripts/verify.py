@@ -54,7 +54,7 @@ def verify(params, rng, decoder,
 
     if top_write_dir is not None:
         data_writer = ResultWriter(
-            purpose=config_bio['experiment']['purpose'], out_location=top_write_dir)
+            purpose=config_bio.get('experiment', {}).get('purpose', 'ensemble_simulate_by_interaction'), out_location=top_write_dir)
     config_bio, data_writer = script_preamble(
         config_bio, data_writer=data_writer)
 
