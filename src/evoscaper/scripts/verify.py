@@ -99,10 +99,6 @@ def verify(params, rng, decoder,
         analytics['sensitivity_wrt_species-6'])
     analytics['Log precision'] = np.log10(analytics['precision_wrt_species-6'])
 
-    recall, diffs_mean, diffs_std = calc_prompt_adherence(sampled_cond, np.concatenate(
-        [analytics[k][:, None] for k in config_dataset.objective_col]), perc_recall=0.1)
-    adh = {'recall': recall, 'diffs_mean': diffs_mean, 'diffs_std': diffs_std}
-
     if visualise:
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
@@ -111,7 +107,11 @@ def verify(params, rng, decoder,
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), model_brn, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
-    data_writer.output(data=adh, out_type='json', out_name='recall')
+
+    # precision, recall, diff_m, diff_s = calc_prompt_adherence(sampled_cond, np.concatenate(
+    #     [np.array(analytics[k])[:, None] for k in config_dataset.objective_col], axis=-1).reshape(*sampled_cond.shape, -1), perc_recall=0.1)
+    # adh = {'precision': precision, 'recall': recall, 'diff_m': diff_m, 'diff_s': diff_s}
+    # data_writer.output(data=adh, out_type='json', out_name='recall')
 
     if return_relevant:
         return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond, adh

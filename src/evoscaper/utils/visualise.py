@@ -38,7 +38,7 @@ def save_plot():
 
 
 @save_plot()
-def vis_sampled_histplot(analytic, model_brn, output_species: List[str], category_array: bool,
+def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
                          title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
@@ -51,7 +51,7 @@ def vis_sampled_histplot(analytic, model_brn, output_species: List[str], categor
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species {output_specie}'
-        output_idx = [ii.name for ii in model_brn.species].index(output_specie)
+        output_idx = all_species.index(output_specie)
         df_s = pd.DataFrame(columns=[x_label, 'VAE conditional input'],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         df_s['VAE conditional input'] = df_s['VAE conditional input'].astype(
