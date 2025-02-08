@@ -108,7 +108,7 @@ def verify(params, rng, decoder,
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
 
-    # precision, recall, diff_m, diff_s = calc_prompt_adherence(sampled_cond, np.concatenate(
+    # precision, recall = calc_prompt_adherence(sampled_cond, np.concatenate(
     #     [np.array(analytics[k])[:, None] for k in config_dataset.objective_col], axis=-1).reshape(*sampled_cond.shape, -1), perc_recall=0.1)
     # adh = {'precision': precision, 'recall': recall, 'diff_m': diff_m, 'diff_s': diff_s}
     # data_writer.output(data=adh, out_type='json', out_name='recall')

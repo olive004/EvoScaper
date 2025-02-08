@@ -59,7 +59,5 @@ def calc_prompt_adherence(pred, real, perc_recall):
 
     precision = n_positives_inclass / n_positive_preds
     recall = n_positives_inclass / n_positives_all
-    diff_m = diff.mean(axis=1)
-    diff_s = diff.std(axis=1)
 
-    return precision, recall, diff_m, diff_s
+    return precision, recall
