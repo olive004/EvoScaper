@@ -64,20 +64,20 @@ def make_symmetrical_matrix_from_sequence(arr: jnp.ndarray, side_length: int) ->
     symmetric_matrix = symmetric_matrix.at[diagonal_mask].multiply(0.5)
     return symmetric_matrix
 
+
 def make_batch_symmetrical_matrices(arrs: jnp.ndarray, side_length: int) -> jnp.ndarray:
     """Vectorized version that handles batches of arrays.
-    
+
     Args:
         arrs: Array of shape (batch_size, n_elements) where n_elements is the 
              number of elements needed for upper triangle
         side_length: The dimension of each output square matrix
-    
+
     Returns:
         Array of shape (batch_size, side_length, side_length) containing 
         symmetric matrices
     """
     return jax.vmap(lambda x: make_symmetrical_matrix_from_sequence(x, side_length))(arrs)
-
 
 
 def recombine_dec_exponent(base_num: Number, exponent: int) -> Number:
