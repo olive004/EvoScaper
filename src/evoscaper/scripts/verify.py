@@ -101,11 +101,12 @@ def verify(params, rng, decoder,
 
     if visualise:
         all_species = list([ii.name for ii in model_brn.species])
-        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
+        idx_obj = 0 if 'Log sensitivity' not in config_dataset.objective_col else config_dataset.objective_col.index('Log sensitivity')
+        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
-        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
+        vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
-        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), all_species, output_species, category_array=sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), -1),
+        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
     save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
 
@@ -115,4 +116,4 @@ def verify(params, rng, decoder,
     # data_writer.output(data=adh, out_type='json', out_name='recall')
 
     if return_relevant:
-        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond, adh
+        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond
