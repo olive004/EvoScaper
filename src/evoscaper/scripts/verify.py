@@ -22,12 +22,14 @@ from evoscaper.utils.visualise import vis_sampled_histplot
 jax.config.update('jax_platform_name', 'gpu')
 
 
-def save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond):
+def save(data_writer, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond):
     print(data_writer.top_write_dir)
     data_writer.output(data=analytics, out_type='json', out_name='analytics')
     data_writer.output(data=ys, out_type='npy', out_name='ys')
     data_writer.output(data=ts, out_type='npy', out_name='ts')
     data_writer.output(data=y0m, out_type='npy', out_name='y0m')
+    data_writer.output(data=y00s, out_type='npy', out_name='y0m')
+    data_writer.output(data=ts0, out_type='npy', out_name='y0m')
     data_writer.output(data=fake_circuits, out_type='npy',
                        out_name='fake_circuits')
     data_writer.output(data=sampled_cond, out_type='npy',
@@ -110,7 +112,7 @@ def verify(params, rng, decoder,
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
-    save(data_writer, analytics, ys, ts, y0m, fake_circuits, sampled_cond)
+    save(data_writer, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond)
 
     # precision, recall = calc_prompt_adherence(sampled_cond, np.concatenate(
     #     [np.array(analytics[k])[:, None] for k in config_dataset.objective_col], axis=-1).reshape(*sampled_cond.shape, -1), perc_recall=0.1)
