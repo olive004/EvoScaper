@@ -257,7 +257,8 @@ def sim(y00, forward_rates, reverse_rates,
         f'Steady states found after {int(minutes)} mins and {int(seconds)} secs. Now calculating signal response')
 
     # Signal
-    y0m = y0 * ((signal_onehot == 0) * 1) + y00 * signal_target * signal_onehot
+    # y0m = y0 * ((signal_onehot == 0) * 1) + y00 * signal_target * signal_onehot
+    y0m = y0 * (2 * signal_onehot + 1)
     time_start = datetime.now()
     ys, ts = simulate_steady_states(y0m, total_time=total_time, sim_func=sim_func, t0=t0,
                                     t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)

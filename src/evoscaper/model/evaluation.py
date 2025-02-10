@@ -59,5 +59,8 @@ def calc_prompt_adherence(pred, real, perc_recall):
 
     precision = n_positives_inclass / n_positive_preds
     recall = n_positives_inclass / n_positives_all
+    
+    # Calculate F1 score
+    f1 = 2 * (precision * recall) / (precision + recall)
 
-    return precision, recall
+    return precision, recall, jnp.where(jnp.isnan(f1), 0, f1)
