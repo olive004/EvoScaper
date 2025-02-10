@@ -79,7 +79,8 @@ def verify(params, rng, decoder,
     forward_rates, reverse_rates = make_rates(
         config_dataset.x_type, fake_circuits_reshaped, postproc)
 
-    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
+    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time,
+     threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
 
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
@@ -101,7 +102,8 @@ def verify(params, rng, decoder,
 
     if visualise:
         all_species = list([ii.name for ii in model_brn.species])
-        idx_obj = 0 if 'Log sensitivity' not in config_dataset.objective_col else config_dataset.objective_col.index('Log sensitivity')
+        idx_obj = 0 if 'Log sensitivity' not in config_dataset.objective_col else config_dataset.objective_col.index(
+            'Log sensitivity')
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),

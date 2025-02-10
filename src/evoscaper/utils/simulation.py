@@ -85,7 +85,7 @@ def simulate_steady_states(y0, total_time, sim_func, t0, t1,
         ti += t1 - t0
 
         if ys.shape[1] > 1:
-            fderiv = jnp.gradient(ys[:, -5:, :], axis=1)[:, -1, :] # / y00
+            fderiv = jnp.gradient(ys[:, -5:, :], axis=1)[:, -1, :]  # / y00
         else:
             fderiv = ys[:, -1, :] - y00
         if (num_unsteadied(fderiv, threshold) == 0) or (ti >= total_time):
@@ -248,7 +248,7 @@ def sim(y00, forward_rates, reverse_rates,
                                 )))
 
     time_start = datetime.now()
-    y00s, ts0 = simulate_steady_states(y0=y00, total_time=t1-t0, sim_func=sim_func, t0=t0,
+    y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
     minutes, seconds = divmod(
@@ -259,7 +259,7 @@ def sim(y00, forward_rates, reverse_rates,
     # Signal
     y0m = y0 * ((signal_onehot == 0) * 1) + y00 * signal_target * signal_onehot
     time_start = datetime.now()
-    ys, ts = simulate_steady_states(y0m, total_time=t1-t0, sim_func=sim_func, t0=t0,
+    ys, ts = simulate_steady_states(y0m, total_time=total_time, sim_func=sim_func, t0=t0,
                                     t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
