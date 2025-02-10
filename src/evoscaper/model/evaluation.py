@@ -53,8 +53,8 @@ def calc_prompt_adherence(pred, real, perc_recall):
     diff = jnp.abs(pred - real)
     thresh_recall = jnp.expand_dims(jnp.max(diff, axis=1) * perc_recall, axis=1)
 
-    n_positives_inclass = (diff < thresh_recall).sum(axis=1)
-    n_positives_all = (diff < thresh_recall).sum()
+    n_positives_inclass = jnp.nansum(diff < thresh_recall, axis=1)
+    n_positives_all = jnp.nansum(diff < thresh_recall)
     n_positive_preds = pred.shape[1]
 
     precision = n_positives_inclass / n_positive_preds
