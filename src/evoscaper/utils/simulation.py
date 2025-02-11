@@ -19,9 +19,8 @@ import jax.numpy as jnp
 import diffrax as dfx
 
 
-#
-def num_unsteadied(comparison, threshold):
-    return np.sum(np.abs(comparison) > threshold)
+def num_unsteadied(comparison: np.ndarray, threshold: float):
+    return np.nansum(np.abs(comparison) > threshold)
 
 
 def did_sim_break(y):
@@ -85,10 +84,10 @@ def simulate_steady_states(y0, total_time, sim_func, t0, t1,
         ti += t1 - t0
 
         if ys.shape[1] > 1:
-            fderiv = jnp.gradient(ys[:, -5:, :], axis=1)[:, -1, :]  # / y00
+            fderiv = jnp.gradient(ys[:, -3:, :], axis=1)[:, -1, :]  # / y00
         else:
             fderiv = ys[:, -1, :] - y00
-        if (num_unsteadied(fderiv, threshold) == 0) or (ti >= total_time):
+        if (num_unsteadied(fderiv / ys[:, -1, :], threshold) == 0) or (ti >= total_time):
             if not disable_logging:
                 print('Done: ', datetime.now() - iter_time)
             break
@@ -153,7 +152,7 @@ def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
     t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = config_bio['simulation']['t0'], config_bio['simulation'][
         't1'], config_bio['simulation']['dt0'], config_bio['simulation']['dt1'], config_bio['simulation'][
             'stepsize_controller'], config_bio['simulation'].get('threshold_steady_states', 0.01), config_bio['simulation'].get('total_time', 30000)
-    save_steps, max_steps = 50, 16**5
+    save_steps, max_steps = 50, (16**5) * 2
 
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
 

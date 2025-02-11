@@ -85,6 +85,10 @@ def verify(params, rng, decoder,
      threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
 
+    t1 = 2000
+    threshold_steady_states = 0.01
+    total_time = int(t1*3)
+
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
                                             signal_onehot, signal_target,
@@ -112,7 +116,8 @@ def verify(params, rng, decoder,
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
-    save(data_writer, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond)
+    save(data_writer, analytics, ys, ts, y0m,
+         y00s, ts0, fake_circuits, sampled_cond)
 
     # precision, recall = calc_prompt_adherence(sampled_cond, np.concatenate(
     #     [np.array(analytics[k])[:, None] for k in config_dataset.objective_col], axis=-1).reshape(*sampled_cond.shape, -1), perc_recall=0.1)
