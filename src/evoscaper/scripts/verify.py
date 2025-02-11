@@ -85,10 +85,6 @@ def verify(params, rng, decoder,
      threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
 
-    t1 = 2000
-    threshold_steady_states = 0.01
-    total_time = int(t1*3)
-
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
                                             signal_onehot, signal_target,

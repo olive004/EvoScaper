@@ -117,7 +117,7 @@ def main(top_write_dir=None, cfg_path=None):
                 'association_binding_rate': 1000000
             },
             'circuit_generation': {
-                'use_dataset': True,
+                'use_dataset': False,
                 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
                 'repetitions': 1000000,
                 'species_count': 3,
