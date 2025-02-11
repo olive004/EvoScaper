@@ -58,6 +58,8 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
         data['adaptation'] = calculate_adaptation(
             s=data['sensitivity_wrt_species-6'].values,
             p=data['precision_wrt_species-6'].values)
+    if 'overshoot/initial' not in data.columns:
+        data['overshoot/initial'] = data['overshoot'] / data['initial_steady_states']
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
