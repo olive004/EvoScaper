@@ -169,7 +169,7 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
             data['response_time_wrt_species-6'] < np.inf, data['response_time_wrt_species-6'], np.nan)
 
         filt = filt & (data['response_time_wrt_species-6'] < (filter_settings.filt_response_time_perc_max *
-                                                              np.nanmax(data['response_time_wrt_species-6']))) & (data['sample_name'] == 'RNA_2')
+                                                              np.nanmax(data['response_time_wrt_species-6'])))
 
     df = data[filt]
     df = df.reset_index(drop=True)
