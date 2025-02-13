@@ -1,4 +1,5 @@
 from datetime import datetime
+from bioreaction.misc.misc import flatten_listlike
 import numpy as np
 import pandas as pd
 import jax
@@ -66,10 +67,10 @@ def make_datetime_str():
 def make_xcols(data, x_type, include_diffs=False, remove_symmetrical=True):
     x_cols = list(get_true_interaction_cols(
         data, x_type, remove_symmetrical=remove_symmetrical))
-    if include_diffs:
+    if include_diffs == True:
         x_cols = x_cols + \
-            [[f'{i}_diffs' for i in get_true_interaction_cols(
-                data, x_type, remove_symmetrical=True)]]
+            flatten_listlike([[f'{i}_diffs' for i in get_true_interaction_cols(
+                data, x_type, remove_symmetrical=True)]])
     return x_cols
 
 
