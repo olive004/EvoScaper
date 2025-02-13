@@ -52,13 +52,14 @@ def calc_prompt_adherence(pred, real, perc_recall):
 
     diff = jnp.abs(pred - real)
     thresh_recall = jnp.expand_dims(jnp.max(diff, axis=1) * perc_recall, axis=1)
+    # n_prompts_uniq = pred.shape[0]
 
     n_positives_inclass = jnp.nansum(diff < thresh_recall, axis=1)
     n_positives_all = jnp.nansum(diff < thresh_recall)
     n_positive_preds = pred.shape[1]
 
     precision = n_positives_inclass / n_positive_preds
-    recall = n_positives_inclass / n_positives_all
+    recall = n_positives_inclass / n_positives_all # * n_prompts_uniq
     
     # Calculate F1 score
     f1 = 2 * (precision * recall) / (precision + recall)
