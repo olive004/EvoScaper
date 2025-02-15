@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import r2_score
 import functools
-import os
+import networkx as nx
 
 from evoscaper.utils.math import bin_to_nearest_edge
 
@@ -206,3 +206,108 @@ def vis_histplot_combined_realfake(
         sns.move_legend(g2, 'upper left', bbox_to_anchor=(1, 1))
 
     plt.suptitle(f'CVAE: circuit comparison fake vs. real ({k})', fontsize=14)
+
+
+def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
+                         edge_weights=None, node_color='lightblue', n_nodes=3):
+    """
+    Creates a 3-node network with curved bidirectional edges and extended self-loops.
+
+    Parameters:
+    -----------
+    fig : matplotlib.figure.Figure
+        The figure object
+    ax : matplotlib.axes.Axes
+        The axes to place the inset in
+    pos : tuple
+        Position of the inset (x, y) in axes coordinates
+    width, height : float
+        Size of the inset in axes coordinates
+    edge_weights : dict
+        Dictionary of edge weights to determine opacity. Format: {(node1, node2): weight}
+    node_color : str
+        Color of the network nodes
+    """
+    # Create inset axes
+    inset_axes = ax.inset_axes([pos[0], pos[1], width, height])
+
+    # Create directed network
+    G = nx.DiGraph()
+    G.add_nodes_from([1, 2, 3])
+
+    # Add bidirectional edges and self-loops
+    # edges = [(1, 2), (2, 1), (2, 3), (3, 2), (1, 3), (3, 1),
+    #          (1, 1), (2, 2), (3, 3)]
+    edges = [tuple(sorted(ii)) for ii in zip(*[(i + 1).tolist()
+                                               for i in np.triu_indices(n_nodes)])]
+    G.add_edges_from(edges)
+
+    # Set default edge weights if none provided
+    if edge_weights is None:
+        edge_weights = {(i, j): 0.7 for i, j in edges}
+
+    # Position nodes in an equilateral triangle
+    scale = 0.9  # Reduced to give more room for loops
+    pos_nodes = {
+        1: (-scale/2, -scale/2),
+        2: (scale/2, -scale/2),
+        3: (0, scale/2)
+    }
+
+    # Draw nodes
+    node_size = 400
+    nx.draw_networkx_nodes(G, pos_nodes, node_color=node_color,
+                           node_size=node_size, ax=inset_axes)
+
+    # Define edge styles
+    curved_rad = 0.3     # Curvature of edges between nodes
+    loop_rad = 0.5      # Much larger radius for extended self-loops
+
+    # Draw edges with varying opacity and arrowheads
+    for (u, v) in edges:
+        weight = edge_weights.get((u, v), 0.7)
+
+        if u == v:  # Self-loop
+            # Customize self-loop appearance based on node position
+            rad = loop_rad
+            # if u == 3:  # Top node
+            #     rad = loop_rad * 0.9  # Slightly smaller for top node
+
+            # Draw self-loops with extended radius
+            nx.draw_networkx_edges(G, pos_nodes, edgelist=[(u, v)],
+                                   alpha=weight, width=1.5,
+                                   arrowsize=10,
+                                   connectionstyle=f'arc3, rad={rad}',
+                                   arrowstyle='-|>',
+                                   node_size=int(node_size * 1.8),
+                                   ax=inset_axes)
+        else:  # Curved edges between different nodes
+            # Alternate curve direction for bidirectional edges
+            rad = curved_rad if (u < v) else -curved_rad
+            weight = weight / 2
+
+            nx.draw_networkx_edges(G, pos_nodes, edgelist=[(u, v)],
+                                   alpha=weight, width=1.5,
+                                   arrowsize=10,
+                                   connectionstyle=f'arc3, rad={rad}',
+                                   arrowstyle='<|-|>',
+                                   ax=inset_axes)
+
+    # Add node labels
+    nx.draw_networkx_labels(G, pos_nodes, ax=inset_axes)
+
+    # Configure inset appearance
+    inset_axes.set_xticks([])
+    inset_axes.set_yticks([])
+    inset_axes.set_facecolor('none')
+
+    # Remove the border box
+    for spine in inset_axes.spines.values():
+        spine.set_visible(False)
+
+    # Set fixed aspect ratio and expanded limits for larger loops
+    inset_axes.set_aspect('equal')
+    inset_axes.set_xlim(-1.2, 1.2)
+    inset_axes.set_ylim(-1.2, 1.2)
+
+    return inset_axes
