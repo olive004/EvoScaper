@@ -22,9 +22,10 @@ def sample_reconstructions(params, rng, decoder,
 
     if use_binned_sampling:
         if use_onehot:
-            sampled_cond = np.repeat(np.arange(n_categories)[
+            category_array = np.repeat(np.arange(n_categories)[
                 :, None], repeats=n_to_sample, axis=1)
-            sampled_cond = jax.nn.one_hot(sampled_cond, n_categories)
+            category_array = jax.nn.one_hot(category_array, n_categories)
+            sampled_cond = jax.nn.one_hot(category_array, n_categories)
             for k in objective_cols[1:]:
                 sampled_cond2 = np.repeat(np.arange(n_categories)[
                     :, None], repeats=n_to_sample, axis=1)
@@ -32,13 +33,19 @@ def sample_reconstructions(params, rng, decoder,
                 sampled_cond = np.concatenate(
                     [sampled_cond, sampled_cond2], axis=-1)
         else:
-            sampled_cond_nonrepeated = np.array(list(itertools.product(
+            category_array = np.array(list(itertools.product(
                 *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-            sampled_cond = np.repeat(sampled_cond_nonrepeated, repeats=n_to_sample, axis=1).reshape(
+            sampled_cond = np.repeat(category_array, repeats=n_to_sample, axis=1).reshape(
                 n_categories ** n_objectives, n_to_sample, n_objectives)
     else:
-        sampled_cond = np.repeat(np.linspace(cond_min, cond_max, n_categories)[
-            :, None], repeats=n_to_sample, axis=1)[:, :, None]
+        category_array = np.array(list(itertools.product(
+            *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
+        sampled_cond = np.repeat(category_array, repeats=n_to_sample, axis=1).reshape(
+            n_categories ** n_objectives, n_to_sample, n_objectives)
+
+        # category_array = np.linspace(cond_min, cond_max, n_categories)
+        # sampled_cond = np.repeat(category_array[:, None], repeats=n_to_sample, axis=1)[:, :, None]
+
         # sampled_cond = jax.random.uniform(
         #     rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
 

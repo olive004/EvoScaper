@@ -3,11 +3,12 @@
 from datetime import datetime
 from typing import List
 from synbio_morpher.srv.parameter_prediction.simulator import RawSimulationHandling
-from synbio_morpher.utils.results.analytics.timeseries import generate_analytics
 from synbio_morpher.utils.common.setup import prepare_config, expand_config, expand_model_config
 from synbio_morpher.utils.misc.type_handling import flatten_listlike, get_unique
 from synbio_morpher.utils.modelling.deterministic import bioreaction_sim_dfx_expanded
+from synbio_morpher.utils.modelling.physical import eqconstant_to_rates
 from synbio_morpher.utils.modelling.solvers import make_stepsize_controller
+from synbio_morpher.utils.results.analytics.timeseries import generate_analytics
 # from synbio_morpher.utils.modelling.solvers import simulate_steady_states, make_stepsize_controller
 from bioreaction.model.data_tools import construct_model_fromnames
 from bioreaction.model.data_containers import BasicModel, QuantifiedReactions
@@ -115,9 +116,14 @@ def make_rates(x_type, fake_circuits_reshaped, postproc):
     if x_type == 'energies':
         eqconstants, (forward_rates, reverse_rates) = postproc(
             fake_circuits_reshaped)
+    elif x_type == 'eqconstants':
+        forward_rates, reverse_rates = postproc(
+            fake_circuits_reshaped)
     elif x_type == 'binding_rates_dissociation':
-        reverse_rates = fake_circuits_reshaped
+        # reverse_rates = fake_circuits_reshaped
         # eqconstants = forward_rates[0, 0, 0] / reverse_rates
+        forward_rates, reverse_rates = postproc(
+            fake_circuits_reshaped)
     else:
         raise ValueError(f'Unknown x_type {x_type}')
     return forward_rates, reverse_rates
@@ -131,8 +137,8 @@ def prep_sim_noconfig(signal_species, qreactions, fake_circuits_reshaped,
                     forward_rates, reverse_rates)
 
 
-def prep_sim(signal_species, qreactions, fake_circuits_reshaped, config_bio,
-             forward_rates, reverse_rates):
+def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_circuits_reshaped: np.ndarray, config_bio: dict,
+             forward_rates: np.ndarray, reverse_rates: np.ndarray):
 
     signal_onehot = np.where(
         [r.species.name in signal_species for r in qreactions.reactants], 1, 0)
@@ -180,7 +186,12 @@ def update_species_simulated_rates(ordered_species: list, forward_interactions, 
     return model, qreactions
 
 
-def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[str]):
+def setup_dummy_model(config_bio: dict, input_species: List[str]):
+    model_brn, qreactions, postproc, ordered_species = setup_model_brn(config_bio, input_species)
+    
+
+def setup_model_brn(config_bio: dict, input_species: List[str]):
+
     model_brn = construct_model_fromnames(
         sample_names=input_species, include_prod_deg=config_bio['include_prod_deg'])
     ordered_species = sorted(get_unique(flatten_listlike(
@@ -201,9 +212,21 @@ def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[st
 
     quantities = np.array(
         [r.quantity for r in qreactions.reactants if r.species.name in input_species])
-    postproc = RawSimulationHandling(
-        config_bio['interaction_simulator']).get_postprocessing(initial=quantities)
+    k_a = RawSimulationHandling(config_bio['interaction_simulator']).fixed_rate_k_a
+    
+    postprocs = {
+        'energies': RawSimulationHandling(config_bio['interaction_simulator']).get_postprocessing(initial=quantities),
+        'eqconstants': partial(eqconstant_to_rates, k_a=k_a),
+        'binding_rates_dissociation': lambda x: (np.ones_like(x) * k_a, x)
+        }
 
+    return model_brn, qreactions, postprocs, ordered_species
+
+
+def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[str]):
+    
+    model_brn, qreactions, postproc, ordered_species = setup_model_brn(config_bio, input_species)
+    
     # Update qreactions (using dummy rates)
     eqconstants, (a_rates, d_rates) = postproc(
         np.array(fake_circuits_reshaped[0]))

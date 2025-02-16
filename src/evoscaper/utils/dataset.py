@@ -3,11 +3,31 @@
 from typing import Iterable
 import numpy as np
 import pandas as pd
+import os
 import jax
 import jax.numpy as jnp
 from evoscaper.utils.normalise import make_chain_f
-from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings
+from evoscaper.utils.dataclasses import NormalizationSettings, FilterSettings, DatasetConfig
+from evoscaper.utils.preprocess import make_xcols
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
+
+
+def load_by_fn(fn):
+    if os.path.splitext(fn)[1] == '.json':
+        data = pd.read_json(fn)
+    else:
+        data = pd.read_csv(fn)
+    return data
+
+
+def load_data(config_dataset: DatasetConfig):
+    data = load_by_fn(config_dataset.filenames_train_table)
+    # data_test = data
+    # if config_dataset.use_test_data:
+    #     data_test = load(config_dataset.filenames_verify_table)
+    X_COLS = make_xcols(data, config_dataset.x_type,
+                        config_dataset.include_diffs)
+    return data, X_COLS
 
 
 def init_data(data, x_cols: Iterable[str], objective_cols: Iterable[str], OUTPUT_SPECIES: list,

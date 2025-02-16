@@ -70,11 +70,11 @@ def verify(params, rng, decoder,
                                                             cond_min=cond.min(), cond_max=cond.max(), impose_final_range=impose_final_range)
 
     # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
-    config_bio = prep_cfg(config_bio, input_species)
 
     fake_circuits_reshaped = make_batch_symmetrical_matrices(
         fake_circuits.reshape(-1, fake_circuits.shape[-1]), side_length=len(input_species))
 
+    config_bio = prep_cfg(config_bio, input_species)
     model_brn, qreactions, ordered_species, postproc = setup_model(
         fake_circuits_reshaped, config_bio, input_species)
 

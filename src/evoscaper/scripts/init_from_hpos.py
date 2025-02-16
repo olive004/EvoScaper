@@ -8,26 +8,9 @@ import haiku as hk
 from evoscaper.model.loss import loss_wrapper, mse_loss, accuracy_regression
 from evoscaper.model.shared import get_activation_fn
 from evoscaper.model.vae import VAE_fn
-from evoscaper.utils.dataclasses import DatasetConfig, ModelConfig
-from evoscaper.utils.dataset import init_data, make_training_data
-from evoscaper.utils.preprocess import make_xcols
+from evoscaper.utils.dataclasses import ModelConfig
+from evoscaper.utils.dataset import init_data, make_training_data, load_data
 from evoscaper.utils.tuning import make_configs_initial, make_config_model
-
-
-def load_data(config_dataset: DatasetConfig):
-    def load(fn):
-        if os.path.splitext(fn)[1] == '.json':
-            data = pd.read_json(fn)
-        else:
-            data = pd.read_csv(fn)
-        return data
-    data = load(config_dataset.filenames_train_table)
-    # data_test = data
-    # if config_dataset.use_test_data:
-    #     data_test = load(config_dataset.filenames_verify_table)
-    X_COLS = make_xcols(data, config_dataset.x_type,
-                        config_dataset.include_diffs)
-    return data, X_COLS
 
 
 def init_model(rng, x, cond, config_model: ModelConfig):

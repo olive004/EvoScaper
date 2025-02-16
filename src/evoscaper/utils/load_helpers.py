@@ -34,3 +34,8 @@ def read_csv_with_tuples(filepath, tuple_columns=None):
         df[col] = df[col].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else x)
     
     return df
+
+
+def to_json(data, path):
+    with open(path, 'w') as f:
+        json.dump(data, f)
