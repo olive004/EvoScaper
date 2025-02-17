@@ -219,14 +219,16 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
     return hpos
 
 
-def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False):
+def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=False):
     for i in range(len(df_hpos)):
         hpos = df_hpos.reset_index().iloc[i]
         top_write_dir = os.path.join(
             top_dir, 'cvae_scan', f'hpo_{hpos["index"]}')
         # hpos['use_grad_clipping'] = True
-        # hpos = cvae_scan(hpos, top_write_dir=top_write_dir)
-        try:
+        if debug:
+            hpos = cvae_scan_single(
+                hpos, top_write_dir=top_write_dir, skip_verify=skip_verify)
+        else:
             try:
                 hpos = cvae_scan_single(
                     hpos, top_write_dir=top_write_dir, skip_verify=skip_verify)
@@ -248,9 +250,9 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False):
                 else:
                     hpos.loc['run_successful'] = False
                     hpos.loc['error_msg'] = str(e)
-        except:
-            hpos.loc['run_successful'] = False
-            hpos.loc['error_msg'] = 'sys exit'
+            except:
+                hpos.loc['run_successful'] = False
+                hpos.loc['error_msg'] = 'sys exit'
 
         df_hpos.iloc[i] = pd.Series(hpos) if type(
             hpos) == dict else hpos.drop('index')
@@ -379,12 +381,12 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
     return all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond  # , all_z
 
 
-def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR):
+def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR, debug=False):
     """Run multiple CVAE scans and evaluate generated circuits"""
-    os.makedirs(top_write_dir, exists_ok=True)
+    os.makedirs(top_write_dir, exist_ok=True)
 
     # First run all models and save results
-    df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True)
+    df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True, debug=debug)
 
     # Pre-load datasets
     config_multisim = load_json_as_dict(fn_config_multisim)
@@ -394,13 +396,15 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         datasets[df_hpos['filenames_train_table'].unique()[0]])
 
     # Global options
-    val_config = load_json_as_dict(config_multisim['filename_train_config'])
+    val_config = load_json_as_dict(config_multisim['filenames_train_config'])
     config_bio = {}
     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
         config_bio.update(val_config['base_configs_ensemble'][k])
-    for k in ['eval_n_to_sample', 'signal_species', 'eval_cond_min', 'eval_cond_max']:
-        df_hpos[k] = config_multisim[k]
 
+    for k in ['eval_n_to_sample', 'signal_species', 'eval_cond_min', 'eval_cond_max']:
+        if k in config_multisim:
+            df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
+        
     config_bio = prep_cfg(config_bio, input_species)
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
@@ -409,7 +413,7 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
     analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
-        all_fake_circuits, all_forward_rates, all_reverse_rates, config_multisim['signal_species'], config_bio, model_brn, qreactions, ordered_species)
+        all_fake_circuits, all_forward_rates, all_reverse_rates, df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
 
     # Save results
     save(top_write_dir, analytics, ys, ts, y0m,
