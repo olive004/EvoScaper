@@ -236,7 +236,7 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                 hpos.loc['error_msg'] = ''
             except Exception as e:
                 print("Try 1", e)
-                if 'nan' in e.lower() and (hpos['use_grad_clipping'] == False):
+                if 'nan' in str(e).lower() and (hpos['use_grad_clipping'] == False):
                     try:
                         hpos['use_grad_clipping'] = True
                         hpos = cvae_scan_single(
