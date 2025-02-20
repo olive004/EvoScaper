@@ -44,6 +44,15 @@ def custom_round(x, base=5):
     return base * round(x/base)
 
 
+def make_flat_triangle(matrices):
+    """ Can be used with JAX vmap"""
+    n = matrices.shape[-1]
+    rows, cols = jnp.triu_indices(n)
+
+    # Use advanced indexing that works with vmap
+    return matrices[..., rows, cols]
+
+
 def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
     """ For a flat 1D array, make a symmetrical 2D matrix filling
     in the upper triangle with the 1D array. Not jax-friendly. """

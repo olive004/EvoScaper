@@ -19,29 +19,31 @@ def sample_reconstructions(params, rng, decoder,
                            impose_final_range: Optional[Tuple[float]] = None):
 
     n_objectives = len(objective_cols)
+    # n_to_sampel_per_cond = n_to_sample//(n_categories ** n_objectives)
+    n_to_sampel_per_cond = n_to_sample
 
     if use_binned_sampling:
         if use_onehot:
             category_array = np.repeat(np.arange(n_categories)[
-                :, None], repeats=n_to_sample, axis=1)
+                :, None], repeats=n_to_sampel_per_cond, axis=1)
             category_array = jax.nn.one_hot(category_array, n_categories)
             sampled_cond = jax.nn.one_hot(category_array, n_categories)
             for k in objective_cols[1:]:
                 sampled_cond2 = np.repeat(np.arange(n_categories)[
-                    :, None], repeats=n_to_sample, axis=1)
+                    :, None], repeats=n_to_sampel_per_cond, axis=1)
                 sampled_cond2 = jax.nn.one_hot(sampled_cond2, n_categories)
                 sampled_cond = np.concatenate(
                     [sampled_cond, sampled_cond2], axis=-1)
         else:
             category_array = np.array(list(itertools.product(
                 *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-            sampled_cond = np.repeat(category_array, repeats=n_to_sample, axis=1).reshape(
-                n_categories ** n_objectives, n_to_sample, n_objectives)
+            sampled_cond = np.repeat(category_array, repeats=n_to_sampel_per_cond, axis=1).reshape(
+                n_categories ** n_objectives, n_to_sampel_per_cond, n_objectives)
     else:
         category_array = np.array(list(itertools.product(
             *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-        sampled_cond = np.repeat(category_array, repeats=n_to_sample, axis=1).reshape(
-            n_categories ** n_objectives, n_to_sample, n_objectives)
+        sampled_cond = np.repeat(category_array, repeats=n_to_sampel_per_cond, axis=1).reshape(
+            n_categories ** n_objectives, n_to_sampel_per_cond, n_objectives)
 
         # category_array = np.linspace(cond_min, cond_max, n_categories)
         # sampled_cond = np.repeat(category_array[:, None], repeats=n_to_sample, axis=1)[:, :, None]
@@ -50,7 +52,7 @@ def sample_reconstructions(params, rng, decoder,
         #     rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
 
     z = jax.random.normal(
-        rng, (n_categories ** n_objectives, n_to_sample, hidden_size))
+        rng, (n_categories ** n_objectives, n_to_sampel_per_cond, hidden_size))
     z = np.concatenate([z, sampled_cond], axis=-1)
 
     # x_fake = jax.vmap(partial(decoder, params=params, rng=rng))(inputs=z)

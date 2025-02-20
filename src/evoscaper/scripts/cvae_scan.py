@@ -18,7 +18,7 @@ from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_mod
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import prep_data, concat_conds, load_by_fn, init_data, make_training_data
-from evoscaper.utils.math import make_batch_symmetrical_matrices
+from evoscaper.utils.math import make_batch_symmetrical_matrices, make_flat_triangle
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
@@ -270,7 +270,7 @@ def get_input_species(data):
 
 def sample_models(hpos, datasets):
     """Run hyperparameter optimization for a single set of parameters"""
-    data = datasets[hpos['filenames_train_config']]
+    data = datasets[hpos['filenames_train_table']]
 
     rng = jax.random.PRNGKey(int(hpos['seed_train']))
     rng_model = jax.random.PRNGKey(int(hpos['seed_arch']))
@@ -297,8 +297,9 @@ def sample_models(hpos, datasets):
         rng_model, x, cond, config_model)
 
     # Generate fake circuits
+    n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos['eval_n_categories']
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
-                                                            n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10,
+                                                            n_categories=n_categories if n_categories is not None else 10,
                                                             n_to_sample=int(
                                                                 hpos['eval_n_to_sample']),
                                                             hidden_size=config_model.hidden_size,
@@ -324,7 +325,7 @@ def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray,
         signal_species, qreactions, fake_circuits_reshaped,
         config_bio, forward_rates, reverse_rates)
 
-    analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates, reverse_rates, qreactions, signal_onehot, signal_target,
+    analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates, qreactions, signal_onehot, signal_target,
                                             t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states, total_time=total_time)
 
     return analytics, ys, ts, y0m, y00s, ts0
@@ -370,9 +371,10 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
         forward_rates_list[idx] = forward_rates
         reverse_rates_list[idx] = reverse_rates
 
-    all_fake_circuits = np.array(fake_circuits_list)
-    all_forward_rates = np.array(forward_rates_list)
-    all_reverse_rates = np.array(reverse_rates_list)
+    # Mixing all circuits together
+    all_fake_circuits = np.concatenate(fake_circuits_list, axis=0)
+    all_forward_rates = np.concatenate(forward_rates_list, axis=0)
+    all_reverse_rates = np.concatenate(reverse_rates_list, axis=0)
     # all_z = dict(zip(successful_runs.index.tolist(), z_list))
     all_sampled_cond = dict(zip(successful_runs.index.tolist(), cond_list))
 

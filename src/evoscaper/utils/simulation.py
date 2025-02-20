@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import List
+from evoscaper.utils.math import make_flat_triangle
 from synbio_morpher.srv.parameter_prediction.simulator import RawSimulationHandling
 from synbio_morpher.utils.common.setup import prepare_config, expand_config, expand_model_config
 from synbio_morpher.utils.misc.type_handling import flatten_listlike, get_unique
@@ -142,13 +143,6 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
 
     signal_onehot = np.where(
         [r.species.name in signal_species for r in qreactions.reactants], 1, 0)
-
-    def make_flat_triangle(matrices):
-        n = matrices.shape[-1]
-        rows, cols = jnp.triu_indices(n)
-
-        # Use advanced indexing that works with vmap
-        return matrices[..., rows, cols]
 
     forward_rates, reverse_rates = jax.vmap(make_flat_triangle)(
         forward_rates), jax.vmap(make_flat_triangle)(reverse_rates)
