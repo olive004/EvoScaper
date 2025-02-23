@@ -91,6 +91,8 @@ def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-
         return data
     data = make_log('sensitivity_wrt_species-6', data)
     data = make_log('precision_wrt_species-6', data)
+    data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
+    data['Log precision > 1'] = data['Log precision'] > 1
     return data
 
 
