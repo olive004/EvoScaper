@@ -74,15 +74,22 @@ def postproc(df_hpos):
     return df_hpos
 
 
-def load_basics(hpos_all):
+def load_basics(hpos_all: dict):
+    for k, v in hpos_all.items():
+        if isinstance(v, list):
+            hpos_all[k] = tuple(v)
     df_hpos = pd.DataFrame.from_dict(hpos_all, orient='index').T
     assert df_hpos.columns.duplicated().sum() == 0, 'Change some column names, there are duplicates'
     basic_setting = df_hpos.copy()
     return basic_setting, df_hpos
 
-def load_varying(fn):
-    df_vary = pd.read_csv(fn)
-    return hpos_to_vary_from_og, hpos_to_vary_together
+def load_varying(d: dict):
+    for k, v in d.items():
+        if isinstance(v, list):
+            for i, vv in enumerate(v):
+                if isinstance(vv, list):
+                    d[k][i] = tuple(vv)
+    return d
 
 
 def expand_df_varying(df_hpos, hpos_to_vary_from_og: dict, hpos_to_vary_together: dict):
@@ -109,10 +116,9 @@ def main(fn_config):
     os.makedirs(top_dir, exist_ok=True)
 
     settings = load_json_as_dict(fn_config)
-    hpos_all = settings['hpos_basic']
-    hpos_to_vary_from_og = settings['hpos_to_vary_from_og']
-    hpos_to_vary_together = settings['hpos_to_vary_together']
-    basic_setting, df_hpos = load_basics(hpos_all)
+    basic_setting, df_hpos = load_basics(settings['hpos_basic'])
+    hpos_to_vary_from_og = load_varying(settings['hpos_to_vary_from_og'])
+    hpos_to_vary_together = load_varying(settings['hpos_to_vary_together'])
 
     df_hpos = expand_df_varying(df_hpos, hpos_to_vary_from_og, hpos_to_vary_together)
 

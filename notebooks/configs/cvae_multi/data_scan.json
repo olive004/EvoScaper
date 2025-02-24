@@ -1,10 +1,137 @@
 {
+"hpos_basic": {
+"hpos_architecture": {
+    "seed_arch": 1,
+    "hidden_size": 16,
+    "enc_ls": 32,
+    "dec_ls": 32,
+    "num_enc_layers": 2,
+    "num_dec_layers": 2,
+    "factor_expanding_ls": 1,
+    "factor_contracting_ls": 1,
+    "model": "CVAE",
+    "use_sigmoid_decoder": false,
+    "enc_init": "HeNormal",
+    "dec_init": "HeNormal",
+    "init_model_with_random": true,
+    "activation": "leaky_relu"
+},
+
+"hpos_training": {
+    "seed_train": 1,
+    "batch_size": 256,
+    "epochs": 1000,
+    "patience": 500,
+    "threshold_early_val_acc": 0.95,
+    "learning_rate": 1e-2,
+    "loss_func": "mse",
+    "accuracy_func": "accuracy_regression",
+    "use_dropout": false,
+    "dropout_rate": 0.1,
+    "use_l2_reg": false,
+    "l2_reg_alpha": 5e-2,
+    "use_kl_div": true,
+    "kl_weight": 2.5e-4,
+    "use_grad_clipping": false,
+    "use_contrastive_loss": false,
+    "temperature": 1.5,
+    "contrastive_func": "info_nce",
+    "threshold_similarity": 0.9,
+    "power_factor_distance": 3
+},
+
+"hpos_optimization": {
+    "seed_opt": 1,
+    "opt_method": "adam",
+    "opt_min_lr": 1e-6,
+    "opt_min_delta": 1e-4,
+    "learning_rate_sched": "cosine_decay",
+    "use_warmup": true,
+    "warmup_epochs": 20
+},
+
+"hpos_dataset": {
+    "seed_dataset": 1,
+    "include_diffs": false,
+    "objective_col": ["Log sensitivity", "Log precision"],
+    "output_species": ["RNA_2"],
+    "signal_species": ["RNA_0"],
+    "filenames_train_config": "notebooks/data/simulate_circuits/2025_02_01__00_22_38/ensemble_config_update.json",
+    "filenames_train_table": "notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json",
+    "filenames_verify_config": "data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json",
+    "filenames_verify_table": "data/raw/summarise_simulation/2024_12_05_210221/tabulated_mutation_info.csv",
+    "use_test_data": false,
+    "total_ds_max": 5e6,
+    "train_split": 0.8,
+    "x_type": "energies",
+    "filt_x_nans": true,
+    "filt_y_nans": true,
+    "filt_sensitivity_nans": true,
+    "filt_precision_nans": true,
+    "filt_n_same_x_max": 1,
+    "filt_n_same_x_max_bins": null,
+    "filt_response_time_high": true,
+    "filt_response_time_perc_max": 0.8,
+    "prep_x_standardise": false,
+    "prep_y_standardise": false,
+    "prep_x_min_max": true,
+    "prep_y_min_max": true,
+    "prep_x_robust_scaling": true,
+    "prep_y_robust_scaling": true,
+    "prep_x_logscale": false,
+    "prep_y_logscale": false,
+    "prep_x_categorical": false,
+    "prep_y_categorical": false,
+    "prep_x_categorical_onehot": false,
+    "prep_y_categorical_onehot": false,
+    "prep_x_categorical_n_bins": 10,
+    "prep_y_categorical_n_bins": 10,
+    "prep_x_categorical_method": "quantile",
+    "prep_y_categorical_method": "quantile",
+    "prep_x_negative": true,
+    "prep_y_negative": false
+},
+
+"hpos_biological": {
+    "n_species": 3,
+    "sequence_length": 20,
+    "signal_function": "step_function",
+    "signal_target": 2,
+    "starting_copynumbers_input": 200,
+    "starting_copynumbers_output": 200,
+    "starting_copynumbers_other": 200,
+    "association_binding_rate": 1000000,
+    "include_prod_deg": false
+},
+
+"hpos_eval": {
+    "eval_n_to_sample": 1e3,
+    "eval_cond_min": -0.2,
+    "eval_cond_max": 1.2
+},
+
+"info_to_be_recorded": {
+    "filename_saved_model": "TO_BE_RECORDED",
+    "total_ds": "TO_BE_RECORDED",
+    "n_batches": "TO_BE_RECORDED",
+    "R2_train": "TO_BE_RECORDED",
+    "R2_test": "TO_BE_RECORDED",
+    "mutual_information_conditionality": "TO_BE_RECORDED",
+    "n_layers_enc": "TO_BE_RECORDED",
+    "n_layers_dec": "TO_BE_RECORDED",
+    "run_successful": "TO_BE_RECORDED",
+    "info_early_stop": "TO_BE_RECORDED",
+    "error_msg": "TO_BE_RECORDED"
+}
+},
+
 "hpos_to_vary_from_og": [{
     "hidden_size": [2, 4, 8, 16, 32],
     "learning_rate": [1e-1, 1e-2, 1e-3, 1e-4]
 }],
+
 "hpos_to_vary_together": [{
-    "objective_col": [("adaptation",), ("Log sensitivity",), ("Log sensitivity", "Log precision")],
+    "objective_col": [["adaptation"], ["Log sensitivity"], ["Log sensitivity", "Log precision"]],
     "prep_y_categorical": [false, true],
     "use_kl_div": [true],
     "kl_weight": [5e-5, 1e-4, 2.5e-4, 4e-4, 5e-4],
