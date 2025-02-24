@@ -16,12 +16,16 @@ def sample_reconstructions(params, rng, decoder,
                            objective_cols: List[str],
                            use_binned_sampling: bool = True, use_onehot: bool = False,
                            cond_min: Optional[float] = 0, cond_max: Optional[float] = 1,
-                           impose_final_range: Optional[Tuple[float]] = None):
+                           clip_range: Optional[Tuple[float]] = None):
 
     n_objectives = len(objective_cols)
     # n_to_sampel_per_cond = n_to_sample//(n_categories ** n_objectives)
     n_to_sampel_per_cond = n_to_sample
 
+    category_array = np.array(list(itertools.product(
+        *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
+    sampled_cond = np.repeat(category_array, repeats=n_to_sampel_per_cond, axis=0).reshape(
+        n_categories ** n_objectives, n_to_sampel_per_cond, n_objectives)
     if use_binned_sampling:
         if use_onehot:
             category_array = np.repeat(np.arange(n_categories)[
@@ -34,16 +38,6 @@ def sample_reconstructions(params, rng, decoder,
                 sampled_cond2 = jax.nn.one_hot(sampled_cond2, n_categories)
                 sampled_cond = np.concatenate(
                     [sampled_cond, sampled_cond2], axis=-1)
-        else:
-            category_array = np.array(list(itertools.product(
-                *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-            sampled_cond = np.repeat(category_array, repeats=n_to_sampel_per_cond, axis=1).reshape(
-                n_categories ** n_objectives, n_to_sampel_per_cond, n_objectives)
-    else:
-        category_array = np.array(list(itertools.product(
-            *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-        sampled_cond = np.repeat(category_array, repeats=n_to_sampel_per_cond, axis=1).reshape(
-            n_categories ** n_objectives, n_to_sampel_per_cond, n_objectives)
 
         # category_array = np.linspace(cond_min, cond_max, n_categories)
         # sampled_cond = np.repeat(category_array[:, None], repeats=n_to_sample, axis=1)[:, :, None]
@@ -60,7 +54,7 @@ def sample_reconstructions(params, rng, decoder,
     x_fake = x_datanormaliser.create_chain_preprocessor_inverse(
         x_methods_preprocessing)(x_fake)
 
-    if impose_final_range is not None:
-        x_fake = jnp.clip(x_fake, impose_final_range[0], impose_final_range[1])
+    if clip_range is not None:
+        x_fake = jnp.clip(x_fake, clip_range[0], clip_range[1])
 
     return x_fake, z, sampled_cond
