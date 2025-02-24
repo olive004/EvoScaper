@@ -39,7 +39,7 @@ def main(fn_basic, fn_varying):
     hpos_to_vary_from_og = load_varying(varying['hpos_to_vary_from_og'])
     hpos_to_vary_together = load_varying(varying['hpos_to_vary_together'])
 
-    df_hpos = expand_df_varying(df_hpos, hpos_to_vary_from_og, hpos_to_vary_together)
+    df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
 
     df_hpos_main = df_hpos #.iloc[61:111]
 

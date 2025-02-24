@@ -100,7 +100,7 @@ def load_varying(hpos_varying: List[dict]):
     return hpos_varying
 
 
-def expand_df_varying(df_hpos, hpos_to_vary_from_og: dict, hpos_to_vary_together: dict):
+def expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og: dict, hpos_to_vary_together: dict):
     for h in hpos_to_vary_from_og:
         df_hpos = add_single_hpos(df_hpos, h, basic_setting)
     for h in hpos_to_vary_together:
