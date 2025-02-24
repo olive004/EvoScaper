@@ -73,10 +73,16 @@ def postproc(df_hpos):
 
 
 def load_basics(hpos_all: dict):
+    hpos_flat = {}
     for k, v in hpos_all.items():
+        if isinstance(v, dict):
+            hpos_flat.update(v)
+        else:
+            hpos_flat[k] = v
+    for k, v in hpos_flat.items():
         if isinstance(v, list):
-            hpos_all[k] = tuple(v)
-    df_hpos = pd.DataFrame.from_dict(hpos_all, orient='index').T
+            hpos_flat[k] = tuple(v)
+    df_hpos = pd.DataFrame.from_dict(hpos_flat, orient='index').T
     assert df_hpos.columns.duplicated().sum() == 0, 'Change some column names, there are duplicates'
     basic_setting = df_hpos.copy()
     return basic_setting, df_hpos
