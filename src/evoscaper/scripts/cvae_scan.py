@@ -399,14 +399,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     # First run all models and save results
     df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True, debug=debug)
 
-    # Pre-load datasets
-    config_multisim = load_json_as_dict(fn_config_multisim)
-    datasets = {k: load_by_fn(k)
-                for k in df_hpos['filenames_train_table'].unique()}
-    input_species = get_input_species(
-        datasets[df_hpos['filenames_train_table'].unique()[0]])
-
     # Global options
+    config_multisim = load_json_as_dict(fn_config_multisim)
     val_config = load_json_as_dict(config_multisim['filenames_train_config'])
     config_bio = {}
     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
@@ -416,6 +410,12 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         if k in config_multisim:
             df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
         
+    # Pre-load datasets
+    datasets = {k: load_by_fn(k)
+                for k in df_hpos['filenames_train_table'].unique()}
+    input_species = get_input_species(
+        datasets[df_hpos['filenames_train_table'].unique()[0]])
+
     config_bio = prep_cfg(config_bio, input_species)
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
@@ -424,7 +424,7 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     batch_size = config_multisim['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
-    n_batches = len(all_fake_circuits) // batch_size
+    n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
     analytics, ys, ts, y0m, y00s, ts0 = {}, [], [], [], [], []
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
