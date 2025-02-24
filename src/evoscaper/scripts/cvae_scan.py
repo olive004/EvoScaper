@@ -383,6 +383,15 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
     return all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond  # , all_z
 
 
+def extend_analytics(analytics: dict, analytics_i: dict):
+    for k in analytics_i.keys():
+        if k not in analytics.keys():
+            analytics[k] = analytics_i[k]
+        else:
+            analytics[k] = np.concatenate([analytics[k], analytics_i[k]])
+    return analytics
+
+
 def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR, debug=False):
     """Run multiple CVAE scans and evaluate generated circuits"""
     os.makedirs(top_write_dir, exist_ok=True)
@@ -412,10 +421,21 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         config_bio, input_species)
 
     # Simulate successful runs all in one go
+    batch_size = config_multisim['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
-    analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
-        all_fake_circuits, all_forward_rates, all_reverse_rates, df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
+    n_batches = len(all_fake_circuits) // batch_size
+    analytics, ys, ts, y0m, y00s, ts0 = {}, [], [], [], [], []
+    for i in range(n_batches):
+        i1, i2 = i*batch_size, (i+1)*batch_size
+        analytics_i, ys_i, ts_i, y0m_i, y00s_i, ts0_i = run_sim_multi(
+            all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
+        analytics = extend_analytics(analytics, analytics_i)
+        ys = np.concatenate([ys, ys_i])
+        ts = np.concatenate([ts, ts_i])
+        y0m = np.concatenate([y0m, y0m_i])
+        y00s = np.concatenate([y00s, y00s_i])
+        ts0 = np.concatenate([ts0, ts0_i])
 
     # Save results
     save(top_write_dir, analytics, ys, ts, y0m,
