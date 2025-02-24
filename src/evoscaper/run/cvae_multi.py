@@ -64,8 +64,11 @@ def main(fn_basic, fn_varying):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fn_varying', type=str, default='notebooks/data/configs/cvae_multi/data_scan.json',
-                        help='Path to basic and varying settings JSON file')
+    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic.json',
+                        help='Path to basic settings JSON file')
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/data_scan.json',
+                        help='Path to varying settings JSON file')
     args = parser.parse_args()
     fn_varying = args.fn_varying
+    fn_basic = args.fn_basic
     main(fn_basic, fn_varying)

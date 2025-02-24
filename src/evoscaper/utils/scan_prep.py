@@ -1,5 +1,6 @@
 
 
+from typing import List
 import pandas as pd
 import itertools
 import numpy as np
@@ -87,13 +88,16 @@ def load_basics(hpos_all: dict):
     basic_setting = df_hpos.copy()
     return basic_setting, df_hpos
 
-def load_varying(d: dict):
-    for k, v in d.items():
-        if isinstance(v, list):
-            for i, vv in enumerate(v):
+def load_varying(hpos_varying: List[dict]):
+    """ Settings that are lists should actually be tuples. """
+    for i, v in enumerate(hpos_varying):
+        if isinstance(v, dict):
+            for k, vv in v.items():
                 if isinstance(vv, list):
-                    d[k][i] = tuple(vv)
-    return d
+                    for ii, vv in enumerate(vv):
+                        if isinstance(vv, list):
+                            hpos_varying[i][k][ii] = tuple(vv)
+    return hpos_varying
 
 
 def expand_df_varying(df_hpos, hpos_to_vary_from_og: dict, hpos_to_vary_together: dict):
