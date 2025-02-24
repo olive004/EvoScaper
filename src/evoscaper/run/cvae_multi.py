@@ -28,15 +28,16 @@ jax.config.update('jax_platform_name', 'gpu')
 jax.devices()
 
 
-def main(fn_config):
+def main(fn_basic, fn_varying):
 
     top_dir = os.path.join('notebooks', 'data', 'cvae_multi', make_datetime_str())
     os.makedirs(top_dir, exist_ok=True)
 
-    settings = load_json_as_dict(fn_config)
-    basic_setting, df_hpos = load_basics(settings['hpos_basic'])
-    hpos_to_vary_from_og = load_varying(settings['hpos_to_vary_from_og'])
-    hpos_to_vary_together = load_varying(settings['hpos_to_vary_together'])
+    hpos_basic = load_json_as_dict(fn_basic)
+    varying = load_json_as_dict(fn_varying)
+    basic_setting, df_hpos = load_basics(hpos_basic)
+    hpos_to_vary_from_og = load_varying(varying['hpos_to_vary_from_og'])
+    hpos_to_vary_together = load_varying(varying['hpos_to_vary_together'])
 
     df_hpos = expand_df_varying(df_hpos, hpos_to_vary_from_og, hpos_to_vary_together)
 
@@ -44,7 +45,8 @@ def main(fn_config):
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
-        'fn_config': fn_config,
+        'fn_varying': fn_varying,
+        'fn_basic': fn_basic,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
         'eval_n_to_sample': 1e3,
@@ -62,8 +64,8 @@ def main(fn_config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fn_config', type=str, default='notebooks/data/configs/cvae_multi/data_scan.json',
-                        help='Path to basic and varyingsettings JSON file')
+    parser.add_argument('--fn_varying', type=str, default='notebooks/data/configs/cvae_multi/data_scan.json',
+                        help='Path to basic and varying settings JSON file')
     args = parser.parse_args()
-    fn_config = args.fn_config
-    main(fn_config)
+    fn_varying = args.fn_varying
+    main(fn_basic, fn_varying)
