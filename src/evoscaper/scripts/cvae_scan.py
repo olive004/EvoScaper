@@ -310,7 +310,7 @@ def sample_models(hpos, datasets):
                                                             use_onehot=config_norm_y.categorical_onehot,
                                                             cond_min=hpos['eval_cond_min'],
                                                             cond_max=hpos['eval_cond_max'],
-                                                            impose_final_range=None)
+                                                            clip_range=None)
 
     return fake_circuits, z, sampled_cond
 
