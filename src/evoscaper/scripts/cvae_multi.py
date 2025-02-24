@@ -1,5 +1,6 @@
 
 
+import argparse
 import pandas as pd
 import itertools
 import numpy as np
@@ -7,7 +8,7 @@ import os
 from evoscaper.scripts.cvae_scan import cvae_scan_multi
 from evoscaper.utils.preprocess import make_datetime_str
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from bioreaction.misc.misc import flatten_listlike
+from bioreaction.misc.misc import flatten_listlike, load_json_as_dict
 
 import jax
 
@@ -73,8 +74,7 @@ def postproc(df_hpos):
     return df_hpos
 
 
-def load_basics(fn):
-    df_hpos = pd.read_csv(fn)
+def load_basics(hpos_all):
     df_hpos = pd.DataFrame.from_dict(hpos_all, orient='index').T
     assert df_hpos.columns.duplicated().sum() == 0, 'Change some column names, there are duplicates'
     basic_setting = df_hpos.copy()
@@ -82,25 +82,6 @@ def load_basics(fn):
 
 def load_varying(fn):
     df_vary = pd.read_csv(fn)
-    hpos_to_vary_from_og = [{
-        'hidden_size': np.arange(2, 32, 2),
-        'learning_rate': [1e-1, 1e-2, 1e-3, 1e-4]
-    }]
-    hpos_to_vary_together = [{
-        'objective_col': [('adaptation',), ('Log sensitivity',), ('Log sensitivity', 'Log precision')],
-        'prep_y_categorical': [False, True],
-        'use_kl_div': [True],
-        'kl_weight': [5e-5, 1e-4, 2.5e-4, 4e-4, 5e-4],
-        'threshold_early_val_acc': [0.995, 0.98, 0.96, 0.9],
-    },
-        {
-        'use_contrastive_loss': [True],
-        'temperature': [0.1, 0.5, 1, 1.5, 2, 4, 8],
-        'threshold_similarity': [0.95, 0.9, 0.7, 0.5, 0.3, 0.1],
-        'power_factor_distance': [3, 4],
-        'threshold_early_val_acc': [0.995, 0.9]
-    }
-    ]
     return hpos_to_vary_from_og, hpos_to_vary_together
 
 
@@ -122,13 +103,16 @@ def expand_df_varying(df_hpos, hpos_to_vary_from_og: dict, hpos_to_vary_together
     return df_hpos
 
 
-def main(fn_basic, fn_varying):
+def main(fn_config):
 
     top_dir = os.path.join('notebooks', 'data', 'cvae_multi', make_datetime_str())
     os.makedirs(top_dir, exist_ok=True)
 
-    basic_setting, df_hpos = load_basics(fn_basic)
-    hpos_to_vary_from_og, hpos_to_vary_together = load_varying(fn_varying)
+    settings = load_json_as_dict(fn_config)
+    hpos_all = settings['hpos_basic']
+    hpos_to_vary_from_og = settings['hpos_to_vary_from_og']
+    hpos_to_vary_together = settings['hpos_to_vary_together']
+    basic_setting, df_hpos = load_basics(hpos_all)
 
     df_hpos = expand_df_varying(df_hpos, hpos_to_vary_from_og, hpos_to_vary_together)
 
@@ -142,7 +126,7 @@ def main(fn_basic, fn_varying):
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 2,
-        'filenames_train_config': f'{data_dir}/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json',
+        'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json',
         # 'filenames_train_table': f'{data_dir}/raw/summarise_simulation/2024_12_05_210221/tabulated_mutation_info.csv',
         'filenames_train_table': 'notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json'
     }
@@ -150,7 +134,10 @@ def main(fn_basic, fn_varying):
     cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False)
 
 
-
-
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--fn_config', type=str, default='notebooks/data/configs/cvae_multi/data_scan.json',
+                        help='Path to basic and varyingsettings JSON file')
+    args = parser.parse_args()
+    fn_config = args.fn_config
+    main(fn_config)

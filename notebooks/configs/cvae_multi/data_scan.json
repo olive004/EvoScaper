@@ -1,0 +1,20 @@
+{
+"hpos_to_vary_from_og": [{
+    "hidden_size": [2, 4, 8, 16, 32],
+    "learning_rate": [1e-1, 1e-2, 1e-3, 1e-4]
+}],
+"hpos_to_vary_together": [{
+    "objective_col": [("adaptation",), ("Log sensitivity",), ("Log sensitivity", "Log precision")],
+    "prep_y_categorical": [false, true],
+    "use_kl_div": [true],
+    "kl_weight": [5e-5, 1e-4, 2.5e-4, 4e-4, 5e-4],
+    "threshold_early_val_acc": [0.995, 0.98, 0.96, 0.9]
+},
+    {
+    "use_contrastive_loss": [true],
+    "temperature": [0.1, 0.5, 1, 1.5, 2, 4, 8],
+    "threshold_similarity": [0.95, 0.9, 0.7, 0.5, 0.3, 0.1],
+    "power_factor_distance": [3, 4],
+    "threshold_early_val_acc": [0.995, 0.9]
+}
+]}
