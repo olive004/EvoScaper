@@ -41,7 +41,7 @@ def main(fn_basic, fn_varying):
 
     df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
 
-    df_hpos_main = df_hpos #.iloc[61:111]
+    df_hpos_main = df_hpos.iloc[:2]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic.json',
                         help='Path to basic settings JSON file')
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/data_scan.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
                         help='Path to varying settings JSON file')
     args = parser.parse_args()
     fn_varying = args.fn_varying

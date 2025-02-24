@@ -3,7 +3,7 @@
 ],
 
 "hpos_to_vary_together": [{
-    "total_ds_max": [1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e5, 5e5, 1e6],
+    "total_ds_max": [3e2, 7e2, 1e3, 5e3, 1e4, 5e4, 1e5, 5e5, 1e6],
     "seed_dataset": [1, 2, 3, 4, 5]
 }]
 }
