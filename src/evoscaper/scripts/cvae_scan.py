@@ -386,9 +386,9 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
 def extend_analytics(analytics: dict, analytics_i: dict):
     for k in analytics_i.keys():
         if k not in analytics.keys():
-            analytics[k] = analytics_i[k]
+            analytics[k] = analytics_i[k][None, :]
         else:
-            analytics[k] = np.concatenate([analytics[k], analytics_i[k]])
+            analytics[k] = np.concatenate([analytics[k], analytics_i[k][None, :]])
     return analytics
 
 
@@ -406,10 +406,6 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
         config_bio.update(val_config['base_configs_ensemble'][k])
 
-    for k in config_multisim.keys():
-        if k.startswith('eval'):
-            df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
-        
     # Pre-load datasets
     datasets = {k: load_by_fn(k)
                 for k in df_hpos['filenames_train_table'].unique()}
@@ -431,12 +427,12 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         analytics_i, ys_i, ts_i, y0m_i, y00s_i, ts0_i = run_sim_multi(
             all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
         analytics = extend_analytics(analytics, analytics_i)
-        ys = np.concatenate([ys, ys_i]) if ys is not None else ys_i
-        ts = np.concatenate([ts, ts_i]) if ts is not None else ts_i
-        y0m = np.concatenate([y0m, y0m_i]) if y0m is not None else y0m_i
-        y00s = np.concatenate([y00s, y00s_i]) if y00s is not None else y00s_i
-        ts0 = np.concatenate([ts0, ts0_i]) if ts0 is not None else ts0_i
-
+        ys = np.concatenate([ys, ys_i[None, :]]) if ys is not None else ys_i[None, :]
+        ts = np.concatenate([ts, ts_i[None, :]]) if ts is not None else ts_i[None, :]
+        y0m = np.concatenate([y0m, y0m_i[None, :]]) if y0m is not None else y0m_i[None, :]
+        y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
+        ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
+    
     # Save results
     save(top_write_dir, analytics, ys, ts, y0m,
          y00s, ts0, all_fake_circuits, all_sampled_cond)

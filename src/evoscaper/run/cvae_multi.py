@@ -1,15 +1,13 @@
 
 
 import argparse
-import pandas as pd
-import itertools
-import numpy as np
+import logging
 import os
 from evoscaper.scripts.cvae_scan import cvae_scan_multi
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.scan_prep import load_basics, load_varying, expand_df_varying
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from bioreaction.misc.misc import flatten_listlike, load_json_as_dict
+from bioreaction.misc.misc import load_json_as_dict
 
 import jax
 
@@ -41,7 +39,7 @@ def main(fn_basic, fn_varying):
 
     df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
 
-    df_hpos_main = df_hpos.iloc[:2]
+    df_hpos_main = df_hpos
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -49,16 +47,27 @@ def main(fn_basic, fn_varying):
         'fn_basic': fn_basic,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
-        'eval_n_to_sample': 1e3,
+        'eval_n_to_sample': int(1e4),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
-        'eval_n_categories': 2,
+        'eval_n_categories': 10,
         'eval_batch_size': int(1e6),
         'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json',
         # 'filenames_train_table': f'{data_dir}/raw/summarise_simulation/2024_12_05_210221/tabulated_mutation_info.csv',
         # 'filenames_train_table': 'notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json'
     }
+    max_n_categories_multi = 5
+    
+    for k in config_multisim.keys():
+        if k.startswith('eval'):
+            if k == 'eval_n_categories':
+                df_hpos.loc[:, k] = config_multisim[k] # [config_multisim[k]] * len(df_hpos) if df_hpos['objective_cols'].nunique() == 1 else max_n_categories_multi
+                df_hpos.loc[df_hpos['objective_col'].apply(lambda x: 1 if type(x) == str else len(x)) > 1, k] = max_n_categories_multi
+            else:
+                df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
+        
     write_json(config_multisim, fn_config_multisim)
+    logging.info(f'\nRunning CVAE scan with {len(df_hpos_main)} models and {config_multisim["eval_n_to_sample"] * len(df_hpos_main)} total samples\n')
     cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False)
 
 
