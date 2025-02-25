@@ -52,10 +52,12 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species {output_specie}'
         output_idx = all_species.index(output_specie)
-        df_s = pd.DataFrame(columns=[x_label, 'VAE conditional input'],
+        df_s = pd.DataFrame(columns=[x_label] + [f'VAE conditional input {ii}' for ii in range(category_array.shape[-1])],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
-        df_s['VAE conditional input'] = df_s['VAE conditional input'].astype(
-            float).apply(lambda x: f'{x:.2f}')
+        for ii in range(category_array.shape[-1]):
+            df_s[f'VAE conditional input {ii}'] = df_s[f'VAE conditional input {ii}'].astype(float).apply(lambda x: f'{x:.2f}')
+        df_s['VAE conditional input'] = df_s[[f'VAE conditional input {ii}' for ii in range(category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
+            
         ax = plt.subplot(1, 2, i+1)
         f(df_s, x=x_label,
           multiple=multiple, hue='VAE conditional input', palette='viridis',

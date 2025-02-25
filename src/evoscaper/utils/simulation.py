@@ -113,17 +113,17 @@ def compute_analytics(y, t, labels, signal_onehot):
     return analytics_func(data=y, time=t, labels=labels)
 
 
-def make_rates(x_type, fake_circuits_reshaped, postproc):
+def make_rates(x_type, fake_circuits_reshaped, postprocs):
     if x_type == 'energies':
-        eqconstants, (forward_rates, reverse_rates) = postproc(
+        eqconstants, (forward_rates, reverse_rates) = postprocs[x_type](
             fake_circuits_reshaped)
     elif x_type == 'eqconstants':
-        forward_rates, reverse_rates = postproc(
+        forward_rates, reverse_rates = postprocs[x_type](
             fake_circuits_reshaped)
     elif x_type == 'binding_rates_dissociation':
         # reverse_rates = fake_circuits_reshaped
         # eqconstants = forward_rates[0, 0, 0] / reverse_rates
-        forward_rates, reverse_rates = postproc(
+        forward_rates, reverse_rates = postprocs[x_type](
             fake_circuits_reshaped)
     else:
         raise ValueError(f'Unknown x_type {x_type}')
@@ -217,17 +217,18 @@ def setup_model_brn(config_bio: dict, input_species: List[str]):
     return model_brn, qreactions, postprocs, ordered_species
 
 
-def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[str]):
+def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[str], x_type: str):
     
-    model_brn, qreactions, postproc, ordered_species = setup_model_brn(config_bio, input_species)
+    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(config_bio, input_species)
     
     # Update qreactions (using dummy rates)
-    eqconstants, (a_rates, d_rates) = postproc(
-        np.array(fake_circuits_reshaped[0]))
-    model_brn, qreactions = update_species_simulated_rates(
-        ordered_species, a_rates, d_rates, model_brn, qreactions)
+    forward_rates, reverse_rates = make_rates(
+        x_type, fake_circuits_reshaped, postprocs)
 
-    return model_brn, qreactions, ordered_species, postproc
+    model_brn, qreactions = update_species_simulated_rates(
+        ordered_species, forward_rates, reverse_rates, model_brn, qreactions)
+
+    return model_brn, qreactions, ordered_species, postprocs
 
 
 def sim(y00, forward_rates, reverse_rates,

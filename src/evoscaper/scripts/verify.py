@@ -75,11 +75,11 @@ def verify(params, rng, decoder,
         fake_circuits.reshape(-1, fake_circuits.shape[-1]), side_length=len(input_species))
 
     config_bio = prep_cfg(config_bio, input_species)
-    model_brn, qreactions, ordered_species, postproc = setup_model(
-        fake_circuits_reshaped, config_bio, input_species)
+    model_brn, qreactions, ordered_species, postprocs = setup_model(
+        fake_circuits_reshaped, config_bio, input_species, config_dataset.x_type)
 
     forward_rates, reverse_rates = make_rates(
-        config_dataset.x_type, fake_circuits_reshaped, postproc)
+        config_dataset.x_type, fake_circuits_reshaped, postprocs)
 
     (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time,
      threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(

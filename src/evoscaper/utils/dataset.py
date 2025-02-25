@@ -1,6 +1,6 @@
 
 
-from typing import Iterable
+from typing import Iterable, Union
 import numpy as np
 import pandas as pd
 import os
@@ -73,22 +73,22 @@ def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettin
     return df
 
 
-def embellish_data(data, transform_sensitivity_nans=True, zero_log_replacement=-10.0):
-    if 'adaptation' not in data.columns:
+def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=True, zero_log_replacement=-10.0):
+    if 'adaptation' not in data:
         data['adaptation'] = calculate_adaptation(
-            s=data['sensitivity_wrt_species-6'].values,
-            p=data['precision_wrt_species-6'].values)
-    if 'overshoot/initial' not in data.columns:
+            s=np.array(data['sensitivity_wrt_species-6']),
+            p=np.array(data['precision_wrt_species-6']))
+    if 'overshoot/initial' not in data:
         data['overshoot/initial'] = data['overshoot'] / data['initial_steady_states']
     if transform_sensitivity_nans:
         data['sensitivity_wrt_species-6'] = np.where(np.isnan(
             data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
 
     def make_log(k, data):
-        data[f'Log {k.split("_")[0]}'] = zero_log_replacement
-        data.loc[data[k] != 0, f'Log {k.split("_")[0]}'] = np.log10(
-            data[data[k] != 0][k])
+        data[f'Log {k.split("_")[0]}'] = np.where(
+            data[k] != 0, np.log10(data[k]), zero_log_replacement)
         return data
+    
     data = make_log('sensitivity_wrt_species-6', data)
     data = make_log('precision_wrt_species-6', data)
     data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
