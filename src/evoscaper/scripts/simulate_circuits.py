@@ -36,11 +36,11 @@ def simulate_interactions(interactions, input_species, config):
     else:
         interactions_reshaped = interactions
 
-    model_brn, qreactions, ordered_species, postproc = setup_model(
+    model_brn, qreactions, ordered_species, postprocs = setup_model(
         interactions_reshaped, config, input_species)
 
     forward_rates, reverse_rates = make_rates(
-        config['x_type'], interactions_reshaped, postproc)
+        config['x_type'], interactions_reshaped, postprocs)
 
     (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         config['signal_species'], qreactions, interactions_reshaped, config, forward_rates, reverse_rates)

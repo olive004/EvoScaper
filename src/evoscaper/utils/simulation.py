@@ -152,7 +152,8 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = config_bio['simulation']['t0'], config_bio['simulation'][
         't1'], config_bio['simulation']['dt0'], config_bio['simulation']['dt1'], config_bio['simulation'][
             'stepsize_controller'], config_bio['simulation'].get('threshold_steady_states', 0.01), config_bio['simulation'].get('total_time', 30000)
-    save_steps, max_steps = 50, (16**5) * 2
+    save_steps = config_bio['simulation'].get('save_steps', 50)
+    max_steps = config_bio['simulation'].get('max_steps', (16**5) * 5)
 
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
 

@@ -56,7 +56,7 @@ def main(fn_basic, fn_varying):
         'eval_batch_size': int(1e6),
         'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json',
         # 'filenames_train_table': f'{data_dir}/raw/summarise_simulation/2024_12_05_210221/tabulated_mutation_info.csv',
-        'filenames_train_table': 'notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json'
+        # 'filenames_train_table': 'notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json'
     }
     write_json(config_multisim, fn_config_multisim)
     cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False)

@@ -19,8 +19,7 @@ def sample_reconstructions(params, rng, decoder,
                            clip_range: Optional[Tuple[float]] = None):
 
     n_objectives = len(objective_cols)
-    # n_to_sampel_per_cond = n_to_sample//(n_categories ** n_objectives)
-    n_to_sampel_per_cond = n_to_sample
+    n_to_sampel_per_cond = n_to_sample//(n_categories ** n_objectives)
 
     category_array = np.array(list(itertools.product(
         *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
@@ -38,12 +37,6 @@ def sample_reconstructions(params, rng, decoder,
                 sampled_cond2 = jax.nn.one_hot(sampled_cond2, n_categories)
                 sampled_cond = np.concatenate(
                     [sampled_cond, sampled_cond2], axis=-1)
-
-        # category_array = np.linspace(cond_min, cond_max, n_categories)
-        # sampled_cond = np.repeat(category_array[:, None], repeats=n_to_sample, axis=1)[:, :, None]
-
-        # sampled_cond = jax.random.uniform(
-        #     rng, (n_categories, n_to_sample, 1), minval=cond_min, maxval=cond_max)
 
     z = jax.random.normal(
         rng, (n_categories ** n_objectives, n_to_sampel_per_cond, hidden_size))

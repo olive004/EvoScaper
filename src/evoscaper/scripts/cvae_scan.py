@@ -344,7 +344,7 @@ def save(results_path, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled
 
 # Run simulation for each successful HPO
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
-    successful_runs = df_hpos[df_hpos['run_successful']]
+    successful_runs = df_hpos[df_hpos['run_successful'] | (df_hpos['R2_train'] > 0.8)]
 
     n_runs = len(successful_runs)
 
@@ -363,7 +363,7 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
             side_length=len(input_species))
 
         forward_rates, reverse_rates = make_rates(
-            hpos['x_type'], fake_circuits_reshaped, postprocs[hpos['x_type']])
+            hpos['x_type'], fake_circuits_reshaped, postprocs)
 
         fake_circuits_list[idx] = fake_circuits_reshaped
         # z_list[idx] = z
@@ -406,8 +406,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
         config_bio.update(val_config['base_configs_ensemble'][k])
 
-    for k in ['eval_n_to_sample', 'signal_species', 'eval_cond_min', 'eval_cond_max']:
-        if k in config_multisim:
+    for k in config_multisim.keys():
+        if k.startswith('eval'):
             df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
         
     # Pre-load datasets
@@ -425,17 +425,17 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
-    analytics, ys, ts, y0m, y00s, ts0 = {}, [], [], [], [], []
+    analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
         analytics_i, ys_i, ts_i, y0m_i, y00s_i, ts0_i = run_sim_multi(
             all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
         analytics = extend_analytics(analytics, analytics_i)
-        ys = np.concatenate([ys, ys_i])
-        ts = np.concatenate([ts, ts_i])
-        y0m = np.concatenate([y0m, y0m_i])
-        y00s = np.concatenate([y00s, y00s_i])
-        ts0 = np.concatenate([ts0, ts0_i])
+        ys = np.concatenate([ys, ys_i]) if ys is not None else ys_i
+        ts = np.concatenate([ts, ts_i]) if ts is not None else ts_i
+        y0m = np.concatenate([y0m, y0m_i]) if y0m is not None else y0m_i
+        y00s = np.concatenate([y00s, y00s_i]) if y00s is not None else y00s_i
+        ts0 = np.concatenate([ts0, ts0_i]) if ts0 is not None else ts0_i
 
     # Save results
     save(top_write_dir, analytics, ys, ts, y0m,
