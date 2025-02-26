@@ -10,7 +10,6 @@ import numpy as np
 import jax
 import pandas as pd
 
-from evoscaper.model.evaluation import calc_prompt_adherence
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.utils.dataclasses import DatasetConfig, ModelConfig, NormalizationSettings
 from evoscaper.utils.math import make_batch_symmetrical_matrices
