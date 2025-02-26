@@ -22,7 +22,7 @@
         "batch_size": 256,
         "epochs": 1000,
         "patience": 500,
-        "threshold_early_val_acc": 0.95,
+        "threshold_early_val_acc": 0.96,
         "learning_rate": 1e-2,
         "loss_func": "mse",
         "accuracy_func": "accuracy_regression",
