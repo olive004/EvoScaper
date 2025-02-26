@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, List
 from copy import deepcopy
 from bioreaction.model.data_containers import BasicModel
@@ -422,8 +423,10 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
     analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
+    start_time = datetime.now()
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
+        logging.info(f'Simulating batch {i+1} of {n_batches} ({datetime.now() - start_time})')
         analytics_i, ys_i, ts_i, y0m_i, y00s_i, ts0_i = run_sim_multi(
             all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
         analytics = extend_analytics(analytics, analytics_i)
@@ -433,8 +436,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
         ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
     
-    # Save results
-    save(top_write_dir, analytics, ys, ts, y0m,
-         y00s, ts0, all_fake_circuits, all_sampled_cond)
+        # Save results
+        save(top_write_dir, analytics, ys, ts, y0m,
+            y00s, ts0, all_fake_circuits, all_sampled_cond)
 
     return df_hpos, analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
