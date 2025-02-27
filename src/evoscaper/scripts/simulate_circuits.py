@@ -37,7 +37,7 @@ def simulate_interactions(interactions, input_species, config):
         interactions_reshaped = interactions
 
     model_brn, qreactions, ordered_species, postprocs = setup_model(
-        interactions_reshaped, config, input_species)
+        interactions_reshaped, config, input_species, config['x_type'])
 
     forward_rates, reverse_rates = make_rates(
         config['x_type'], interactions_reshaped, postprocs)
@@ -120,7 +120,7 @@ def main(top_write_dir=None, cfg_path=None):
                 'use_dataset': False,
                 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
                 'repetitions': 1000000,
-                'species_count': 3,
+                'species_count': 4,
                 'sequence_length': 20,
                 'generator_protocol': 'random',
                 'proportion_to_mutate': 0.5,
