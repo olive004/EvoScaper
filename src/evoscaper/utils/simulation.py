@@ -181,10 +181,6 @@ def update_species_simulated_rates(ordered_species: list, forward_interactions, 
     return model, qreactions
 
 
-def setup_dummy_model(config_bio: dict, input_species: List[str]):
-    model_brn, qreactions, postproc, ordered_species = setup_model_brn(config_bio, input_species)
-    
-
 def setup_model_brn(config_bio: dict, input_species: List[str]):
 
     model_brn = construct_model_fromnames(
