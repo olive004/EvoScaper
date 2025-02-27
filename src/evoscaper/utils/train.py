@@ -151,7 +151,8 @@ def train(params, rng, model,
           loss_fn, compute_accuracy,
           save_every, include_params_in_all_saves,
           patience: int = 1000,
-          threshold_early_val_acc: float = 0.995):
+          threshold_early_val_acc: float = 0.995,
+          save_all_early_epochs: bool = False):
 
     best_val_loss = jnp.inf
     best_val_acc = 0
@@ -180,7 +181,7 @@ def train(params, rng, model,
                                     val_loss, val_acc, aux_loss, aux_val_loss) = f((params, optimiser_state), None)
 
         # Save
-        if np.mod(epoch, save_every) == 0:
+        if (np.mod(epoch, save_every) == 0) or (save_all_early_epochs and (epochs < 20)):
             saves[epoch] = make_saves(
                 train_loss, val_loss, val_acc, include_params_in_all_saves, params_stack, grads, aux_loss, aux_val_loss)
         if np.mod(epoch, 10) == 0:
