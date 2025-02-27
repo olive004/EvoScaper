@@ -202,63 +202,6 @@ def latent_cluster_separation(z_samples, conditions):
     except ValueError:
         # Handle potential errors in silhouette calculation
         return 0.0
-    
-    
-def kl_condition_prior(encoder_model, dataloader, condition_embedding_fn):
-    """
-    Measure KL divergence between condition-specific latent distributions and prior.
-    Higher KL indicates more condition-specific encodings.
-
-    Parameters:
-    -----------
-    encoder_model : torch.nn.Module
-        VAE encoder model that outputs mean and log variance
-    dataloader : torch.utils.data.DataLoader
-        Data loader with input data and conditions
-    condition_embedding_fn : callable
-        Function to embed conditions into the format expected by the encoder
-
-    Returns:
-    --------
-    dict
-        Dictionary with per-condition KL divergence values
-    """
-    device = next(encoder_model.parameters()).device
-    condition_kl_divs = {}
-    condition_sample_counts = {}
-
-    for batch in dataloader:
-        # Unpack batch (adjust based on your specific dataloader)
-        inputs, conditions = batch
-        inputs = inputs.to(device)
-
-        # Get condition embeddings
-        condition_embeddings = condition_embedding_fn(conditions).to(device)
-
-        # Get means and log variances from encoder
-        mu, logvar = encoder_model(inputs, condition_embeddings)
-
-        # Calculate KL divergence with standard normal prior
-        # KL(N(μ,σ²) || N(0,1)) = 0.5 * (μ² + σ² - log(σ²) - 1)
-        kl_divs = 0.5 * (mu.pow(2) + logvar.exp() - logvar - 1)
-        kl_divs = kl_divs.sum(dim=1)  # Sum over latent dimensions
-
-        # Group by condition
-        for i, condition in enumerate(conditions):
-            cond_key = str(condition.item())
-            if cond_key not in condition_kl_divs:
-                condition_kl_divs[cond_key] = 0
-                condition_sample_counts[cond_key] = 0
-
-            condition_kl_divs[cond_key] += kl_divs[i].item()
-            condition_sample_counts[cond_key] += 1
-
-    # Calculate averages
-    for cond_key in condition_kl_divs:
-        if condition_sample_counts[cond_key] > 0:
-            condition_kl_divs[cond_key] /= condition_sample_counts[cond_key]
-
-    return condition_kl_divs
 
 
 def mutual_information_latent_condition(z_samples, conditions, n_bins=20):
