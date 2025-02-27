@@ -327,20 +327,27 @@ def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray,
         config_bio, forward_rates, reverse_rates)
 
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates, qreactions, signal_onehot, signal_target,
-                                            t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states, total_time=total_time)
+                                            t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states, 
+                                            total_time=total_time, disable_logging=False)
 
     return analytics, ys, ts, y0m, y00s, ts0
 
 
-def save(results_path, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond):
-    write_json(analytics, os.path.join(results_path, 'analytics.json'))
-    np.save(os.path.join(results_path, 'ys.npy'), ys)
-    np.save(os.path.join(results_path, 'y0m.npy'), y0m)
-    np.save(os.path.join(results_path, 'y00s.npy'), y00s)
-    np.save(os.path.join(results_path, 'ts.npy'), ts)
-    np.save(os.path.join(results_path, 'ts0.npy'), ts0)
-    np.save(os.path.join(results_path, 'fake_circuits.npy'), fake_circuits)
-    np.save(os.path.join(results_path, 'sampled_cond.npy'), sampled_cond)
+def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
+    
+    # analytics = extend_analytics(analytics, analytics_i)
+    # ys = np.concatenate([ys, ys_i[None, :]]) if ys is not None else ys_i[None, :]
+    # ts = np.concatenate([ts, ts_i[None, :]]) if ts is not None else ts_i[None, :]
+    # y0m = np.concatenate([y0m, y0m_i[None, :]]) if y0m is not None else y0m_i[None, :]
+    # y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
+    # ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
+    
+    write_json(analytics, os.path.join(results_dir, 'analytics.json'))
+    np.save(os.path.join(results_dir, 'ys.npy'), ys)
+    np.save(os.path.join(results_dir, 'y0m.npy'), y0m)
+    np.save(os.path.join(results_dir, 'y00s.npy'), y00s)
+    np.save(os.path.join(results_dir, 'ts.npy'), ts)
+    np.save(os.path.join(results_dir, 'ts0.npy'), ts0)
 
 
 # Run simulation for each successful HPO
@@ -421,23 +428,24 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     batch_size = config_multisim['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
+    np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
+    np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
+    
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
-    analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
-    start_time = datetime.now()
+    time_start = datetime.now()
+    batch_dir = os.path.join(top_write_dir, 'batch_results')
+    os.makedirs(batch_dir, exist_ok=True)
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
-        logging.info(f'Simulating batch {i+1} of {n_batches} ({datetime.now() - start_time})')
-        analytics_i, ys_i, ts_i, y0m_i, y00s_i, ts0_i = run_sim_multi(
+        logging.info(f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
+        time_sim = datetime.now()
+        analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
             all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
-        analytics = extend_analytics(analytics, analytics_i)
-        ys = np.concatenate([ys, ys_i[None, :]]) if ys is not None else ys_i[None, :]
-        ts = np.concatenate([ts, ts_i[None, :]]) if ts is not None else ts_i[None, :]
-        y0m = np.concatenate([y0m, y0m_i[None, :]]) if y0m is not None else y0m_i[None, :]
-        y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
-        ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
+        logging.info(f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
     
         # Save results
-        save(top_write_dir, analytics, ys, ts, y0m,
-            y00s, ts0, all_fake_circuits, all_sampled_cond)
+        results_dir = os.path.join(batch_dir, f'batch_{i}')
+        os.makedirs(results_dir, exist_ok=True)
+        save(results_dir, analytics, ys, ts, y0m, y00s, ts0)
 
     return df_hpos, analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond

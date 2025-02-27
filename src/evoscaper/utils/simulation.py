@@ -240,7 +240,8 @@ def sim(y00, forward_rates, reverse_rates,
         stepsize_controller,
         dt1_factor=5,
         threshold=0.01,
-        total_time=None):
+        total_time=None,
+        disable_logging=False):
     """ Concentrations should be in the form [circuits, time, species] """
 
     rate_max = np.max([np.max(forward_rates),
@@ -267,7 +268,7 @@ def sim(y00, forward_rates, reverse_rates,
 
     time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
-                                       t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
+                                       t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
@@ -279,7 +280,7 @@ def sim(y00, forward_rates, reverse_rates,
     y0m = y0 * (signal_target * signal_onehot + (signal_onehot == 0) * 1)
     time_start = datetime.now()
     ys, ts = simulate_steady_states(y0m, total_time=total_time, sim_func=sim_func, t0=t0,
-                                    t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=True)
+                                    t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
     print(
