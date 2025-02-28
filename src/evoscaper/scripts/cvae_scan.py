@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List
+from typing import Callable, List, Dict
 from copy import deepcopy
 from bioreaction.model.data_containers import BasicModel
 from bioreaction.model.data_containers import QuantifiedReactions
@@ -13,8 +13,9 @@ import os
 
 from sklearn.metrics import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from evoscaper.model.evaluation import estimate_mutual_information_knn
+from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, mutual_information_latent_condition, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
 from evoscaper.model.sampling import sample_reconstructions
+from evoscaper.model.vae import sample_z
 from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_model
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
@@ -81,10 +82,9 @@ def vis(saves, x, pred_y, top_write_dir):
         top_write_dir, 'recon_distribution.png'))
 
 
-def test_conditionality(params, rng, decoder, df, x_cols,
-                        config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model, top_write_dir,
-                        x_datanormaliser, x_methods_preprocessing,
-                        y_datanormaliser, y_methods_preprocessing, cond, n_to_sample=1000):
+def test_conditionality(params, rng, decoder,
+                        config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model,
+                        x_datanormaliser, x_methods_preprocessing, cond, n_to_sample=1000):
     n_categories = config_norm_y.categorical_n_bins
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=n_categories, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
@@ -106,10 +106,40 @@ def test_conditionality(params, rng, decoder, df, x_cols,
     #                                y_datanormaliser, y_methods_preprocessing,
     #                                fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
     #                                save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
-    return mi
+
+    kl_divs = calculate_kl_divergence_aves(fake_circuits, sampled_cond)
+
+    return mi, np.nanmean(kl_divs)
 
 
-def test(model, params, rng, decoder, saves, data_test,
+def collect_latent_stats(params, rng, encoder, h2mu, h2logvar, x, cond):
+
+    h = encoder(params, rng, np.concatenate([x, cond], axis=-1))
+    mu = h2mu(params, rng, h)
+    logvar = h2logvar(params, rng, h)
+    z = sample_z(mu, logvar, rng, deterministic=False)
+
+    entropy_val, per_cond_entropy = conditional_latent_entropy(
+        z, cond)
+    cluster_sep = latent_cluster_separation(z, cond)
+    mi_val, mi_per_dim = mutual_information_latent_condition(
+        z, cond)
+    variance_ratio = within_condition_variance_ratio(z, cond)
+    nn_accuracy = nearest_neighbor_condition_accuracy(z, cond)
+
+    latent_stats = {
+        "conditional_entropy": entropy_val,
+        "per_condition_entropy": per_cond_entropy,
+        "cluster_separation": cluster_sep,
+        "mutual_information": mi_val,
+        "mutual_information_per_dim": mi_per_dim,
+        "variance_ratio": variance_ratio,
+        "nn_accuracy": nn_accuracy
+    }
+    return latent_stats
+
+
+def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
          config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model: ModelConfig,
          x_cols, config_filter: FilterSettings, top_write_dir,
          x_datanormaliser: DataNormalizer, x_methods_preprocessing,
@@ -131,22 +161,26 @@ def test(model, params, rng, decoder, saves, data_test,
         vis(saves, x, pred_y, top_write_dir)
 
     try:
-        mi = test_conditionality(params, rng, decoder, df, x_cols,
-                                 config_dataset, config_norm_y, config_model, top_write_dir,
-                                 x_datanormaliser, x_methods_preprocessing,
-                                 y_datanormaliser, y_methods_preprocessing, cond)
+        mi, kl_div_ave = test_conditionality(params, rng, decoder,
+                                             config_dataset, config_norm_y, config_model,
+                                             x_datanormaliser, x_methods_preprocessing, cond)
     except Exception as e:
         print(f'Error in test_conditionality: {e}')
-        mi = None
+        mi, kl_div_ave = None, None
 
-    return r2_test, mi
+    latent_stats = collect_latent_stats(
+        params, rng, encoder, h2mu, h2logvar, x, cond)
+    return r2_test, mi, kl_div_ave, latent_stats
 
 
-def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec, info_early_stop):
+def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, kl_div_ave: float, latent_stats: Dict[str, float], n_layers_enc, n_layers_dec, info_early_stop):
     for k, v in zip(
         ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test',
-            'mutual_information_conditionality', 'n_layers_enc', 'n_layers_dec', 'info_early_stop'],
-            [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, n_layers_enc, n_layers_dec, info_early_stop]):
+            'mutual_information_conditionality', 'kl_div_ave', 'n_layers_enc', 'n_layers_dec', 'info_early_stop'],
+            [save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, kl_div_ave, n_layers_enc, n_layers_dec, info_early_stop]):
+        hpos[k] = v
+
+    for k, v in latent_stats.items():
         hpos[k] = v
     return hpos
 
@@ -183,15 +217,15 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
             f'Warning: not using the test data for evaluation, but the training data instead of {config_dataset.filenames_verify_table}')
         data_test = data
 
-    r2_test, mi = test(model, params, rng, decoder, saves, data_test,
-                       config_dataset, config_norm_y, config_model,
-                       x_cols, config_filter, top_write_dir,
-                       x_datanormaliser, x_methods_preprocessing,
-                       y_datanormaliser, y_methods_preprocessing)
+    r2_test, mi, kl_div_ave, latent_stats = test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
+                                                 config_dataset, config_norm_y, config_model,
+                                                 x_cols, config_filter, top_write_dir,
+                                                 x_datanormaliser, x_methods_preprocessing,
+                                                 y_datanormaliser, y_methods_preprocessing)
 
     # Save stats
-    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, len(
-        config_model.enc_layers), len(config_model.dec_layers), info_early_stop)
+    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, latent_stats,
+                      len(config_model.enc_layers), len(config_model.dec_layers), info_early_stop)
 
     # Verification
     # if True:
@@ -298,7 +332,8 @@ def sample_models(hpos, datasets):
         rng_model, x, cond, config_model)
 
     # Generate fake circuits
-    n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos['eval_n_categories']
+    n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos[
+        'eval_n_categories']
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=n_categories if n_categories is not None else 10,
                                                             n_to_sample=int(
@@ -327,21 +362,21 @@ def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray,
         config_bio, forward_rates, reverse_rates)
 
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates, qreactions, signal_onehot, signal_target,
-                                            t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states, 
+                                            t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states,
                                             total_time=total_time, disable_logging=False)
 
     return analytics, ys, ts, y0m, y00s, ts0
 
 
 def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
-    
+
     # analytics = extend_analytics(analytics, analytics_i)
     # ys = np.concatenate([ys, ys_i[None, :]]) if ys is not None else ys_i[None, :]
     # ts = np.concatenate([ts, ts_i[None, :]]) if ts is not None else ts_i[None, :]
     # y0m = np.concatenate([y0m, y0m_i[None, :]]) if y0m is not None else y0m_i[None, :]
     # y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
     # ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
-    
+
     write_json(analytics, os.path.join(results_dir, 'analytics.json'))
     np.save(os.path.join(results_dir, 'ys.npy'), ys)
     np.save(os.path.join(results_dir, 'y0m.npy'), y0m)
@@ -352,7 +387,8 @@ def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 
 # Run simulation for each successful HPO
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
-    successful_runs = df_hpos[df_hpos['run_successful'] | (df_hpos['R2_train'] > 0.8)]
+    successful_runs = df_hpos[df_hpos['run_successful'] | (
+        df_hpos['R2_train'] > 0.8)]
 
     n_runs = len(successful_runs)
 
@@ -396,7 +432,8 @@ def extend_analytics(analytics: dict, analytics_i: dict):
         if k not in analytics.keys():
             analytics[k] = analytics_i[k][None, :]
         else:
-            analytics[k] = np.concatenate([analytics[k], analytics_i[k][None, :]])
+            analytics[k] = np.concatenate(
+                [analytics[k], analytics_i[k][None, :]])
     return analytics
 
 
@@ -430,19 +467,21 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
     np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
     np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
-    
+
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
     time_start = datetime.now()
     batch_dir = os.path.join(top_write_dir, 'batch_results')
     os.makedirs(batch_dir, exist_ok=True)
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
-        logging.info(f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
+        logging.info(
+            f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
         time_sim = datetime.now()
         analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
             all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
-        logging.info(f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
-    
+        logging.info(
+            f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
+
         # Save results
         results_dir = os.path.join(batch_dir, f'batch_{i}')
         os.makedirs(results_dir, exist_ok=True)
