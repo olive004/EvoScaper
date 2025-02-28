@@ -3,8 +3,7 @@
 import os
 from typing import List
 from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptation
-from synbio_morpher.utils.results.result_writer import ResultWriter
-from synbio_morpher.srv.io.manage.script_manager import script_preamble
+from synbio_morpher.utils.data.data_format_tools.common import write_json
 
 import numpy as np
 import jax
@@ -21,44 +20,34 @@ from evoscaper.utils.visualise import vis_sampled_histplot
 jax.config.update('jax_platform_name', 'gpu')
 
 
-def save(data_writer, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond):
-    print(data_writer.top_write_dir)
-    data_writer.output(data=analytics, out_type='json', out_name='analytics')
-    data_writer.output(data=ys, out_type='npy', out_name='ys')
-    data_writer.output(data=ts, out_type='npy', out_name='ts')
-    data_writer.output(data=y0m, out_type='npy', out_name='y0m')
-    data_writer.output(data=y00s, out_type='npy', out_name='y0m')
-    data_writer.output(data=ts0, out_type='npy', out_name='y0m')
-    data_writer.output(data=fake_circuits, out_type='npy',
-                       out_name='fake_circuits')
-    data_writer.output(data=sampled_cond, out_type='npy',
-                       out_name='sampled_cond')
+def save(top_write_dir, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sampled_cond):
+    print(top_write_dir)
+    write_json(analytics, os.path.join(top_write_dir, 'analytics.json'))
+    np.save(os.path.join(top_write_dir, 'ys.npy'), ys)
+    np.save(os.path.join(top_write_dir, 'ts.npy'), ts)
+    np.save(os.path.join(top_write_dir, 'y0m.npy'), y0m)
+    np.save(os.path.join(top_write_dir, 'y00s.npy'), y00s)
+    np.save(os.path.join(top_write_dir, 'ts0.npy'), ts0)
+    np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), fake_circuits)
+    np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), sampled_cond)
 
 
 def verify(params, rng, decoder,
-           df: pd.DataFrame, cond,
+           cond,
            config_bio: dict,
            config_norm_y: NormalizationSettings,
            config_dataset: DatasetConfig,
            config_model: ModelConfig,
            x_datanormaliser: DataNormalizer, x_methods_preprocessing: List[str],
-           y_datanormaliser: DataNormalizer,
            output_species: List[str],
            signal_species: List[str],
            input_species: List[str],
+           top_write_dir: str,
            n_to_sample: int = 100000,
            visualise=True,
-           top_write_dir=None,
            return_relevant=False,
-           data_writer=None,
            impose_final_range=None,
            use_binned_sampling: bool = True):
-
-    if top_write_dir is not None:
-        data_writer = ResultWriter(
-            purpose=config_bio.get('experiment', {}).get('purpose', 'ensemble_simulate_by_interaction'), out_location=top_write_dir)
-    config_bio, data_writer = script_preamble(
-        config_bio, data_writer=data_writer)
 
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10,
@@ -106,12 +95,12 @@ def verify(params, rng, decoder,
         idx_obj = 0 if 'Log sensitivity' not in config_dataset.objective_col else config_dataset.objective_col.index(
             'Log sensitivity')
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
-                             title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'sens_layer.png'))
+                             title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(top_write_dir, 'sens_layer.png'))
         vis_sampled_histplot(analytics['sensitivity_wrt_species-6'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
-                             title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(data_writer.top_write_dir, 'sens_fill.png'))
+                             title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(top_write_dir, 'sens_fill.png'))
         vis_sampled_histplot(calculate_adaptation(analytics['sensitivity_wrt_species-6'], analytics['precision_wrt_species-6']), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
-                             title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(data_writer.top_write_dir, 'adapt_layer.png'))
-    save(data_writer, analytics, ys, ts, y0m,
+                             title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(top_write_dir, 'adapt_layer.png'))
+    save(top_write_dir, analytics, ys, ts, y0m,
          y00s, ts0, fake_circuits, sampled_cond)
 
     # precision, recall = calc_prompt_adherence(sampled_cond, np.concatenate(
