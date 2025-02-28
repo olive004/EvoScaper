@@ -247,7 +247,7 @@ if __name__ == '__main__':
         vectorized_convert_to_scientific_exponent, x).astype(jnp.float32)
     x = jax.random.permutation(rng, x, axis=0, independent=True)
 
-    y = data[filt]['sensitivity_wrt_species-6'].iloc[:TOTAL_DS].to_numpy()
+    y = data[filt]['sensitivity'].iloc[:TOTAL_DS].to_numpy()
     y = jax.tree_util.tree_map(vectorized_convert_to_scientific_exponent, y)
     y = jax.random.permutation(rng, y, axis=0, independent=True)
 

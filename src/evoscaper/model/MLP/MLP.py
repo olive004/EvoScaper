@@ -355,17 +355,17 @@ def main(args):
     # Balance the dataset
     df = drop_duplicates_keep_first_n(data[filt], get_true_interaction_cols(
         data, 'energies', remove_symmetrical=True), n=200)
-    df['sensitivity_wrt_species-6'] = df['sensitivity_wrt_species-6'].round(
-        np.abs(int(f'{df["sensitivity_wrt_species-6"].min():.0e}'.split('e')[1]))-1)
+    df['sensitivity'] = df['sensitivity'].round(
+        np.abs(int(f'{df["sensitivity"].min():.0e}'.split('e')[1]))-1)
     df = drop_duplicates_keep_first_n(
-        df, column='sensitivity_wrt_species-6', n=200)
+        df, column='sensitivity', n=200)
 
     TOTAL_DS = np.min([TOTAL_DS, MAX_TOTAL_DS, len(df)])
 
     # %%
     x = df[get_true_interaction_cols(
         data, 'energies', remove_symmetrical=True)].iloc[:TOTAL_DS].values
-    y = df['sensitivity_wrt_species-6'].iloc[:TOTAL_DS].to_numpy()
+    y = df['sensitivity'].iloc[:TOTAL_DS].to_numpy()
 
     if USE_CATEGORICAL:
         y_map = {k: numerical_resolution for k in np.arange(int(f'{y[y != 0].min():.0e}'.split(

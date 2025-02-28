@@ -23,8 +23,8 @@ def make_fake_data():
     data["cat2"] = ["X", "Y", "X", "Y", "X"] * 2
     data["cat3"] = ["foo", "bar", "baz", "foo", "bar"] * 2
     data["sample_name"] = ["foo", "bar", "baz", "foo", "bar"] * 2
-    data['sensitivity_wrt_species-6'] = [0, 2, 3, 4, 5] * 2
-    data['precision_wrt_species-6'] = [0, 2, 3, 4, 5] * 2
+    data['sensitivity'] = [0, 2, 3, 4, 5] * 2
+    data['precision'] = [0, 2, 3, 4, 5] * 2
     return pd.DataFrame(data)
 
 

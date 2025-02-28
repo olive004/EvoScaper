@@ -78,12 +78,12 @@ def proc_info(info: pd.DataFrame, include_log: bool = True):
     info['num_interacting_all'] = info['num_interacting'] + \
         info['num_self_interacting']
     info['sp_distance'] = 0
-    info.loc[(info['sensitivity_wrt_species-6'] <= 1) & (info['precision_wrt_species-6'] <= 10), 'sp_distance'] = np.sqrt(
-        np.power(1-info['sensitivity_wrt_species-6'], 2) + np.power(10 - info['precision_wrt_species-6'], 2))
-    info.loc[(info['sensitivity_wrt_species-6'] <= 1) & (info['precision_wrt_species-6']
-                                                         > 10), 'sp_distance'] = np.absolute(info['sensitivity_wrt_species-6'] - 1)
-    info.loc[(info['sensitivity_wrt_species-6'] > 1) & (info['precision_wrt_species-6']
-                                                        <= 10), 'sp_distance'] = np.absolute(info['precision_wrt_species-6'] - 10)
+    info.loc[(info['sensitivity'] <= 1) & (info['precision'] <= 10), 'sp_distance'] = np.sqrt(
+        np.power(1-info['sensitivity'], 2) + np.power(10 - info['precision'], 2))
+    info.loc[(info['sensitivity'] <= 1) & (info['precision']
+                                                         > 10), 'sp_distance'] = np.absolute(info['sensitivity'] - 1)
+    info.loc[(info['sensitivity'] > 1) & (info['precision']
+                                                        <= 10), 'sp_distance'] = np.absolute(info['precision'] - 10)
 
     if type(info['mutation_type'].iloc[0]) == str:
         info['mutation_type'] = convert_liststr_to_list(

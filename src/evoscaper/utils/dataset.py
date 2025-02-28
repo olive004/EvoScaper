@@ -76,21 +76,21 @@ def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettin
 def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=True, zero_log_replacement=-10.0):
     if 'adaptation' not in data:
         data['adaptation'] = calculate_adaptation(
-            s=np.array(data['sensitivity_wrt_species-6']),
-            p=np.array(data['precision_wrt_species-6']))
+            s=np.array(data['sensitivity']),
+            p=np.array(data['precision']))
     if 'overshoot/initial' not in data:
         data['overshoot/initial'] = data['overshoot'] / data['initial_steady_states']
     if transform_sensitivity_nans:
-        data['sensitivity_wrt_species-6'] = np.where(np.isnan(
-            data['sensitivity_wrt_species-6']), 0, data['sensitivity_wrt_species-6'])
+        data['sensitivity'] = np.where(np.isnan(
+            data['sensitivity']), 0, data['sensitivity'])
 
     def make_log(k, data):
         data[f'Log {k.split("_")[0]}'] = np.where(
             data[k] != 0, np.log10(data[k]), zero_log_replacement)
         return data
     
-    data = make_log('sensitivity_wrt_species-6', data)
-    data = make_log('precision_wrt_species-6', data)
+    data = make_log('sensitivity', data)
+    data = make_log('precision', data)
     data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
     data['Log precision > 1'] = data['Log precision'] > 1
     return data
@@ -180,20 +180,20 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
             filt = filt & data[k].notna() & (
                 np.abs(data[k]) < np.inf)
     if filter_settings.filt_sensitivity_nans:
-        filt = filt & (np.abs(data['sensitivity_wrt_species-6'])
-                       < np.inf) & data['sensitivity_wrt_species-6'].notna()
+        filt = filt & (np.abs(data['sensitivity'])
+                       < np.inf) & data['sensitivity'].notna()
     if filter_settings.filt_precision_nans:
-        filt = filt & (np.abs(data['precision_wrt_species-6'])
-                       < np.inf) & data['precision_wrt_species-6'].notna()
+        filt = filt & (np.abs(data['precision'])
+                       < np.inf) & data['precision'].notna()
 
     # Response time
     if filter_settings.filt_response_time_high:
 
-        data['response_time_wrt_species-6'] = np.where(
-            data['response_time_wrt_species-6'] < np.inf, data['response_time_wrt_species-6'], np.nan)
+        data['response_time'] = np.where(
+            data['response_time'] < np.inf, data['response_time'], np.nan)
 
-        filt = filt & (data['response_time_wrt_species-6'] < (filter_settings.filt_response_time_perc_max *
-                                                              np.nanmax(data['response_time_wrt_species-6'])))
+        filt = filt & (data['response_time'] < (filter_settings.filt_response_time_perc_max *
+                                                              np.nanmax(data['response_time'])))
 
     df = data[filt]
     df = df.reset_index(drop=True)

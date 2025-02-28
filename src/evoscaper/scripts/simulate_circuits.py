@@ -54,9 +54,9 @@ def simulate_interactions(interactions, input_species, config):
                                             stepsize_controller,
                                             threshold=threshold_steady_states,
                                             total_time=total_time)
-    analytics['Log sensitivity'] = np.log10(
-        analytics['sensitivity_wrt_species-6'])
-    analytics['Log precision'] = np.log10(analytics['precision_wrt_species-6'])
+    # analytics['Log sensitivity'] = np.log10(
+    #     analytics['sensitivity'])
+    # analytics['Log precision'] = np.log10(analytics['precision'])
 
     return analytics, ys, ts, y0m, y00s, ts0
 

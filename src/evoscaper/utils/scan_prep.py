@@ -64,7 +64,7 @@ def add_single_hpos(df_hpos, hpos_to_vary_from_og, basic_setting):
 def postproc(df_hpos):
     df_hpos = keep_equal(df_hpos)
     # df_hpos.loc[df_hpos['objective_col'] ==
-    #             'sensitivity_wrt_species-6', 'prep_y_logscale'] = True
+    #             'sensitivity', 'prep_y_logscale'] = True
     df_hpos['print_every'] = df_hpos['epochs'] // 50
     
     df_hpos.loc[df_hpos['x_type'] ==

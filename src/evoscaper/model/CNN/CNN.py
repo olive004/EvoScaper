@@ -279,7 +279,7 @@ def main(args):
     x = np.expand_dims(np.array(
         [make_symmetrical_matrix_from_sequence(xx, n_samples) for xx in x]), axis=1)
 
-    y = data['sensitivity_wrt_species-6'].iloc[:TOTAL_DS].to_numpy()
+    y = data['sensitivity'].iloc[:TOTAL_DS].to_numpy()
     y = np.array([convert_to_scientific_exponent(yy)
                  for yy in y])[None, :] * -1
 
