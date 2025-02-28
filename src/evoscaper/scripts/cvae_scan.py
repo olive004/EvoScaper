@@ -447,10 +447,13 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
 
     # Global options
     config_multisim = load_json_as_dict(fn_config_multisim)
-    val_config = load_json_as_dict(config_multisim['filenames_train_config'])
-    config_bio = {}
-    for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
-        config_bio.update(val_config['base_configs_ensemble'][k])
+    config_bio = load_json_as_dict(config_multisim['filename_simulation_settings'])
+    # config_bio = {}
+    # if 'base_configs_ensemble' in val_config.keys():
+    #     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
+    #         config_bio.update(val_config['base_configs_ensemble'][k])
+    # else:
+    #     config_bio = val_config
 
     # Pre-load datasets
     datasets = {k: load_by_fn(k)
@@ -465,7 +468,7 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     # Simulate successful runs all in one go
     batch_size = config_multisim['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
-        df_hpos[df_hpos['run_successful']], datasets, input_species, postprocs)
+        df_hpos, datasets, input_species, postprocs)
     np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
     np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
 

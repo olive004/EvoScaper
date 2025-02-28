@@ -162,7 +162,7 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
 
 
 def prep_cfg(config_bio, input_species):
-    config_bio = prepare_config(config=config_bio)
+    config_bio = prepare_config(config_bio)
     if config_bio.get('circuit_generation', {}).get('species_count') is not None:
         assert len(input_species) == config_bio.get('circuit_generation', {}).get(
             'species_count'), f'Wrong number of input species {input_species}'
