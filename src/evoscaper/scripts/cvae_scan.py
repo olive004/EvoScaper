@@ -351,7 +351,8 @@ def sample_models(hpos, datasets):
     return fake_circuits, z, sampled_cond
 
 
-def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray, reverse_rates: np.ndarray, signal_species: List[str], config_bio: dict, model_brn: BasicModel, qreactions: QuantifiedReactions, ordered_species: list):
+def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray, reverse_rates: np.ndarray, signal_species: List[str],
+                  config_bio: dict, model_brn: BasicModel, qreactions: QuantifiedReactions, ordered_species: list):
 
     # Process circuits and simulate
     model_brn, qreactions = update_species_simulated_rates(

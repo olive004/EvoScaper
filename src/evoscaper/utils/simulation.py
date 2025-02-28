@@ -149,18 +149,20 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     signal_target = config_bio['signal']['function_kwargs']['target']
     y00 = np.repeat(np.array([r.quantity for r in qreactions.reactants])[
                     None, None, :], repeats=len(fake_circuits_reshaped), axis=0)
-    t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = config_bio['simulation']['t0'], config_bio['simulation'][
-        't1'], config_bio['simulation']['dt0'], config_bio['simulation']['dt1'], config_bio['simulation'][
-            'stepsize_controller'], config_bio['simulation'].get('threshold_steady_states', 0.01), config_bio['simulation'].get('total_time', 30000)
-    save_steps = config_bio['simulation'].get('save_steps', 50)
-    max_steps = config_bio['simulation'].get('max_steps', (16**5) * 5)
+    
+    # Get simulation settings
+    simulation_settings = config_bio['simulation']
+    t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = simulation_settings['t0'], simulation_settings[
+        't1'], simulation_settings['dt0'], simulation_settings['dt1'], simulation_settings[
+            'stepsize_controller'], simulation_settings.get('threshold_steady_states', 0.01), simulation_settings.get('total_time', 30000)
+    save_steps = simulation_settings.get('save_steps', 50)
+    max_steps = simulation_settings.get('max_steps', (16**5) * 5)
 
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
 
 
 def prep_cfg(config_bio, input_species):
-
-    config_bio = prepare_config(expand_config(config=config_bio))
+    config_bio = prepare_config(config=config_bio)
     if config_bio.get('circuit_generation', {}).get('species_count') is not None:
         assert len(input_species) == config_bio.get('circuit_generation', {}).get(
             'species_count'), f'Wrong number of input species {input_species}'

@@ -1,262 +1,67 @@
 {
-    "experiment": {
-        "purpose": "ensemble_simulate_by_interaction"
+    "molecular_params": {
+        "avg_mRNA_per_cell": 100,
+        "cell_doubling_time": 1200,
+        "creation_rate": 2.35,
+        "starting_copynumbers": 200,
+        "degradation_rate": 0.01175,
+        "association_binding_rate": 1000000,
+        "creation_rate_per_molecule": 3.5475152795e-09,
+        "degradation_rate_per_molecule": 1.77375763975e-11,
+        "association_binding_rate_per_molecule": 0.00150958097
     },
-    "base_configs_ensemble": {
-        "simulate_by_interaction": {
-            "interaction_simulator": {
-                "name": "IntaRNA",
-                "postprocess": true,
-                "simulator_kwargs": {
-                    "qidxpos0": 1,
-                    "tidxpos0": 1,
-                    "outcsvcols": "id1, id2, E, bpList",
-                    "threads": 0,
-                    "n": 1,
-                    "param_file": "synbio_morpher/utils/common/configs/simulators/intaRNA_parameterFile.sh",
-                    "query": null,
-                    "target": null
-                },
-                "molecular_params": {
-                    "avg_mRNA_per_cell": 100,
-                    "cell_doubling_time": 1200,
-                    "creation_rate": 2.35,
-                    "starting_copynumbers": 200,
-                    "degradation_rate": 0.01175,
-                    "association_binding_rate": 1000000,
-                    "creation_rate_per_molecule": 3.5475152795e-09,
-                    "degradation_rate_per_molecule": 1.77375763975e-11,
-                    "association_binding_rate_per_molecule": 0.00150958097
-                },
-                "compute_by_filename": false
-            },
-            "experiment": {
-                "purpose": "simulate_by_interaction",
-                "no_visualisations": true,
-                "no_numerical": true,
-                "debug_mode": 0
-            },
-            "molecular_params_factor": 1,
-            "molecular_params": {
-                "avg_mRNA_per_cell": 100,
-                "cell_doubling_time": 1200,
-                "creation_rate": 2.35,
-                "starting_copynumbers": 200,
-                "degradation_rate": 0.01175,
-                "association_binding_rate": 1000000,
-                "creation_rate_per_molecule": 3.5475152795e-09,
-                "degradation_rate_per_molecule": 1.77375763975e-11,
-                "association_binding_rate_per_molecule": 0.00150958097
-            },
-            "circuit_generation": {
-                "repetitions": 200000,
-                "species_count": 3,
-                "sequence_length": 20,
-                "perc_non_interacting": 0.1,
-                "seed": 0
-            },
-            "identities": {
-                "input": "RNA_0",
-                "output": "RNA_2"
-            },
-            "include_prod_deg": false,
-            "signal": {
-                "inputs": [
-                    "RNA_0"
-                ],
-                "outputs": [
-                    "RNA_1"
-                ],
-                "function_name": "step_function",
-                "function_kwargs": {
-                    "impulse_center": 1,
-                    "impulse_halfwidth": 0.5,
-                    "target": 2
-                }
-            },
-            "simulation": {
-                "dt0": 0.001,
-                "dt1": 0.5,
-                "t0": 0,
-                "t1": 2000,
-                "tmax": 8000,
-                "solver": "diffrax",
-                "use_batch_mutations": true,
-                "interaction_factor": 1,
-                "batch_size": 4000,
-                "max_circuits": 60000,
-                "device": "gpu",
-                "threshold_steady_states": 0.05,
-                "use_initial_to_add_signal": false,
-                "use_rate_scaling": true,
-                "method": "Dopri5",
-                "stepsize_controller": "adaptive",
-                "save_steps": 50
-            },
-            "simulation_steady_state": {
-                "max_time": 20,
-                "method": "Dopri5",
-                "steady_state_solver": "diffrax",
-                "time_interval": 0.01,
-                "use_zero_rates": true,
-                "stepsize_controller": "adaptive"
-            },
-            "system_type": "RNA",
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/simulate_by_interaction/configs/base_config.json",
-            "interactions": null,
-            "interactions_loaded": {},
-            "mutations_args": {},
-            "name": "circuit_199999",
-            "data": {
-                "RNA_0": "",
-                "RNA_1": "",
-                "RNA_2": ""
-            }
-        },
-        "summarise_simulation": {
-            "experiment": {
-                "purpose": "summarise_simulation"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "simulate_by_interaction",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/simulate_by_interaction"
-            },
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/summarise_simulation/configs/base_config.json"
-        },
-        "vis_6_scatter": {
-            "experiment": {
-                "purpose": "vis_6_scatter"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_5_means_analytics/configs/base_config.json"
-        },
-        "vis_0_histplots": {
-            "experiment": {
-                "purpose": "vis_0_histplots"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_0_histplots/configs/base_config.json"
-        },
-        "vis_0_histplots_nosig": {
-            "experiment": {
-                "purpose": "vis_0_histplots_nosig"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "signal": {
-                "inputs": [
-                    "RNA_0"
-                ]
-            },
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_0_histplots_nosig/configs/base_config.json"
-        },
-        "vis_1_histplots_interactions": {
-            "experiment": {
-                "purpose": "vis_1_histplots_interactions"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_1_histplots_interactions/configs/base_config.json"
-        },
-        "vis_2_histplots_diffs_ratios": {
-            "experiment": {
-                "purpose": "vis_2_histplots_diffs_ratios"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_2_histplots_diffs_ratios/configs/base_config.json"
-        },
-        "vis_2_histplots_diffs_ratios_nosig": {
-            "experiment": {
-                "purpose": "vis_2_histplots_diffs_ratios_nosig"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "signal": {
-                "inputs": [
-                    "RNA_0"
-                ]
-            },
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_2_histplots_diffs_ratios_nosig/configs/base_config.json"
-        },
-        "vis_4_histplots_thresholded": {
-            "experiment": {
-                "purpose": "vis_4_histplots_thresholded"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "tabulated_info_differentiator": "mutation_num",
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_4_histplots_thresholded/configs/base_config.json"
-        },
-        "vis_5_means_analytics": {
-            "experiment": {
-                "purpose": "vis_5_means_analytics"
-            },
-            "source_dirs": {
-                "is_source_dir_incomplete": true,
-                "source_dir": "./data/ensemble_simulate_by_interaction",
-                "purpose_to_get_source_dir_from": "summarise_simulation",
-                "source_dir_actually_used_POSTERITY": "./data/ensemble_simulate_by_interaction/2024_12_05_210221/summarise_simulation"
-            },
-            "preprocessing_func": null,
-            "only_visualise_circuits": false,
-            "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/vis_5_means_analytics/configs/base_config.json"
+    "circuit_generation": {
+        "repetitions": 200000,
+        "species_count": 3,
+        "sequence_length": 20,
+        "perc_non_interacting": 0.1,
+        "seed": 0
+    },
+    "identities": {
+        "input": "RNA_0",
+        "output": "RNA_2"
+    },
+    "include_prod_deg": false,
+    "signal": {
+        "inputs": [
+            "RNA_0"
+        ],
+        "outputs": [
+            "RNA_1"
+        ],
+        "function_name": "step_function",
+        "function_kwargs": {
+            "impulse_center": 1,
+            "impulse_halfwidth": 0.5,
+            "target": 2
         }
     },
-    "config_filepath_ifgiven_POSTERITY": "synbio_morpher/scripts/ensemble_simulate_by_interaction/configs/base_config.json",
-    "script_state": "completed",
-    "total_time": "6:38:56.617958"
+    "simulation": {
+        "dt0": 0.001,
+        "dt1": 0.5,
+        "t0": 0,
+        "t1": 2000,
+        "tmax": 8000,
+        "solver": "diffrax",
+        "use_batch_mutations": true,
+        "interaction_factor": 1,
+        "batch_size": 4000,
+        "max_circuits": 60000,
+        "device": "gpu",
+        "threshold_steady_states": 0.05,
+        "use_initial_to_add_signal": false,
+        "use_rate_scaling": true,
+        "method": "Dopri5",
+        "stepsize_controller": "adaptive",
+        "save_steps": 50
+    },
+    "simulation_steady_state": {
+        "max_time": 20,
+        "method": "Dopri5",
+        "steady_state_solver": "diffrax",
+        "time_interval": 0.01,
+        "use_zero_rates": true,
+        "stepsize_controller": "adaptive"
+    },
+    "system_type": "RNA"
 }
