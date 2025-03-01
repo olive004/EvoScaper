@@ -39,7 +39,7 @@ def main(fn_basic, fn_varying):
 
     df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
 
-    df_hpos_main = df_hpos.iloc[:2]
+    df_hpos_main = df_hpos
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -53,8 +53,6 @@ def main(fn_basic, fn_varying):
         'eval_n_categories': 10,
         'eval_batch_size': int(1e6),
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
-        # 'filenames_train_table': f'{data_dir}/raw/summarise_simulation/2024_12_05_210221/tabulated_mutation_info.csv',
-        # 'filenames_train_table': 'notebooks/data/simulate_circuits/2025_02_01__00_22_38/tabulated_mutation_info.json'
     }
     max_n_categories_multi = 5
     
@@ -68,7 +66,7 @@ def main(fn_basic, fn_varying):
         
     write_json(config_multisim, fn_config_multisim)
     logging.info(f'\nRunning CVAE scan with {len(df_hpos_main)} models and {config_multisim["eval_n_to_sample"] * len(df_hpos_main)} total samples\n')
-    cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False)
+    cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=True)
 
 
 if __name__ == "__main__":

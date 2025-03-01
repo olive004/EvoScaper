@@ -29,7 +29,6 @@ def sample_reconstructions(params, rng, decoder,
         if use_onehot:
             category_array = np.repeat(np.arange(n_categories)[
                 :, None], repeats=n_to_sampel_per_cond, axis=1)
-            category_array = jax.nn.one_hot(category_array, n_categories)
             sampled_cond = jax.nn.one_hot(category_array, n_categories)
             for k in objective_cols[1:]:
                 sampled_cond2 = np.repeat(np.arange(n_categories)[

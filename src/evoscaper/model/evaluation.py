@@ -135,6 +135,53 @@ def conditional_latent_entropy(z_samples, conditions, n_bins=20):
     dict
         Per-condition entropy values
     """
+    # # Convert conditions to array if not already
+    # conditions = np.array(conditions)
+    # if len(conditions.shape) == 1:
+    #     conditions = conditions[:, None]
+    
+    # # Get unique values for each condition dimension
+    # unique_conditions = [np.unique(conditions[:, i]) for i in range(conditions.shape[-1])]
+    # latent_dim = z_samples.shape[1]
+
+    # # Calculate entropy for each condition combination and each latent dimension
+    # condition_entropies = {}
+    # avg_entropies = np.zeros(latent_dim)
+    # total_samples = 0
+
+    # # Iterate through all combinations of condition values
+    # for cond_n in unique_conditions:
+    #     # Create mask for this condition combination
+    #     mask = (conditions[:, 0] == cond_n[0])
+    #     for i, cond_n_i in enumerate(cond_n[1:]):
+    #         mask = mask & (conditions[:, i+1] == cond_n_i)
+    #     condition_mask = mask
+    #     condition_z = z_samples[condition_mask]
+
+    #     # Skip if too few samples
+    #     if len(condition_z) < 5:
+    #         continue
+
+    #     total_samples += len(condition_z)
+    #     dim_entropies = []
+        
+    #     for dim in range(latent_dim):
+    #         # Discretize the dimension
+    #         hist, _ = np.histogram(condition_z[:, dim], bins=n_bins, density=True)
+    #         # Add small epsilon to avoid log(0)
+    #         hist = hist + 1e-10
+    #         hist = hist / np.sum(hist)
+    #         dim_entropy = entropy(hist)
+    #         dim_entropies.append(dim_entropy)
+    #         avg_entropies[dim] += dim_entropy * len(condition_z)
+
+    #     condition_entropies[tuple(cond_n)] = np.mean(dim_entropies)
+
+    # # Normalize by total samples
+    # avg_entropies = avg_entropies / total_samples
+    # overall_entropy = np.mean(avg_entropies)
+
+    # return overall_entropy, condition_entropies
 
     unique_conditions = np.unique(conditions)
     latent_dim = z_samples.shape[1]
@@ -189,7 +236,9 @@ def latent_cluster_separation(z_samples, conditions):
     float
         Silhouette score measuring cluster separation
     """
-
+    # Get unique values for each condition dimension
+    # unique_conditions = [np.unique(conditions[:, i]) for i in range(conditions.shape[-1])]
+    
     # Only calculate if we have enough samples and conditions
     unique_conditions = np.unique(conditions)
     if len(unique_conditions) < 2 or len(z_samples) < len(unique_conditions) * 3:

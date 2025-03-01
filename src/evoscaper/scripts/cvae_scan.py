@@ -107,35 +107,71 @@ def test_conditionality(params, rng, decoder,
     #                                fake_circuits, z, sampled_cond, config_norm_y.categorical_onehot,
     #                                save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
 
-    kl_divs = calculate_kl_divergence_aves(fake_circuits, sampled_cond)
+    kls = {}
+    for idx_obj, obj_col in enumerate(config_dataset.objective_col):
+        kl_divs = calculate_kl_divergence_aves(fake_circuits.reshape(
+            -1, fake_circuits.shape[-1]), sampled_cond.reshape(-1, sampled_cond.shape[-1])[..., idx_obj])
+        kls[obj_col] = np.nanmean(kl_divs)
 
-    return mi, np.nanmean(kl_divs)
+    return mi, kls
 
 
-def collect_latent_stats(params, rng, encoder, h2mu, h2logvar, x, cond):
+def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, objective_cols, config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y, n_categories, n_to_sample):
 
-    h = encoder(params, rng, np.concatenate([x, cond], axis=-1))
+    x, z, sampled_cond = sample_reconstructions(params, rng, decoder,
+                                                n_categories=n_categories, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
+                                                x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
+                                                objective_cols=config_dataset.objective_col,
+                                                use_binned_sampling=config_norm_y.categorical, use_onehot=config_norm_y.categorical_onehot,
+                                                cond_min=cond.min(), cond_max=cond.max())
+
+    x = x.reshape(np.prod(x.shape[:-1]), x.shape[-1])
+    sampled_cond = sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1])
+    h = encoder(params, rng, np.concatenate([x, sampled_cond], axis=-1))
     mu = h2mu(params, rng, h)
     logvar = h2logvar(params, rng, h)
     z = sample_z(mu, logvar, rng, deterministic=False)
 
-    entropy_val, per_cond_entropy = conditional_latent_entropy(
-        z, cond)
-    cluster_sep = latent_cluster_separation(z, cond)
-    mi_val, mi_per_dim = mutual_information_latent_condition(
-        z, cond)
-    variance_ratio = within_condition_variance_ratio(z, cond)
-    nn_accuracy = nearest_neighbor_condition_accuracy(z, cond)
+    # entropy_val, per_cond_entropy = conditional_latent_entropy(
+    #     z, sampled_cond)
+    # cluster_sep = latent_cluster_separation(z, sampled_cond)
+    # mi_val, mi_per_dim = mutual_information_latent_condition(
+    #     z, sampled_cond)
+    # variance_ratio = within_condition_variance_ratio(z, sampled_cond)
+    # nn_accuracy = nearest_neighbor_condition_accuracy(
+    #     z, sampled_cond)
 
-    latent_stats = {
-        "conditional_entropy": entropy_val,
-        "per_condition_entropy": per_cond_entropy,
-        "cluster_separation": cluster_sep,
-        "mutual_information": mi_val,
-        "mutual_information_per_dim": mi_per_dim,
-        "variance_ratio": variance_ratio,
-        "nn_accuracy": nn_accuracy
-    }
+    # latent_stats = {
+    #     "conditional_entropy": entropy_val,
+    #     "per_condition_entropy": per_cond_entropy,
+    #     "cluster_separation": cluster_sep,
+    #     "mutual_information": mi_val,
+    #     "mutual_information_per_dim": mi_per_dim,
+    #     "variance_ratio": variance_ratio,
+    #     "nn_accuracy": nn_accuracy
+    # }
+
+    latent_stats = {}
+    for idx_obj, obj_col in enumerate(objective_cols):
+        entropy_val, per_cond_entropy = conditional_latent_entropy(
+            z, sampled_cond[..., idx_obj])
+        cluster_sep = latent_cluster_separation(z, sampled_cond[..., idx_obj])
+        # mi_val, mi_per_dim = mutual_information_latent_condition(
+        #     z, sampled_cond[..., idx_obj])
+        variance_ratio = within_condition_variance_ratio(
+            z, sampled_cond[..., idx_obj])
+        nn_accuracy = nearest_neighbor_condition_accuracy(
+            z, sampled_cond[..., idx_obj])
+
+        latent_stats.update({
+            f"{obj_col}_conditional_entropy": entropy_val,
+            f"{obj_col}_per_condition_entropy": per_cond_entropy,
+            f"{obj_col}_cluster_separation": cluster_sep,
+            # "mutual_information": mi_val,
+            # "mutual_information_per_dim": mi_per_dim,
+            f"{obj_col}_variance_ratio": variance_ratio,
+            f"{obj_col}_nn_accuracy": nn_accuracy
+        })
     return latent_stats
 
 
@@ -169,7 +205,9 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
         mi, kl_div_ave = None, None
 
     latent_stats = collect_latent_stats(
-        params, rng, encoder, h2mu, h2logvar, x, cond)
+        params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col, 
+        config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y, 
+        n_categories=10, n_to_sample=int(1e4))
     return r2_test, mi, kl_div_ave, latent_stats
 
 
@@ -289,6 +327,9 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                 hpos.loc['run_successful'] = False
                 hpos.loc['error_msg'] = 'sys exit'
 
+        for c in hpos.index:
+            if c not in df_hpos.columns:
+                df_hpos.loc[c] = 'TO_BE_RECORDED'
         df_hpos.iloc[i] = pd.Series(hpos) if type(
             hpos) == dict else hpos.drop('index')
         # df_hpos.loc[i] = pd.DataFrame.from_dict(hpos).drop('index')
@@ -447,7 +488,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
 
     # Global options
     config_multisim = load_json_as_dict(fn_config_multisim)
-    config_bio = load_json_as_dict(config_multisim['filename_simulation_settings'])
+    config_bio = load_json_as_dict(
+        config_multisim['filename_simulation_settings'])
     # config_bio = {}
     # if 'base_configs_ensemble' in val_config.keys():
     #     for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
