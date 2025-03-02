@@ -183,7 +183,7 @@ def conditional_latent_entropy(z_samples, conditions, n_bins=20):
 
     # return overall_entropy, condition_entropies
 
-    unique_conditions = np.unique(conditions)
+    unique_conditions = np.unique(conditions).tolist()
     latent_dim = z_samples.shape[1]
 
     # Calculate entropy for each condition and each latent dimension
@@ -214,7 +214,7 @@ def conditional_latent_entropy(z_samples, conditions, n_bins=20):
 
     # Normalize by total samples
     avg_entropies = avg_entropies / len(z_samples)
-    overall_entropy = np.mean(avg_entropies)
+    overall_entropy = np.nanmean(avg_entropies)
 
     return overall_entropy, condition_entropies
 

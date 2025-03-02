@@ -153,7 +153,7 @@ def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, ob
 
     latent_stats = {}
     for idx_obj, obj_col in enumerate(objective_cols):
-        entropy_val, per_cond_entropy = conditional_latent_entropy(
+        entropy_val, entropy_std = conditional_latent_entropy(
             z, sampled_cond[..., idx_obj])
         cluster_sep = latent_cluster_separation(z, sampled_cond[..., idx_obj])
         # mi_val, mi_per_dim = mutual_information_latent_condition(
@@ -165,7 +165,7 @@ def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, ob
 
         latent_stats.update({
             f"{obj_col}_conditional_entropy": entropy_val,
-            f"{obj_col}_per_condition_entropy": per_cond_entropy,
+            f"{obj_col}_condition_entropy_std": entropy_std,
             f"{obj_col}_cluster_separation": cluster_sep,
             # "mutual_information": mi_val,
             # "mutual_information_per_dim": mi_per_dim,
@@ -327,11 +327,12 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                 hpos.loc['run_successful'] = False
                 hpos.loc['error_msg'] = 'sys exit'
 
+        hpos = pd.Series(hpos) if type(
+            hpos) == dict else hpos.drop('index')
         for c in hpos.index:
             if c not in df_hpos.columns:
-                df_hpos.loc[c] = 'TO_BE_RECORDED'
-        df_hpos.iloc[i] = pd.Series(hpos) if type(
-            hpos) == dict else hpos.drop('index')
+                df_hpos.loc[:, c] = 'TO_BE_RECORDED'
+        df_hpos.iloc[i] = hpos
         # df_hpos.loc[i] = pd.DataFrame.from_dict(hpos).drop('index')
         os.makedirs(top_dir, exist_ok=True)
         df_hpos.to_csv(os.path.join(top_dir, 'df_hpos.csv'))

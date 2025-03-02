@@ -39,7 +39,7 @@ def main(fn_basic, fn_varying):
 
     df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
 
-    df_hpos_main = df_hpos
+    df_hpos_main = df_hpos # .iloc[:2]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
