@@ -19,7 +19,7 @@ def sample_reconstructions(params, rng, decoder,
                            clip_range: Optional[Tuple[float]] = None):
 
     n_objectives = len(objective_cols)
-    n_to_sampel_per_cond = n_to_sample//(n_categories ** n_objectives)
+    n_to_sampel_per_cond = np.max([1, n_to_sample//(n_categories ** n_objectives)])
 
     category_array = np.array(list(itertools.product(
         *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))

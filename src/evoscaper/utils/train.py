@@ -151,7 +151,7 @@ def train(params, rng, model,
           loss_fn, compute_accuracy,
           save_every, include_params_in_all_saves,
           patience: int = 1000,
-          threshold_early_val_acc: float = 0.995,
+          threshold_early_val_acc: float = 0.99,
           save_all_early_epochs: bool = False):
 
     best_val_loss = jnp.inf

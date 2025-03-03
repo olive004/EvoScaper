@@ -84,7 +84,7 @@ def vis(saves, x, pred_y, top_write_dir):
 
 def test_conditionality(params, rng, decoder,
                         config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model,
-                        x_datanormaliser, x_methods_preprocessing, cond, n_to_sample=1000):
+                        x_datanormaliser, x_methods_preprocessing, cond, n_to_sample=int(1e4)):
     n_categories = config_norm_y.categorical_n_bins
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
                                                             n_categories=n_categories, n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
