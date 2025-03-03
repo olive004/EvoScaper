@@ -430,8 +430,9 @@ def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 
 # Run simulation for each successful HPO
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
-    successful_runs = df_hpos[df_hpos['run_successful'] | (
-        df_hpos['R2_train'] > 0.8)]
+    successful_runs = df_hpos[df_hpos['run_successful'] != 'TO_BE_RECORDED']
+    successful_runs = successful_runs[(successful_runs['run_successful'] == True) | (
+        successful_runs['R2_train'] > 0.8)]
 
     n_runs = len(successful_runs)
 
