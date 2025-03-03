@@ -1,4 +1,18 @@
 {
+    "interaction_simulator": {
+        "name": "IntaRNA",
+        "postprocess": true,
+        "simulator_kwargs": {
+            "qidxpos0": 1,
+            "tidxpos0": 1,
+            "outcsvcols": "id1, id2, E, bpList",
+            "threads": 0,
+            "n": 1,
+            "param_file": "synbio_morpher/utils/common/configs/simulators/intaRNA_parameterFile.sh",
+            "query": null,
+            "target": null
+        }
+    },
     "molecular_params": {
         "avg_mRNA_per_cell": 100,
         "cell_doubling_time": 1200,

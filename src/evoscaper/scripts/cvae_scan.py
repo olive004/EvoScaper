@@ -223,7 +223,7 @@ def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_tes
     return hpos
 
 
-def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=False):
+def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=False, debug=False):
 
     (
         rng, rng_model, rng_dataset,
@@ -259,7 +259,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
                                                  config_dataset, config_norm_y, config_model,
                                                  x_cols, config_filter, top_write_dir,
                                                  x_datanormaliser, x_methods_preprocessing,
-                                                 y_datanormaliser, y_methods_preprocessing)
+                                                 y_datanormaliser, y_methods_preprocessing, visualise=not(debug))
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, latent_stats,
@@ -430,8 +430,11 @@ def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 
 # Run simulation for each successful HPO
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
-    successful_runs = df_hpos[df_hpos['run_successful'] | (
+    successful_runs = df_hpos[(df_hpos['run_successful'] == True) | (
         df_hpos['R2_train'] > 0.8)]
+    
+    if len(successful_runs) == 0:
+        raise ValueError(f'No successful runs from ML scan: {df_hpos}')
 
     n_runs = len(successful_runs)
 
