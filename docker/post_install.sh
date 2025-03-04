@@ -31,7 +31,7 @@ pip3 install jax==0.4.29
 pip3 install jaxlib==0.4.29+cuda12.cudnn91 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html 
 pip3 install -U chex
 # pip3 install git+https://github.com/Steel-Lab-Oxford/core-bioreaction-simulation.git@f903c39872de43e28b56653efda689bb082cb592#egg=bioreaction
-pip3 install git+https://github.com/olive004/synbio_morpher.git@e0381053fee853179fecb4766ef0496dffdd9b5d#egg=synbio_morpher
+pip3 install git+https://github.com/olive004/synbio_morpher.git@7e5ae9c062f98f97390a0df75d4229f580293d0f#egg=synbio_morpher
 
 if [ -d "src/core-bioreaction-simulation" ]; then
     echo "Directory src/bioreaction exists."
