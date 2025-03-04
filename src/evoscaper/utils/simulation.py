@@ -268,6 +268,7 @@ def sim(y00, forward_rates, reverse_rates,
     time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
+    ts0 = ts0[0, :, 0]
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
@@ -280,6 +281,7 @@ def sim(y00, forward_rates, reverse_rates,
     time_start = datetime.now()
     ys, ts = simulate_steady_states(y0m, total_time=total_time, sim_func=sim_func, t0=t0,
                                     t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
+    ts = ts[0, :, 0]
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
     print(
