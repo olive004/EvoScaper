@@ -230,6 +230,15 @@ def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[st
     return model_brn, qreactions, ordered_species, postprocs
 
 
+def reduce_tdim(ts, ys):
+    if ts.ndim > 1:
+        if ys.shape[0] == ts.shape[0]:
+            ts = ts[0]
+        if ys.shape[-1] == ts.shape[-1]:
+            ts = ts[..., 0]
+    return ts
+
+
 def sim(y00, forward_rates, reverse_rates,
         qreactions,
         signal_onehot, signal_target,
@@ -268,7 +277,7 @@ def sim(y00, forward_rates, reverse_rates,
     time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
-    ts0 = ts0[0, :, 0]
+    ts0 = reduce_tdim(ts0, y00s)
     y0 = np.array(y00s[:, -1, :]).reshape(y00.shape)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
@@ -281,7 +290,7 @@ def sim(y00, forward_rates, reverse_rates,
     time_start = datetime.now()
     ys, ts = simulate_steady_states(y0m, total_time=total_time, sim_func=sim_func, t0=t0,
                                     t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
-    ts = ts[0, :, 0]
+    ts = reduce_tdim(ts, ys)
     minutes, seconds = divmod(
         (datetime.now() - time_start).total_seconds(), 60)
     print(
