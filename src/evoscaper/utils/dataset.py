@@ -205,7 +205,7 @@ def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
     
     df = df.reset_index(drop=True)
     
-    if (n_same_circ_max == 1) and (nbin is None):
+    if (n_same_circ_max == 1) and ((nbin is None) or np.isnan(nbin)):
         df = df.loc[~df[cols].duplicated(keep='first')]
     else:
         df_lowres = df if nbin is None else transform_to_histogram_bins(
