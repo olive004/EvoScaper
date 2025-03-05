@@ -3,12 +3,14 @@
 import argparse
 import logging
 import os
+
+from git import Optional
 from evoscaper.scripts.cvae_scan import cvae_scan_multi
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.scan_prep import load_basics, load_varying, expand_df_varying
 from synbio_morpher.utils.data.data_format_tools.common import write_json
 from bioreaction.misc.misc import load_json_as_dict
-
+import pandas as pd
 import jax
 
 USE_ONLY_ONE_GPU = False
@@ -26,18 +28,20 @@ jax.config.update('jax_platform_name', 'gpu')
 jax.devices()
 
 
-def main(fn_basic, fn_varying):
+def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
 
     top_dir = os.path.join('notebooks', 'data', 'cvae_multi', make_datetime_str())
     os.makedirs(top_dir, exist_ok=True)
 
-    hpos_basic = load_json_as_dict(fn_basic)
-    varying = load_json_as_dict(fn_varying)
-    basic_setting, df_hpos = load_basics(hpos_basic)
-    hpos_to_vary_from_og = load_varying(varying['hpos_to_vary_from_og'])
-    hpos_to_vary_together = load_varying(varying['hpos_to_vary_together'])
-
-    df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
+    if fn_df_hpos_loaded is None:
+        hpos_basic = load_json_as_dict(fn_basic)
+        varying = load_json_as_dict(fn_varying)
+        basic_setting, df_hpos = load_basics(hpos_basic)
+        hpos_to_vary_from_og = load_varying(varying['hpos_to_vary_from_og'])
+        hpos_to_vary_together = load_varying(varying['hpos_to_vary_together'])
+        df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
+    else:
+        df_hpos = pd.read_json(fn_df_hpos_loaded)
 
     df_hpos_main = df_hpos #.iloc[:2]
 
@@ -45,6 +49,7 @@ def main(fn_basic, fn_varying):
     config_multisim = {
         'fn_varying': fn_varying,
         'fn_basic': fn_basic,
+        'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
         'eval_n_to_sample': int(2e4),
@@ -75,7 +80,11 @@ if __name__ == "__main__":
                         help='Path to basic settings JSON file')
     parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
                         help='Path to varying settings JSON file')
+    parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
+                        help='Path to dataframe of hyperparameters and results from previous run (json).')
     args = parser.parse_args()
     fn_varying = args.fn_varying
     fn_basic = args.fn_basic
-    main(fn_basic, fn_varying)
+    fn_df_hpos_loaded = args.fn_df_hpos_loaded
+    fn_df_hpos_loaded = '/home/hslab/Documents/Olive/EvoScaper/notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
+    main(fn_basic, fn_varying, fn_df_hpos_loaded)

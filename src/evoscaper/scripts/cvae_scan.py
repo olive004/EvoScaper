@@ -1,3 +1,4 @@
+from genericpath import exists
 import logging
 from typing import Callable, List, Dict
 from copy import deepcopy
@@ -235,7 +236,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
     ) = init_from_hpos(hpos)
 
     if not os.path.exists(top_write_dir):
-        os.makedirs(top_write_dir)
+        os.makedirs(top_write_dir, exist_ok=True)
 
     # Losses
     loss_fn, compute_accuracy = make_loss(
@@ -295,6 +296,8 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
 def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=False):
     for i in range(len(df_hpos)):
         hpos = df_hpos.reset_index().iloc[i]
+        if (hpos.loc['run_successful'] != 'TO_BE_RECORDED') or (hpos.loc['R2_train'] != 'TO_BE_RECORDED'):
+            continue
         top_write_dir = os.path.join(
             top_dir, 'cvae_scan', f'hpo_{hpos["index"]}')
         # hpos['use_grad_clipping'] = True
