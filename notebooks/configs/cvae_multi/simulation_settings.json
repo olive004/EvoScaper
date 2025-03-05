@@ -54,7 +54,7 @@
         "dt0": 0.001,
         "dt1": 0.5,
         "t0": 0,
-        "t1": 2000,
+        "t1": 1000,
         "tmax": 8000,
         "solver": "diffrax",
         "use_batch_mutations": true,
