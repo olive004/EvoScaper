@@ -434,7 +434,7 @@ def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 # Run simulation for each successful HPO
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
     successful_runs = df_hpos[(df_hpos['run_successful'] == True) | (
-        df_hpos['R2_train'] > 0.8)]
+        df_hpos['R2_train'].apply(lambda x: x > 0.8 if type(x) == float else False))]
     
     if len(successful_runs) == 0:
         raise ValueError(f'No successful runs from ML scan: {df_hpos}')
