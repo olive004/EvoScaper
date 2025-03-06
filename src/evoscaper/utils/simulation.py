@@ -149,16 +149,20 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     signal_target = config_bio['signal']['function_kwargs']['target']
     y00 = np.repeat(np.array([r.quantity for r in qreactions.reactants])[
                     None, None, :], repeats=len(fake_circuits_reshaped), axis=0)
-    
+
     # Get simulation settings
     simulation_settings = config_bio['simulation']
-    t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time = simulation_settings['t0'], simulation_settings[
-        't1'], simulation_settings['dt0'], simulation_settings['dt1'], simulation_settings[
-            'stepsize_controller'], simulation_settings.get('threshold_steady_states', 0.01), simulation_settings.get('total_time', 30000)
+    t0 = simulation_settings['t0']
+    t1 = simulation_settings['t1']
+    dt0 = simulation_settings['dt0']
+    dt1 = simulation_settings['dt1']
+    tmax = simulation_settings.get('tmax', simulation_settings.get('total_time', 10000))
+    stepsize_controller = simulation_settings['stepsize_controller']
+    threshold_steady_states = simulation_settings.get('threshold_steady_states', 0.01)
     save_steps = simulation_settings.get('save_steps', 50)
     max_steps = simulation_settings.get('max_steps', (16**5) * 5)
 
-    return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
+    return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, tmax, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
 
 
 def prep_cfg(config_bio, input_species):
@@ -205,21 +209,23 @@ def setup_model_brn(config_bio: dict, input_species: List[str]):
 
     quantities = np.array(
         [r.quantity for r in qreactions.reactants if r.species.name in input_species])
-    k_a = RawSimulationHandling(config_bio['interaction_simulator']).fixed_rate_k_a
-    
+    k_a = RawSimulationHandling(
+        config_bio['interaction_simulator']).fixed_rate_k_a
+
     postprocs = {
         'energies': RawSimulationHandling(config_bio['interaction_simulator']).get_postprocessing(initial=quantities),
         'eqconstants': partial(eqconstant_to_rates, k_a=k_a),
         'binding_rates_dissociation': lambda x: (np.ones_like(x) * k_a, x)
-        }
+    }
 
     return model_brn, qreactions, postprocs, ordered_species
 
 
 def setup_model(fake_circuits_reshaped, config_bio: dict, input_species: List[str], x_type: str):
-    
-    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(config_bio, input_species)
-    
+
+    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
+        config_bio, input_species)
+
     # Update qreactions (using dummy rates)
     forward_rates, reverse_rates = make_rates(
         x_type, fake_circuits_reshaped, postprocs)
@@ -248,7 +254,8 @@ def sim(y00, forward_rates, reverse_rates,
         dt1_factor=5,
         threshold=0.01,
         total_time=None,
-        disable_logging=False):
+        disable_logging=False,
+        calculate_analytics: bool = True):
     """ Concentrations should be in the form [circuits, time, species] """
 
     rate_max = np.max([np.max(forward_rates),
@@ -297,7 +304,9 @@ def sim(y00, forward_rates, reverse_rates,
         f'Signal response found after {int(minutes)} mins and {int(seconds)} secs.')
     ys = np.concatenate([y0m, ys.squeeze()[:, :-1, :]], axis=1)
 
-    analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
-        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+    analytics = {}
+    if calculate_analytics:
+        analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
+            ys.shape[-1]), signal_onehot=signal_onehot))(ys)
 
     return analytics, ys, ts, y0m, y00s, ts0
