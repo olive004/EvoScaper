@@ -86,5 +86,5 @@ if __name__ == "__main__":
     fn_varying = args.fn_varying
     fn_basic = args.fn_basic
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
