@@ -32,6 +32,26 @@ def save(top_write_dir, analytics, ys, ts, y0m, y00s, ts0, fake_circuits, sample
     np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), sampled_cond)
 
 
+def full_sim_prep(fake_circuits, input_species, config_dataset, signal_species, config_bio):
+    fake_circuits_reshaped = make_batch_symmetrical_matrices(
+        fake_circuits.reshape(-1, fake_circuits.shape[-1]), side_length=len(input_species))
+
+    config_bio = prep_cfg(config_bio, input_species)
+    model_brn, qreactions, ordered_species, postprocs = setup_model(
+        fake_circuits_reshaped, config_bio, input_species, config_dataset.x_type)
+
+    forward_rates, reverse_rates = make_rates(
+        config_dataset.x_type, fake_circuits_reshaped, postprocs)
+
+    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time,
+     threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
+        signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
+
+    return (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time,
+            threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates,
+            qreactions, model_brn)
+
+
 def verify(params, rng, decoder,
            cond,
            config_bio: dict,
@@ -59,19 +79,9 @@ def verify(params, rng, decoder,
 
     # input_species = df[df['sample_name'].notna()]['sample_name'].unique()
 
-    fake_circuits_reshaped = make_batch_symmetrical_matrices(
-        fake_circuits.reshape(-1, fake_circuits.shape[-1]), side_length=len(input_species))
-
-    config_bio = prep_cfg(config_bio, input_species)
-    model_brn, qreactions, ordered_species, postprocs = setup_model(
-        fake_circuits_reshaped, config_bio, input_species, config_dataset.x_type)
-
-    forward_rates, reverse_rates = make_rates(
-        config_dataset.x_type, fake_circuits_reshaped, postprocs)
-
     (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time,
-     threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
-        signal_species, qreactions, fake_circuits_reshaped, config_bio, forward_rates, reverse_rates)
+        threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates,
+        qreactions, model_brn) = full_sim_prep(fake_circuits, input_species, config_dataset, signal_species, config_bio)
 
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
@@ -109,4 +119,4 @@ def verify(params, rng, decoder,
     # data_writer.output(data=adh, out_type='json', out_name='recall')
 
     if return_relevant:
-        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, ordered_species, input_species, z, sampled_cond
+        return analytics, ys, ts, y0m, y00s, ts0, fake_circuits, reverse_rates, model_brn, qreactions, input_species, z, sampled_cond
