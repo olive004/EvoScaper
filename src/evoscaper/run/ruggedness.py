@@ -1,15 +1,19 @@
 
 
-from typing import Optional
+import argparse
+from typing import Dict, Optional
 import numpy as np
+import pandas as pd
 import os
 import jax.numpy as jnp
 import jax
 from functools import partial
 from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict, write_json
 from evoscaper.scripts.verify import full_sim_prep
-from evoscaper.utils.simulation import prep_cfg, sim, compute_analytics
+from evoscaper.scripts.cvae_scan import generate_all_fake_circuits
 from evoscaper.utils.evolution import calculate_ruggedness_from_perturbations
+from evoscaper.utils.preprocess import make_datetime_str
+from evoscaper.utils.simulation import make_rates, sim, prep_sim, sim, prep_cfg, update_species_simulated_rates, setup_model_brn, compute_analytics
 
 
 def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type, signal_species, config_bio,
@@ -114,28 +118,58 @@ def verify_rugg(fake_circuits,
                 config,
                 fn_config_bio,
                 input_species,
+                batch_size,
                 top_write_dir,
                 analytics_og=None):
 
+    n_batches = int(np.max([1, len(fake_circuits) // batch_size]))
     config_bio = get_config_bio(config, fn_config_bio, input_species)
     eps_perc = config['eps_perc']
-    x_type = config['x_type']
+    x_type = config['x_type']   
     signal_species = config['signal_species']
     resimulate_analytics = config['resimulate_analytics']
+    analytic = config['analytic']
     eps = eps_perc * np.abs(fake_circuits).max()
-    print('eps:', eps)
 
-    ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0) = calculate_ruggedness(fake_circuits, eps_perc=eps_perc, analytic='Log sensitivity',
-                                                                                     input_species=input_species, x_type=x_type, signal_species=signal_species, config_bio=config_bio,
-                                                                                     analytics_original=analytics_og, resimulate_analytics=resimulate_analytics, top_write_dir=top_write_dir)
+    for i in range(n_batches):
+        ii, ij = i * batch_size, (i + 1) * batch_size
+        fake_circuits_batch = fake_circuits[ii:ij]
+        top_write_dir_batch = os.path.join(top_write_dir, f'batch_{i}')
+        os.makedirs(top_write_dir_batch, exist_ok=True)
+        ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0) = calculate_ruggedness(
+            fake_circuits_batch, eps_perc=eps_perc, analytic=analytic,
+            input_species=input_species, x_type=x_type, signal_species=signal_species, config_bio=config_bio,
+            analytics_original=analytics_og, resimulate_analytics=resimulate_analytics, top_write_dir=top_write_dir_batch)
 
 
-def main():
+def main(fn_df_hpos_loaded,
+         datasets: Dict[str, pd.DataFrame],
+         input_species,
+         config_bio,
+         config_run):
 
-    fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
-                                                            n_categories=config_norm_y.categorical_n_bins if config_norm_y.categorical_n_bins else 10,
-                                                            n_to_sample=n_to_sample, hidden_size=config_model.hidden_size,
-                                                            x_datanormaliser=x_datanormaliser, x_methods_preprocessing=x_methods_preprocessing,
-                                                            objective_cols=config_dataset.objective_col,
-                                                            use_binned_sampling=use_binned_sampling, use_onehot=config_norm_y.categorical_onehot,
-                                                            cond_min=cond.min(), cond_max=cond.max(), clip_range=impose_final_range)
+    top_write_dir = os.path.join(
+        'notebooks', 'data', 'ruggedness', make_datetime_str())
+    os.makedirs(top_write_dir, exist_ok=True)
+
+    df_hpos = pd.read_json(fn_df_hpos_loaded)
+
+    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
+        config_bio, input_species)
+
+    batch_size = config_run['eval_batch_size']
+    all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
+        df_hpos, datasets, input_species, postprocs)
+
+    verify_rugg(all_fake_circuits, config_run, config_bio,
+                input_species, batch_size, top_write_dir, analytics_og=None)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
+                        help='Path to dataframe of hyperparameters and results from previous run (json).')
+    args = parser.parse_args()
+    fn_df_hpos_loaded = args.fn_df_hpos_loaded
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
+    main(fn_df_hpos_loaded)

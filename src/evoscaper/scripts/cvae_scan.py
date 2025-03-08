@@ -127,7 +127,8 @@ def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, ob
                                                 cond_min=cond.min(), cond_max=cond.max())
 
     x = x.reshape(np.prod(x.shape[:-1]), x.shape[-1])
-    sampled_cond = sampled_cond.reshape(np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1])
+    sampled_cond = sampled_cond.reshape(
+        np.prod(sampled_cond.shape[:-1]), sampled_cond.shape[-1])
     h = encoder(params, rng, np.concatenate([x, sampled_cond], axis=-1))
     mu = h2mu(params, rng, h)
     logvar = h2logvar(params, rng, h)
@@ -206,8 +207,8 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
         mi, kl_div_ave = None, None
 
     latent_stats = collect_latent_stats(
-        params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col, 
-        config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y, 
+        params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col,
+        config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y,
         n_categories=10, n_to_sample=int(1e4))
     return r2_test, mi, kl_div_ave, latent_stats
 
@@ -260,7 +261,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
                                                  config_dataset, config_norm_y, config_model,
                                                  x_cols, config_filter, top_write_dir,
                                                  x_datanormaliser, x_methods_preprocessing,
-                                                 y_datanormaliser, y_methods_preprocessing, visualise=not(debug))
+                                                 y_datanormaliser, y_methods_preprocessing, visualise=not (debug))
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, latent_stats,
@@ -435,7 +436,7 @@ def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict):
     successful_runs = df_hpos[(df_hpos['run_successful'] == True) | (
         df_hpos['R2_train'].apply(lambda x: x > 0.8 if type(x) == float else False))]
-    
+
     if len(successful_runs) == 0:
         raise ValueError(f'No successful runs from ML scan: {df_hpos}')
 
@@ -486,6 +487,41 @@ def extend_analytics(analytics: dict, analytics_i: dict):
     return analytics
 
 
+def sim_all_models(config_multisim,
+                   df_hpos, datasets, input_species,
+                   top_write_dir,
+                   config_bio, ordered_species):
+    
+    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
+        config_bio, input_species)
+    
+    batch_size = config_multisim['eval_batch_size']
+    all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
+        df_hpos, datasets, input_species, postprocs)
+    np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
+    np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
+
+    n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
+    time_start = datetime.now()
+    batch_dir = os.path.join(top_write_dir, 'batch_results')
+    os.makedirs(batch_dir, exist_ok=True)
+    for i in range(n_batches):
+        i1, i2 = i*batch_size, (i+1)*batch_size
+        logging.info(
+            f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
+        time_sim = datetime.now()
+        analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
+            all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
+        logging.info(
+            f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
+
+        # Save results
+        results_dir = os.path.join(batch_dir, f'batch_{i}')
+        os.makedirs(results_dir, exist_ok=True)
+        save(results_dir, analytics, ys, ts, y0m, y00s, ts0)
+    return analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
+
+
 def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR, debug=False):
     """Run multiple CVAE scans and evaluate generated circuits"""
     os.makedirs(top_write_dir, exist_ok=True)
@@ -511,33 +547,12 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
         datasets[df_hpos['filenames_train_table'].unique()[0]])
 
     config_bio = prep_cfg(config_bio, input_species)
-    model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
-        config_bio, input_species)
 
     # Simulate successful runs all in one go
-    batch_size = config_multisim['eval_batch_size']
-    all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
-        df_hpos, datasets, input_species, postprocs)
-    np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
-    np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
-
-    n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
-    time_start = datetime.now()
-    batch_dir = os.path.join(top_write_dir, 'batch_results')
-    os.makedirs(batch_dir, exist_ok=True)
-    for i in range(n_batches):
-        i1, i2 = i*batch_size, (i+1)*batch_size
-        logging.info(
-            f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
-        time_sim = datetime.now()
-        analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
-            all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
-        logging.info(
-            f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
-
-        # Save results
-        results_dir = os.path.join(batch_dir, f'batch_{i}')
-        os.makedirs(results_dir, exist_ok=True)
-        save(results_dir, analytics, ys, ts, y0m, y00s, ts0)
+    analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond = sim_all_models(
+        config_multisim,
+        df_hpos, datasets, input_species, postprocs,
+        top_write_dir,
+        config_bio, model_brn, qreactions, ordered_species)
 
     return df_hpos, analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
