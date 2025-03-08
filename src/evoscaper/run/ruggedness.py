@@ -125,7 +125,7 @@ def verify_rugg(fake_circuits,
     n_batches = int(np.max([1, len(fake_circuits) // batch_size]))
     config_bio = get_config_bio(config, fn_config_bio, input_species)
     eps_perc = config['eps_perc']
-    x_type = config['x_type']   
+    x_type = config['x_type']
     signal_species = config['signal_species']
     resimulate_analytics = config['resimulate_analytics']
     analytic = config['analytic']
@@ -140,6 +140,11 @@ def verify_rugg(fake_circuits,
             fake_circuits_batch, eps_perc=eps_perc, analytic=analytic,
             input_species=input_species, x_type=x_type, signal_species=signal_species, config_bio=config_bio,
             analytics_original=analytics_og, resimulate_analytics=resimulate_analytics, top_write_dir=top_write_dir_batch)
+
+        write_json(analytics_perturbed, os.path.join(
+            top_write_dir, 'analytics.json'))
+        for k, i in zip(['ruggedness.npy', 'ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ruggedness, ys, ts, y0m, y00s, ts0]):
+            np.save(os.path.join(top_write_dir_batch, k), i)
 
 
 def main(fn_df_hpos_loaded,
@@ -166,10 +171,22 @@ def main(fn_df_hpos_loaded,
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
     args = parser.parse_args()
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
-    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/saves_2025_03_07__16_35_20_ds0211_rug_sens'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/hpos_all.json'
+
+    config = {
+        'eps_perc': -1e-2,
+        'x_type': 'energies',
+        'signal_species': 'RNA_0',
+        'resimulate_analytics': True,
+        'analytic': 'Log sensitivity',
+        'fn_simulation_settings': 'notebooks/data/configs/cvae_multi/simulation_settings.json'
+    }
+
     main(fn_df_hpos_loaded)
