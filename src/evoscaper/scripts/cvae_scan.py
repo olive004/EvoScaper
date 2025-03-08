@@ -185,8 +185,8 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
 
     df = prep_data(data_test, config_dataset.output_species,
                    config_dataset.objective_col, x_cols, config_filter)
-    x = x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(
-        np.concatenate([df[i].values[:, None] for i in x_cols], axis=1).squeeze())
+    x = np.array(x_datanormaliser.create_chain_preprocessor(x_methods_preprocessing)(
+        np.concatenate([df[i].values[:, None] for i in x_cols], axis=1).squeeze()))
 
     cond = concat_conds(config_dataset.objective_col, df,
                         y_datanormaliser, y_methods_preprocessing)
@@ -246,7 +246,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
     # Train
     params, saves, save_path, r2_train, info_early_stop = train_full(params, rng, model, x_train, cond_train, y_train, x_val, cond_val, y_val,
                                                                      config_optimisation, config_training, loss_fn, compute_accuracy, n_batches,
-                                                                     task=f'_hpo_{hpos["index"]}', top_write_dir=top_write_dir)
+                                                                     task=f'_hpo_{hpos.loc["index"]}', top_write_dir=top_write_dir)
 
     # Test & Visualise
     if config_dataset.use_test_data:
@@ -277,18 +277,17 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
             for k in [kk for kk in val_config['base_configs_ensemble'].keys() if 'vis' not in kk]:
                 config_bio.update(val_config['base_configs_ensemble'][k])
             verify(params, rng, decoder,
-                   df, cond,
+                   cond,
                    config_bio,
                    config_norm_y,
                    config_dataset,
                    config_model,
                    x_datanormaliser, x_methods_preprocessing,
-                   y_datanormaliser,
                    output_species=config_dataset.output_species,
                    signal_species=config_dataset.signal_species,
                    input_species=data[data['sample_name'].notna()
                                       ]['sample_name'].unique(),
-                   n_to_sample=int(hpos['eval_n_to_sample']),
+                   n_to_sample=int(hpos.loc['eval_n_to_sample']),
                    visualise=True,
                    top_write_dir=top_write_dir)
     return hpos
@@ -313,7 +312,7 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                 hpos.loc['error_msg'] = ''
             except Exception as e:
                 print("Try 1", e)
-                if 'nan' in str(e).lower() and (hpos['use_grad_clipping'] == False):
+                if ('nan' in str(e).lower()) and (hpos.loc['use_grad_clipping'] == False):
                     try:
                         hpos['use_grad_clipping'] = True
                         hpos = cvae_scan_single(
@@ -490,7 +489,7 @@ def extend_analytics(analytics: dict, analytics_i: dict):
 def sim_all_models(config_multisim,
                    df_hpos, datasets, input_species,
                    top_write_dir,
-                   config_bio, ordered_species):
+                   config_bio):
     
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
@@ -505,6 +504,7 @@ def sim_all_models(config_multisim,
     time_start = datetime.now()
     batch_dir = os.path.join(top_write_dir, 'batch_results')
     os.makedirs(batch_dir, exist_ok=True)
+    analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
     for i in range(n_batches):
         i1, i2 = i*batch_size, (i+1)*batch_size
         logging.info(
@@ -551,8 +551,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     # Simulate successful runs all in one go
     analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond = sim_all_models(
         config_multisim,
-        df_hpos, datasets, input_species, postprocs,
+        df_hpos, datasets, input_species,
         top_write_dir,
-        config_bio, model_brn, qreactions, ordered_species)
+        config_bio)
 
     return df_hpos, analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
