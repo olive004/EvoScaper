@@ -280,7 +280,7 @@ def sim(y00, forward_rates, reverse_rates,
                                 #     t0=t0, t1=t1, dt0=dt0, dt1=dt1)
                                 )))
 
-    print(f'Simulating steady states for {y00.shape[0]} circuits')
+    print(f'Simulating steady states for {y00.shape[0]} circuits for a max of {total_time} time units')
     time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
