@@ -12,8 +12,9 @@ from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 from evoscaper.scripts.verify import full_sim_prep
 from evoscaper.scripts.cvae_scan import generate_all_fake_circuits
 from evoscaper.utils.evolution import calculate_ruggedness_from_perturbations
+from evoscaper.utils.math import make_flat_triangle
 from evoscaper.utils.preprocess import make_datetime_str
-from evoscaper.utils.simulation import make_rates, sim, prep_sim, sim, prep_cfg, update_species_simulated_rates, setup_model_brn, compute_analytics
+from evoscaper.utils.simulation import make_rates, sim, load_config_bio, sim, prep_cfg, update_species_simulated_rates, setup_model_brn, compute_analytics
 
 
 def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type, signal_species, config_bio,
@@ -116,14 +117,13 @@ def get_config_bio(config, fn_config_bio, input_species):
 
 def verify_rugg(fake_circuits,
                 config,
-                fn_config_bio,
+                config_bio,
                 input_species,
                 batch_size,
                 top_write_dir,
                 analytics_og=None):
 
     n_batches = int(np.max([1, len(fake_circuits) // batch_size]))
-    config_bio = get_config_bio(config, fn_config_bio, input_species)
     eps_perc = config['eps_perc']
     x_type = config['x_type']
     signal_species = config['signal_species']
@@ -146,6 +146,19 @@ def verify_rugg(fake_circuits,
         for k, i in zip(['ruggedness.npy', 'ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ruggedness, ys, ts, y0m, y00s, ts0]):
             np.save(os.path.join(top_write_dir_batch, k), i)
 
+            
+def load_hpos(fn):
+    try: 
+        df_hpos = pd.read_json(fn)
+    except ValueError:
+        hpos = pd.Series({k: (v) if isinstance(v, list) else v for k, v in load_json_as_dict(fn_df_hpos_loaded).items()})
+        df_hpos = pd.DataFrame(hpos).T
+    if 'notebooks' in fn:
+        df_hpos['filenames_train_table'] = df_hpos['filenames_train_table'].apply(lambda x: os.path.join('notebooks', x.replace('./', '')))
+        df_hpos['filenames_verify_config'] = df_hpos['filenames_verify_config'].apply(lambda x: x.replace('../', ''))
+    return df_hpos
+
+
 
 def main(fn_df_hpos_loaded,
         #  datasets: Dict[str, pd.DataFrame],
@@ -156,21 +169,26 @@ def main(fn_df_hpos_loaded,
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())
     os.makedirs(top_write_dir, exist_ok=True)
+    
+    df_hpos = load_hpos(fn_df_hpos_loaded)
+    df_hpos['eval_n_to_sample'] = config_run['eval_n_to_sample']
+    df_hpos['eval_cond_min'] = config_run['eval_cond_min']
+    df_hpos['eval_cond_max'] = config_run['eval_cond_max']
+    df_hpos['eval_n_categories'] = config_run['eval_n_categories']
 
-    df_hpos = pd.read_json(fn_df_hpos_loaded)
     datasets = {v: pd.read_json(v) for v in df_hpos['filenames_train_table'].unique() if os.path.exists(v)}
     input_species = datasets[list(datasets.keys())[0]]['sample_name'].dropna().unique()
-    fn_config_bio = datasets[list(datasets.keys())[0]]['filenames_verify_config'].dropna().unique()[0]
-    config_bio = load_json_as_dict(fn_config_bio)
+    fn_config_bio = df_hpos['filenames_verify_config'].dropna().unique()[0]
+    config_bio = load_config_bio(fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
 
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
 
     batch_size = config_run['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
-        df_hpos, datasets, input_species, postprocs)
+       df_hpos, datasets, input_species, postprocs)
 
-    verify_rugg(all_fake_circuits, config_run, config_bio,
+    verify_rugg(make_flat_triangle(all_fake_circuits), config_run, config_bio,
                 input_species, batch_size, top_write_dir, analytics_og=None)
 
 
@@ -190,7 +208,12 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'fn_simulation_settings': 'notebooks/data/configs/cvae_multi/simulation_settings.json'
+        'eval_batch_size': int(1e6),
+        'eval_n_to_sample': int(1e5),
+        'eval_cond_min': -0.2,
+        'eval_cond_max': 1.2,
+        'eval_n_categories': 10,
+        'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json'
     }
 
     main(fn_df_hpos_loaded, config_run)

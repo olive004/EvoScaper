@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import List
 from evoscaper.utils.math import make_flat_triangle
+from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 from synbio_morpher.srv.parameter_prediction.simulator import RawSimulationHandling
 from synbio_morpher.utils.common.setup import prepare_config, expand_config, expand_model_config
 from synbio_morpher.utils.misc.type_handling import flatten_listlike, get_unique
@@ -171,6 +172,18 @@ def prep_cfg(config_bio, input_species):
         assert len(input_species) == config_bio.get('circuit_generation', {}).get(
             'species_count'), f'Wrong number of input species {input_species}'
     config_bio.update(expand_model_config(config_bio, {}, input_species))
+    return config_bio
+
+
+def load_config_bio(fn, input_species, fn_simulation_settings=None):
+    config_bio = load_json_as_dict(fn)
+    config_bio_u = config_bio['base_configs_ensemble']['generate_species_templates']
+    config_bio_u.update(config_bio['base_configs_ensemble']['mutation_effect_on_interactions_signal'])
+    config_bio = prep_cfg(config_bio_u, input_species)
+    if fn_simulation_settings is not None:
+        config_sim = load_json_as_dict(fn_simulation_settings)
+        config_bio['simulation'].update(config_sim['simulation'])
+        config_bio['simulation_steady_state'].update(config_sim['simulation_steady_state'])
     return config_bio
 
 
