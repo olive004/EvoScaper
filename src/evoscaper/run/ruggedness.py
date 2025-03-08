@@ -36,7 +36,7 @@ def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type
 
     analytic_perturbed = jnp.array(
         analytics_perturbed[analytic]).reshape(n_samples, n_perturbs, -1)
-    if resimulate_analytics:
+    if resimulate_analytics and (analytics_original is not None):
         analytic_perturbed = analytic_perturbed[:, :-1, :]
         analytic_og = analytic_perturbed[:, -1, :]
     else:
@@ -148,9 +148,9 @@ def verify_rugg(fake_circuits,
 
 
 def main(fn_df_hpos_loaded,
-         datasets: Dict[str, pd.DataFrame],
-         input_species,
-         config_bio,
+        #  datasets: Dict[str, pd.DataFrame],
+        #  input_species,
+        #  config_bio,
          config_run):
 
     top_write_dir = os.path.join(
@@ -158,6 +158,10 @@ def main(fn_df_hpos_loaded,
     os.makedirs(top_write_dir, exist_ok=True)
 
     df_hpos = pd.read_json(fn_df_hpos_loaded)
+    datasets = {v: pd.read_json(v) for v in df_hpos['filenames_train_table'].unique() if os.path.exists(v)}
+    input_species = datasets[list(datasets.keys())[0]]['sample_name'].dropna().unique()
+    fn_config_bio = datasets[list(datasets.keys())[0]]['filenames_verify_config'].dropna().unique()[0]
+    config_bio = load_json_as_dict(fn_config_bio)
 
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
@@ -180,7 +184,7 @@ if __name__ == "__main__":
     fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/saves_2025_03_07__16_35_20_ds0211_rug_sens'
     fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/hpos_all.json'
 
-    config = {
+    config_run = {
         'eps_perc': -1e-2,
         'x_type': 'energies',
         'signal_species': 'RNA_0',
@@ -189,4 +193,4 @@ if __name__ == "__main__":
         'fn_simulation_settings': 'notebooks/data/configs/cvae_multi/simulation_settings.json'
     }
 
-    main(fn_df_hpos_loaded)
+    main(fn_df_hpos_loaded, config_run)
