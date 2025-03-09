@@ -157,9 +157,11 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     t1 = simulation_settings['t1']
     dt0 = simulation_settings['dt0']
     dt1 = simulation_settings['dt1']
-    tmax = simulation_settings.get('tmax', simulation_settings.get('total_time', 10000))
+    tmax = simulation_settings.get(
+        'tmax', simulation_settings.get('total_time', 10000))
     stepsize_controller = simulation_settings['stepsize_controller']
-    threshold_steady_states = simulation_settings.get('threshold_steady_states', 0.01)
+    threshold_steady_states = simulation_settings.get(
+        'threshold_steady_states', 0.01)
     save_steps = simulation_settings.get('save_steps', 50)
     max_steps = simulation_settings.get('max_steps', (16**5) * 5)
 
@@ -178,12 +180,14 @@ def prep_cfg(config_bio, input_species):
 def load_config_bio(fn, input_species, fn_simulation_settings=None):
     config_bio = load_json_as_dict(fn)
     config_bio_u = config_bio['base_configs_ensemble']['generate_species_templates']
-    config_bio_u.update(config_bio['base_configs_ensemble']['mutation_effect_on_interactions_signal'])
+    config_bio_u.update(
+        config_bio['base_configs_ensemble']['mutation_effect_on_interactions_signal'])
     config_bio = prep_cfg(config_bio_u, input_species)
     if fn_simulation_settings is not None:
         config_sim = load_json_as_dict(fn_simulation_settings)
         config_bio['simulation'].update(config_sim['simulation'])
-        config_bio['simulation_steady_state'].update(config_sim['simulation_steady_state'])
+        config_bio['simulation_steady_state'].update(
+            config_sim['simulation_steady_state'])
     return config_bio
 
 
@@ -258,7 +262,8 @@ def reduce_tdim(ts, ys):
     return ts
 
 
-def sim(y00, forward_rates, reverse_rates,
+def sim_core(
+        y00, forward_rates, reverse_rates,
         qreactions,
         signal_onehot, signal_target,
         t0, t1, dt0, dt1,
@@ -267,9 +272,7 @@ def sim(y00, forward_rates, reverse_rates,
         dt1_factor=5,
         threshold=0.01,
         total_time=None,
-        disable_logging=False,
-        calculate_analytics: bool = True):
-    """ Concentrations should be in the form [circuits, time, species] """
+        disable_logging=False):
 
     rate_max = np.max([np.max(forward_rates),
                        np.max(reverse_rates)])
@@ -293,7 +296,8 @@ def sim(y00, forward_rates, reverse_rates,
                                 #     t0=t0, t1=t1, dt0=dt0, dt1=dt1)
                                 )))
 
-    print(f'Simulating steady states for {y00.shape[0]} circuits for a max of {total_time} time units')
+    print(
+        f'Simulating steady states for {y00.shape[0]} circuits for a max of {total_time} time units')
     time_start = datetime.now()
     y00s, ts0 = simulate_steady_states(y0=y00, total_time=total_time, sim_func=sim_func, t0=t0,
                                        t1=t1, threshold=threshold, reverse_rates=reverse_rates, disable_logging=disable_logging)
@@ -317,9 +321,27 @@ def sim(y00, forward_rates, reverse_rates,
         f'Signal response found after {int(minutes)} mins and {int(seconds)} secs.')
     ys = np.concatenate([y0m, ys.squeeze()[:, :-1, :]], axis=1)
 
-    analytics = {}
-    if calculate_analytics:
-        analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
-            ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+    return ys, ts, y0m, y00s, ts0
+
+
+def sim(y00, forward_rates, reverse_rates,
+        qreactions,
+        signal_onehot, signal_target,
+        t0, t1, dt0, dt1,
+        save_steps, max_steps,
+        stepsize_controller,
+        dt1_factor=5,
+        threshold=0.01,
+        total_time=None,
+        disable_logging=False):
+    """ Concentrations should be in the form [circuits, time, species] """
+
+    ys, ts, y0m, y00s, ts0 = sim_core(y00, forward_rates, reverse_rates,
+                                      qreactions, signal_onehot, signal_target,
+                                      t0, t1, dt0, dt1, save_steps, max_steps,
+                                      stepsize_controller, dt1_factor, threshold, total_time, disable_logging)
+
+    analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
+        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
 
     return analytics, ys, ts, y0m, y00s, ts0

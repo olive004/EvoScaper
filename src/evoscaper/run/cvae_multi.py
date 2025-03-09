@@ -56,7 +56,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
-        'eval_batch_size': int(1e6),
+        'eval_batch_size': int(5e5),
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
     }
     max_n_categories_multi = 5

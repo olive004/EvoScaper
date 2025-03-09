@@ -1,4 +1,3 @@
-from genericpath import exists
 import logging
 from typing import Callable, List, Dict
 from copy import deepcopy
@@ -6,6 +5,8 @@ from bioreaction.model.data_containers import BasicModel
 from bioreaction.model.data_containers import QuantifiedReactions
 from bioreaction.misc.misc import load_json_as_dict
 import jax
+import jaxlib
+import jaxlib.xla_extension
 import numpy as np
 from functools import partial
 from datetime import datetime
@@ -25,7 +26,7 @@ from evoscaper.utils.math import make_batch_symmetrical_matrices, make_flat_tria
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
-from evoscaper.utils.simulation import make_rates, prep_sim, sim, prep_cfg, update_species_simulated_rates, setup_model_brn
+from evoscaper.utils.simulation import make_rates, prep_sim, sim_core, prep_cfg, update_species_simulated_rates, setup_model_brn, compute_analytics
 from evoscaper.utils.train import train
 from evoscaper.utils.tuning import make_configs_initial, make_config_model
 from evoscaper.utils.visualise import vis_parity, vis_recon_distribution, vis_training
@@ -397,7 +398,7 @@ def sample_models(hpos, datasets):
 
 
 def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray, reverse_rates: np.ndarray, signal_species: List[str],
-                  config_bio: dict, model_brn: BasicModel, qreactions: QuantifiedReactions, ordered_species: list):
+                  config_bio: dict, model_brn: BasicModel, qreactions: QuantifiedReactions, ordered_species: list, results_dir: str):
 
     # Process circuits and simulate
     model_brn, qreactions = update_species_simulated_rates(
@@ -407,28 +408,27 @@ def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray,
         signal_species, qreactions, fake_circuits_reshaped,
         config_bio, forward_rates, reverse_rates)
 
-    analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates, qreactions, signal_onehot, signal_target,
-                                            t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states,
-                                            total_time=total_time, disable_logging=False)
+    ys, ts, y0m, y00s, ts0 = sim_core(y00, forward_rates[0], reverse_rates, qreactions, signal_onehot, signal_target,
+                                      t0, t1, dt0, dt1, save_steps, max_steps, stepsize_controller, threshold=threshold_steady_states,
+                                      total_time=total_time, disable_logging=False)
+    for k, v in zip(['ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ys, ts, y0m, y00s, ts0]):
+        np.save(os.path.join(results_dir, k), v)
+
+    try:
+        analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
+        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+    except jaxlib.xla_extension.XlaRuntimeError:
+        logging.warning('Could not compute analytics due to resource constraints.')
+        analytics = {}
 
     return analytics, ys, ts, y0m, y00s, ts0
 
 
 def save(results_dir, analytics, ys, ts, y0m, y00s, ts0):
 
-    # analytics = extend_analytics(analytics, analytics_i)
-    # ys = np.concatenate([ys, ys_i[None, :]]) if ys is not None else ys_i[None, :]
-    # ts = np.concatenate([ts, ts_i[None, :]]) if ts is not None else ts_i[None, :]
-    # y0m = np.concatenate([y0m, y0m_i[None, :]]) if y0m is not None else y0m_i[None, :]
-    # y00s = np.concatenate([y00s, y00s_i[None, :]]) if y00s is not None else y00s_i[None, :]
-    # ts0 = np.concatenate([ts0, ts0_i[None, :]]) if ts0 is not None else ts0_i[None, :]
-
     write_json(analytics, os.path.join(results_dir, 'analytics.json'))
-    np.save(os.path.join(results_dir, 'ys.npy'), ys)
-    np.save(os.path.join(results_dir, 'y0m.npy'), y0m)
-    np.save(os.path.join(results_dir, 'y00s.npy'), y00s)
-    np.save(os.path.join(results_dir, 'ts.npy'), ts)
-    np.save(os.path.join(results_dir, 'ts0.npy'), ts0)
+    for k, v in zip(['ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ys, ts, y0m, y00s, ts0]):
+        np.save(os.path.join(results_dir, k), v)
 
 
 # Run simulation for each successful HPO
@@ -490,10 +490,10 @@ def sim_all_models(config_multisim,
                    df_hpos, datasets, input_species,
                    top_write_dir,
                    config_bio):
-    
+
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
-    
+
     batch_size = config_multisim['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos, datasets, input_species, postprocs)
@@ -506,18 +506,22 @@ def sim_all_models(config_multisim,
     os.makedirs(batch_dir, exist_ok=True)
     analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
     for i in range(n_batches):
+        results_dir = os.path.join(batch_dir, f'batch_{i}')
+        os.makedirs(results_dir, exist_ok=True)
+
         i1, i2 = i*batch_size, (i+1)*batch_size
         logging.info(
             f'Simulating batch {i+1} of {n_batches} ({datetime.now() - time_start})')
         time_sim = datetime.now()
         analytics, ys, ts, y0m, y00s, ts0 = run_sim_multi(
-            all_fake_circuits[i1:i2], all_forward_rates[i1:i2], all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0], config_bio, model_brn, qreactions, ordered_species)
+            all_fake_circuits[i1:i2], all_forward_rates[i1:i2],
+            all_reverse_rates[i1:i2], df_hpos['signal_species'].iloc[0],
+            config_bio, model_brn, qreactions, ordered_species,
+            results_dir)
         logging.info(
             f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
 
         # Save results
-        results_dir = os.path.join(batch_dir, f'batch_{i}')
-        os.makedirs(results_dir, exist_ok=True)
         save(results_dir, analytics, ys, ts, y0m, y00s, ts0)
     return analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
 

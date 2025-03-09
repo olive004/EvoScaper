@@ -76,8 +76,6 @@ def simulate_perturbations(interactions, x_type, signal_species, config_bio, inp
     # total_time = 1
     #
 
-    calculate_analytics = True
-
     print('Starting sim')
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
@@ -86,12 +84,11 @@ def simulate_perturbations(interactions, x_type, signal_species, config_bio, inp
                                             save_steps, max_steps,
                                             stepsize_controller,
                                             threshold=threshold_steady_states,
-                                            total_time=total_time,
-                                            calculate_analytics=calculate_analytics)
+                                            total_time=total_time)
     for i, l in zip([ys, ts, y0m, y00s, ts0], ['ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy']):
         np.save(os.path.join(top_write_dir, l), i)
 
-    if not calculate_analytics and (len(analytics) == 0):
+    if (len(analytics) == 0):
         analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
             ys.shape[-1]), signal_onehot=signal_onehot))(ys)
 
