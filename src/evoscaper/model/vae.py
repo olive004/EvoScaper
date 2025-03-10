@@ -119,14 +119,14 @@ def sample_z(mu, logvar, key, deterministic=False):
     return z
 
 
-def sample_z(mu, logvar, key, deterministic=False):
-    """ We use exp(0.5*logvar) instead of std because it is more numerically stable
-    and add the 0.5 part because std^2 = exp(logvar) """
-    std = jnp.exp(0.5 * logvar)
-    eps = jax.random.uniform(key, mu.shape) if not deterministic else 0
-    # eps = jax.random.normal(key, mu.shape) if not deterministic else 0
-    z = mu + std * eps
-    return z
+# def sample_z(mu, logvar, key, deterministic=False):
+#     """ We use exp(0.5*logvar) instead of std because it is more numerically stable
+#     and add the 0.5 part because std^2 = exp(logvar) """
+#     std = jnp.exp(0.5 * logvar)
+#     eps = jax.random.uniform(key, mu.shape) if not deterministic else 0
+#     # eps = jax.random.normal(key, mu.shape) if not deterministic else 0
+#     z = mu + std * eps
+#     return z
 
 
 # def init_data(data,

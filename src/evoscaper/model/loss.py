@@ -231,6 +231,7 @@ def contrastive_loss_fn(cond: jnp.ndarray,
 def contrastive_distance_labels(c, distance_metric='dot', power_factor_distance=3):
 
     if distance_metric == 'dot':
+        # Min -1, max 1
         distance = jnp.power(jnp.dot(c, c.T), power_factor_distance)
 
     elif distance_metric == 'l1_norm':
