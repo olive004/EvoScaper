@@ -157,11 +157,7 @@ def load_hpos(fn):
 
 
 
-def main(fn_df_hpos_loaded,
-        #  datasets: Dict[str, pd.DataFrame],
-        #  input_species,
-        #  config_bio,
-         config_run):
+def main(fn_df_hpos_loaded, config_run: dict):
 
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())
@@ -196,8 +192,8 @@ if __name__ == "__main__":
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
     args = parser.parse_args()
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
-    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/saves_2025_03_07__16_35_20_ds0211_rug_sens'
-    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_07__16_35_20/hpos_all.json'
+    # fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
 
     config_run = {
         'eps_perc': -1e-2,
