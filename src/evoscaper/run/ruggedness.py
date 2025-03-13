@@ -120,7 +120,8 @@ def verify_rugg(fake_circuits,
                 top_write_dir,
                 analytics_og=None):
 
-    n_batches = int(np.max([1, len(fake_circuits) // batch_size]))
+    batch_size = int(np.ceil(batch_size / fake_circuits.shape[-1]))
+    n_batches = int(np.max([1, np.ceil(len(fake_circuits) / batch_size)]))
     eps_perc = config['eps_perc']
     x_type = config['x_type']
     signal_species = config['signal_species']
@@ -143,7 +144,7 @@ def verify_rugg(fake_circuits,
         for k, i in zip(['ruggedness.npy', 'ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ruggedness, ys, ts, y0m, y00s, ts0]):
             np.save(os.path.join(top_write_dir_batch, k), i)
 
-            
+
 def load_hpos(fn):
     try: 
         df_hpos = pd.read_json(fn)
@@ -201,10 +202,10 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'eval_batch_size': int(1e6),
+        'eval_batch_size': int(3e5),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
-        'eval_cond_max': 1.2,
+        'eval_cond_max': 1.2,   
         'eval_n_categories': 10,
         'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json'
     }
