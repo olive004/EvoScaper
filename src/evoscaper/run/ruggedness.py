@@ -37,11 +37,13 @@ def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type
 
     analytic_perturbed = jnp.array(
         analytics_perturbed[analytic]).reshape(n_samples, n_perturbs, -1)
-    if resimulate_analytics and (analytics_original is not None):
+    if resimulate_analytics:
         analytic_perturbed = analytic_perturbed[:, :-1, :]
         analytic_og = analytic_perturbed[:, -1, :]
-    else:
+    elif analytics_original is not None:
         analytic_og = np.array(analytics_original[analytic][:n_samples])
+    else:
+        analytic_og = np.zeros_like(analytic_perturbed[:, -1, :])
 
     # If loaded from previous data where not all analytics were saved
     if analytic_perturbed.shape[-1] != analytic_og.shape[-1]:
@@ -129,7 +131,8 @@ def verify_rugg(fake_circuits,
     analytic = config['analytic']
     eps = eps_perc * np.abs(fake_circuits).max()
 
-    for i in range(n_batches):
+    for i in range(1, n_batches):
+        print(f'Batch {i}/{n_batches}')
         ii, ij = i * batch_size, (i + 1) * batch_size
         fake_circuits_batch = fake_circuits[ii:ij]
         top_write_dir_batch = os.path.join(top_write_dir, f'batch_{i}')
