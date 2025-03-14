@@ -122,12 +122,12 @@ def verify_rugg(fake_circuits,
                 top_write_dir,
                 analytics_og=None):
 
-    batch_size = int(np.ceil(batch_size / fake_circuits.shape[-1]))
+    resimulate_analytics = config['resimulate_analytics']
+    batch_size = int(np.ceil(batch_size / (fake_circuits.shape[-1] + resimulate_analytics)))
     n_batches = int(np.max([1, np.ceil(len(fake_circuits) / batch_size)]))
     eps_perc = config['eps_perc']
     x_type = config['x_type']
     signal_species = config['signal_species']
-    resimulate_analytics = config['resimulate_analytics']
     analytic = config['analytic']
     eps = eps_perc * np.abs(fake_circuits).max()
 
