@@ -15,7 +15,7 @@ import os
 
 from sklearn.metrics import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, mutual_information_latent_condition, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
+from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, calculate_kde_overlap, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import sample_z
 from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_model
@@ -110,12 +110,18 @@ def test_conditionality(params, rng, decoder,
     #                                save_path=os.path.join(top_write_dir, 'combined_layer.png'), multiple='layer', fill=False)
 
     kls = {}
+    kde_overlaps = {}
     for idx_obj, obj_col in enumerate(config_dataset.objective_col):
         kl_divs = calculate_kl_divergence_aves(fake_circuits.reshape(
             -1, fake_circuits.shape[-1]), sampled_cond.reshape(-1, sampled_cond.shape[-1])[..., idx_obj])
         kls[obj_col] = np.nanmean(kl_divs)
 
-    return mi, kls
+        kde = calculate_kde_overlap(fake_circuits.reshape(
+            sampled_cond.shape[0], -1), fake_circuits.reshape(sampled_cond.shape[0], -1))
+        kde_overlaps[obj_col] = {'mean': kde.mean(axis=0),
+                                 'std': kde.std(axis=0)}
+
+    return mi, kls, kde_overlaps
 
 
 def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, objective_cols, config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y, n_categories, n_to_sample):
@@ -200,18 +206,18 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
         vis(saves, x, pred_y, top_write_dir)
 
     try:
-        mi, kl_div_ave = test_conditionality(params, rng, decoder,
-                                             config_dataset, config_norm_y, config_model,
-                                             x_datanormaliser, x_methods_preprocessing, cond)
+        mi, kl_div_ave, kde_overlap = test_conditionality(params, rng, decoder,
+                                                          config_dataset, config_norm_y, config_model,
+                                                          x_datanormaliser, x_methods_preprocessing, cond)
     except Exception as e:
         print(f'Error in test_conditionality: {e}')
-        mi, kl_div_ave = None, None
+        mi, kl_div_ave, kde_overlap = None, None, None
 
     latent_stats = collect_latent_stats(
         params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col,
         config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y,
         n_categories=10, n_to_sample=int(1e4))
-    return r2_test, mi, kl_div_ave, latent_stats
+    return r2_test, mi, kl_div_ave, kde_overlap, latent_stats
 
 
 def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, kl_div_ave: float, latent_stats: Dict[str, float], n_layers_enc, n_layers_dec, info_early_stop):
@@ -258,11 +264,11 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
             f'Warning: not using the test data for evaluation, but the training data instead of {config_dataset.filenames_verify_table}')
         data_test = data
 
-    r2_test, mi, kl_div_ave, latent_stats = test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
-                                                 config_dataset, config_norm_y, config_model,
-                                                 x_cols, config_filter, top_write_dir,
-                                                 x_datanormaliser, x_methods_preprocessing,
-                                                 y_datanormaliser, y_methods_preprocessing, visualise=not (debug))
+    r2_test, mi, kl_div_ave, kde_overlap, latent_stats = test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
+                                                              config_dataset, config_norm_y, config_model,
+                                                              x_cols, config_filter, top_write_dir,
+                                                              x_datanormaliser, x_methods_preprocessing,
+                                                              y_datanormaliser, y_methods_preprocessing, visualise=not (debug))
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, latent_stats,
@@ -416,9 +422,10 @@ def run_sim_multi(fake_circuits_reshaped: np.ndarray, forward_rates: np.ndarray,
 
     try:
         analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
-        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+            ys.shape[-1]), signal_onehot=signal_onehot))(ys)
     except jaxlib.xla_extension.XlaRuntimeError:
-        logging.warning('Could not compute analytics due to resource constraints.')
+        logging.warning(
+            'Could not compute analytics due to resource constraints.')
         analytics = {}
 
     return analytics, ys, ts, y0m, y00s, ts0
