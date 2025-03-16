@@ -53,6 +53,14 @@ def make_flat_triangle(matrices):
     return matrices[..., rows, cols]
 
 
+def make_sequence_from_symmetrical(arr, side_length: int):
+    """ For a symmetrical 2D matrix, return the upper triangle as a 1D array.
+    For example, an array of shape [n, 3, 3] becomes [n, 6] """
+    arr_flat = jax.vmap(
+        lambda x: x[np.triu_indices(side_length)])(arr)
+    return arr_flat
+
+
 def make_symmetrical_matrix_from_sequence_nojax(arr, side_length: int):
     """ For a flat 1D array, make a symmetrical 2D matrix filling
     in the upper triangle with the 1D array. Not jax-friendly. """

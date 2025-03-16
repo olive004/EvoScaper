@@ -20,13 +20,30 @@ def load_by_fn(fn):
     return data
 
 
+# def create_interaction_cols(interaction_attr: str, num_species: int, remove_symmetrical=True):
+
+#     a = np.triu(np.ones((num_species, num_species)))
+#     if not remove_symmetrical:
+#         a += np.tril(np.ones((num_species, num_species)))
+#     names = list(map(lambda i: interaction_attr + '_' +
+#                  str(i[0]) + '-' + str(i[1]), np.array(np.where(a > 0)).T))
+
+#     return names
+
+
 def load_data(config_dataset: DatasetConfig):
     data = load_by_fn(config_dataset.filenames_train_table)
     # data_test = data
     # if config_dataset.use_test_data:
     #     data_test = load(config_dataset.filenames_verify_table)
+    # try:
     X_COLS = make_xcols(data, config_dataset.x_type,
                         config_dataset.include_diffs)
+    # except AssertionError as e:
+    #     print(f'Warning: {e}')
+    #     print('Going to create interaction names instead of getting them from the data.')
+    #     X_COLS = create_interaction_cols(config_dataset.x_type,
+    #                                      data['sample_name'].dropna().nunique(), remove_symmetrical=True)
     return data, X_COLS
 
 
@@ -79,7 +96,8 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
             s=np.array(data['sensitivity']),
             p=np.array(data['precision']))
     if 'overshoot/initial' not in data:
-        data['overshoot/initial'] = data['overshoot'] / data['initial_steady_states']
+        data['overshoot/initial'] = data['overshoot'] / \
+            data['initial_steady_states']
     if transform_sensitivity_nans:
         data['sensitivity'] = np.where(np.isnan(
             data['sensitivity']), 0, data['sensitivity'])
@@ -88,7 +106,7 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
         data[f'Log {k.split("_")[0]}'] = np.where(
             data[k] != 0, np.log10(data[k]), zero_log_replacement)
         return data
-    
+
     data = make_log('sensitivity', data)
     data = make_log('precision', data)
     data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
@@ -193,7 +211,7 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
             data['response_time'] < np.inf, data['response_time'], np.nan)
 
         filt = filt & (data['response_time'] < (filter_settings.filt_response_time_perc_max *
-                                                              np.nanmax(data['response_time'])))
+                                                np.nanmax(data['response_time'])))
 
     df = data[filt]
     df = df.reset_index(drop=True)
@@ -202,15 +220,16 @@ def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_setting
 
 
 def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
-    
+
     df = df.reset_index(drop=True)
-    
+
     if (n_same_circ_max == 1) and ((nbin is None) or np.isnan(nbin)):
         df = df.loc[~df[cols].duplicated(keep='first')]
     else:
         df_lowres = df if nbin is None else transform_to_histogram_bins(
             df, cols, num_bins=nbin)
-        df_lowres = df_lowres.groupby(cols, as_index=False).head(n_same_circ_max)
+        df_lowres = df_lowres.groupby(
+            cols, as_index=False).head(n_same_circ_max)
         df = df.loc[df_lowres.index].reset_index(drop=True)
     return df
 
@@ -302,7 +321,8 @@ def transform_to_histogram_bins(df: pd.DataFrame, cols, num_bins: int = 30, use_
         f_map = map_to_quantile_edge
 
     else:
-        hist, bin_edges = np.histogram(df[cols].to_numpy().flatten(), bins=num_bins)
+        hist, bin_edges = np.histogram(
+            df[cols].to_numpy().flatten(), bins=num_bins)
 
         def map_to_linear_edge(value):
             bin_index = np.digitize(value, bin_edges) - 1
