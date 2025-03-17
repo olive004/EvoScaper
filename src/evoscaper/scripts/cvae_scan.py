@@ -15,7 +15,7 @@ import os
 
 from sklearn.metrics import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, calculate_kde_overlap, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
+from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, calculate_distributional_overlap, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import sample_z
 from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_model
@@ -85,7 +85,9 @@ def vis(saves, x, pred_y, top_write_dir):
 
 
 def test_conditionality(params, rng, decoder,
-                        config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model,
+                        config_dataset: DatasetConfig, config_norm_x: NormalizationSettings,
+                        config_norm_y: NormalizationSettings,
+                        config_model,
                         x_datanormaliser, x_methods_preprocessing, cond, n_to_sample=int(1e4)):
     n_categories = config_norm_y.categorical_n_bins
     fake_circuits, z, sampled_cond = sample_reconstructions(params, rng, decoder,
@@ -116,10 +118,20 @@ def test_conditionality(params, rng, decoder,
             -1, fake_circuits.shape[-1]), sampled_cond.reshape(-1, sampled_cond.shape[-1])[..., idx_obj])
         kls[obj_col] = np.nanmean(kl_divs)
 
-        kde = calculate_kde_overlap(fake_circuits.reshape(
-            sampled_cond.shape[0], -1), fake_circuits.reshape(sampled_cond.shape[0], -1))
-        kde_overlaps[obj_col] = {'mean': kde.mean(axis=0),
-                                 'std': kde.std(axis=0)}
+        if config_norm_x.min_max:
+            fake_circuits = np.where(fake_circuits > 1, 1, fake_circuits)
+            fake_circuits = np.where(fake_circuits < 0, 0, fake_circuits)
+
+        overlaps = np.zeros((fake_circuits.shape[-1], sampled_cond.shape[0], sampled_cond.shape[0]))
+        for ix in range(fake_circuits.shape[-1]):
+            kde = calculate_distributional_overlap(fake_circuits.reshape(sampled_cond.shape[0], -1, fake_circuits.shape[-1])[..., ix],
+                                                   dist_type='binned')
+            overlaps[ix] = kde
+        overlaps = np.min(overlaps, axis=0)
+        overlaps_nodiag = overlaps[~np.eye(overlaps.shape[0], dtype=bool)
+                         ].reshape(overlaps.shape[0], -1)
+        kde_overlaps[obj_col] = {'mean': overlaps_nodiag.mean(axis=1),
+                                 'std': overlaps_nodiag.std(axis=1)}
 
     return mi, kls, kde_overlaps
 
@@ -185,7 +197,7 @@ def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, ob
 
 
 def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
-         config_dataset: DatasetConfig, config_norm_y: NormalizationSettings, config_model: ModelConfig,
+         config_dataset: DatasetConfig, config_norm_x: NormalizationSettings, config_norm_y: NormalizationSettings, config_model: ModelConfig,
          x_cols, config_filter: FilterSettings, top_write_dir,
          x_datanormaliser: DataNormalizer, x_methods_preprocessing,
          y_datanormaliser: DataNormalizer, y_methods_preprocessing, visualise=True):
@@ -207,7 +219,7 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
 
     try:
         mi, kl_div_ave, kde_overlap = test_conditionality(params, rng, decoder,
-                                                          config_dataset, config_norm_y, config_model,
+                                                          config_dataset, config_norm_x, config_norm_y, config_model,
                                                           x_datanormaliser, x_methods_preprocessing, cond)
     except Exception as e:
         print(f'Error in test_conditionality: {e}')
@@ -265,7 +277,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
         data_test = data
 
     r2_test, mi, kl_div_ave, kde_overlap, latent_stats = test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
-                                                              config_dataset, config_norm_y, config_model,
+                                                              config_dataset, config_norm_x, config_norm_y, config_model,
                                                               x_cols, config_filter, top_write_dir,
                                                               x_datanormaliser, x_methods_preprocessing,
                                                               y_datanormaliser, y_methods_preprocessing, visualise=not (debug))

@@ -491,7 +491,83 @@ def KL_per_dist(P, Q):
     return divergence
 
 
-def calculate_kde_overlap(sample1, sample2, bw_method=None, x_min=None, x_max=None, num_points=1000):
+def calculate_distributional_overlap(distributions, dist_type='kde'):
+    epsilon = 1e-8
+    distributions = np.interp(
+        distributions, (distributions.min(), distributions.max()), (epsilon, 1))
+    distributions = distributions / np.sum(distributions)  # , axis=1)[:, None]
+
+    if dist_type == 'kde':
+        f = calculate_kde_overlap_core
+    elif dist_type == 'binned':
+        f = calculate_binned_overlap
+    else:
+        raise ValueError(f"Unknown distribution type: {dist_type}")
+
+    overlaps = np.zeros((len(distributions), len(distributions)))
+    for i in range(len(distributions)):
+        for j in range(i, len(distributions)):
+            overlaps[i, j] = f(distributions[i], distributions[j])
+    overlaps[np.tril_indices(len(distributions))
+             ] = overlaps.T[np.tril_indices(len(distributions))]
+    return overlaps
+
+
+# def calculate_binned_overlap_normalized(dist1, dist2, n_bins=50, epsilon=1e-8):
+#     """
+#     Calculate the overlap of two distributions binned into 50 bins, normalized so that the overlap sums to 1.
+
+#     Parameters:
+#     -----------
+#     dist1 : numpy.ndarray
+#         First distribution
+#     dist2 : numpy.ndarray
+#         Second distribution
+#     n_bins : int
+#         Number of bins for discretizing the distributions
+#     epsilon : float
+#         Small value to avoid division by zero
+
+#     Returns:
+#     --------
+#     float
+#         Normalized overlap between the two distributions
+#     """
+#     # Define consistent bins across all distributions
+#     min_val = np.min([dist1.min(), dist2.min()])
+#     max_val = np.max([dist1.max(), dist2.max()])
+#     bins = np.linspace(min_val, max_val, n_bins + 1)
+
+#     # Calculate histograms for each distribution
+#     hist1, _ = np.histogram(dist1, bins=bins, density=True)
+#     hist2, _ = np.histogram(dist2, bins=bins, density=True)
+
+#     # Normalize histograms to sum to 1
+#     hist1 = hist1 / (np.sum(hist1) + epsilon)
+#     hist2 = hist2 / (np.sum(hist2) + epsilon)
+
+#     # Calculate overlap
+#     overlap = np.sum(np.minimum(hist1, hist2))
+
+#     return overlap
+
+
+def calculate_binned_overlap(dist1, dist2, n_bins=50, epsilon=1e-8):
+
+    # Define consistent bins across all distributions
+    min_val = np.min([dist1.min(), dist2.min()])
+    max_val = np.max([dist1.max(), dist2.max()])
+    bins = np.linspace(min_val, max_val, n_bins + 1)
+
+    # Calculate histograms for each distribution
+    histograms1 = np.histogram(dist1, bins=bins, density=True)[0] + epsilon
+    histograms2 = np.histogram(dist2, bins=bins, density=True)[0] + epsilon
+
+    # Calculate overlap matrix
+    return np.sum(np.minimum(histograms1, histograms2)) / np.sum(np.maximum(histograms1, histograms2))
+
+
+def calculate_kde_overlap_core(sample1, sample2, bw_method=None, x_min=None, x_max=None, num_points=1000):
     # Create the KDE objects
     kde1 = stats.gaussian_kde(sample1, bw_method=bw_method)
     kde2 = stats.gaussian_kde(sample2, bw_method=bw_method)
