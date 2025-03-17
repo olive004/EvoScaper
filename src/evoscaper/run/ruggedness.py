@@ -1,7 +1,8 @@
 
 
+import logging
 import argparse
-from typing import Dict, Optional
+from typing import Optional
 import numpy as np
 import pandas as pd
 import os
@@ -9,12 +10,13 @@ import jax.numpy as jnp
 import jax
 from functools import partial
 from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict, write_json
+from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from evoscaper.scripts.verify import full_sim_prep
 from evoscaper.scripts.cvae_scan import generate_all_fake_circuits
 from evoscaper.utils.evolution import calculate_ruggedness_from_perturbations
 from evoscaper.utils.math import make_flat_triangle
 from evoscaper.utils.preprocess import make_datetime_str
-from evoscaper.utils.simulation import make_rates, sim, load_config_bio, sim, prep_cfg, update_species_simulated_rates, setup_model_brn, compute_analytics
+from evoscaper.utils.simulation import load_config_bio, sim, prep_cfg, setup_model_brn, compute_analytics
 
 
 def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type, signal_species, config_bio,
@@ -78,7 +80,7 @@ def simulate_perturbations(interactions, x_type, signal_species, config_bio, inp
     # total_time = 1
     #
 
-    print('Starting sim')
+    logging.info('Starting sim')
     analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
                                             signal_onehot, signal_target,
@@ -123,7 +125,8 @@ def verify_rugg(fake_circuits,
                 analytics_og=None):
 
     resimulate_analytics = config['resimulate_analytics']
-    batch_size = int(np.ceil(batch_size / (fake_circuits.shape[-1] + resimulate_analytics)))
+    batch_size = int(
+        np.ceil(batch_size / (fake_circuits.shape[-1] + resimulate_analytics)))
     n_batches = int(np.max([1, np.ceil(len(fake_circuits) / batch_size)]))
     eps_perc = config['eps_perc']
     x_type = config['x_type']
@@ -132,7 +135,7 @@ def verify_rugg(fake_circuits,
     eps = eps_perc * np.abs(fake_circuits).max()
 
     for i in range(1, n_batches):
-        print(f'Batch {i}/{n_batches}')
+        logging.info(f'Batch {i}/{n_batches}')
         ii, ij = i * batch_size, (i + 1) * batch_size
         fake_circuits_batch = fake_circuits[ii:ij]
         top_write_dir_batch = os.path.join(top_write_dir, f'batch_{i}')
@@ -149,42 +152,59 @@ def verify_rugg(fake_circuits,
 
 
 def load_hpos(fn):
-    try: 
+    try:
         df_hpos = pd.read_json(fn)
     except ValueError:
-        hpos = pd.Series({k: (v) if isinstance(v, list) else v for k, v in load_json_as_dict(fn_df_hpos_loaded).items()})
+        hpos = pd.Series({k: (v) if isinstance(
+            v, list) else v for k, v in load_json_as_dict(fn_df_hpos_loaded).items()})
         df_hpos = pd.DataFrame(hpos).T
     if 'notebooks' in fn:
-        df_hpos['filenames_train_table'] = df_hpos['filenames_train_table'].apply(lambda x: os.path.join('notebooks', x.replace('./', '')))
-        df_hpos['filenames_verify_config'] = df_hpos['filenames_verify_config'].apply(lambda x: x.replace('../', ''))
+        df_hpos['filenames_train_table'] = df_hpos['filenames_train_table'].apply(
+            lambda x: os.path.join('notebooks', x.replace('./', '')))
+        df_hpos['filenames_train_config'] = df_hpos['filenames_train_config'].apply(
+            lambda x: x.replace('../', ''))
     return df_hpos
 
 
+def run_dataset(fn_ds, config_run, top_write_dir: str):
 
-def main(fn_df_hpos_loaded, config_run: dict):
+    data = pd.read_json(fn_ds) if fn_ds.endswith(
+        '.json') else pd.read_csv(fn_ds)
+    input_species = data['sample_name'].dropna().unique()
+    fn_config_bio = config_run['filenames_train_config']
+    config_bio = load_config_bio(
+        fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
 
-    top_write_dir = os.path.join(
-        'notebooks', 'data', 'ruggedness', make_datetime_str())
-    os.makedirs(top_write_dir, exist_ok=True)
-    
+    circuits = data[data['sample_name'] == input_species[0]][get_true_interaction_cols(
+        data, 'energies', remove_symmetrical=True)].values
+    batch_size = config_run['eval_batch_size']
+    verify_rugg(make_flat_triangle(circuits), config_run, config_bio,
+                input_species, batch_size, top_write_dir, analytics_og=None)
+
+
+def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
+
     df_hpos = load_hpos(fn_df_hpos_loaded)
     df_hpos['eval_n_to_sample'] = config_run['eval_n_to_sample']
     df_hpos['eval_cond_min'] = config_run['eval_cond_min']
     df_hpos['eval_cond_max'] = config_run['eval_cond_max']
     df_hpos['eval_n_categories'] = config_run['eval_n_categories']
 
-    datasets = {v: pd.read_json(v) for v in df_hpos['filenames_train_table'].unique() if os.path.exists(v)}
-    input_species = datasets[list(datasets.keys())[0]]['sample_name'].dropna().unique()
-    fn_config_bio = df_hpos['filenames_verify_config'].dropna().unique()[0]
-    config_bio = load_config_bio(fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
+    datasets = {v: pd.read_json(
+        v) for v in df_hpos['filenames_train_table'].unique() if os.path.exists(v)}
+    input_species = datasets[list(datasets.keys())[
+        0]]['sample_name'].dropna().unique()
+    fn_config_bio = df_hpos['filenames_train_config'].dropna().unique()[0]
+    config_bio = load_config_bio(
+        fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
 
     model_brn, qreactions, postprocs, ordered_species = setup_model_brn(
         config_bio, input_species)
 
-    batch_size = config_run['eval_batch_size']
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
-       df_hpos, datasets, input_species, postprocs)
+        df_hpos, datasets, input_species, postprocs)
 
+    batch_size = config_run['eval_batch_size']
     verify_rugg(make_flat_triangle(all_fake_circuits), config_run, config_bio,
                 input_species, batch_size, top_write_dir, analytics_og=None)
 
@@ -194,10 +214,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
+    parser.add_argument('--fn_ds', type=str, default=None,
+                        help='Path to dataset that you want to simulate directly on its own.')
     args = parser.parse_args()
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
+    fn_ds = args.fn_ds
     # fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
-    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
+    fn_df_hpos_loaded = None  # 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
+    fn_ds = 'data/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv'
 
     config_run = {
         'eps_perc': -1e-2,
@@ -208,9 +232,23 @@ if __name__ == "__main__":
         'eval_batch_size': int(3e5),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
-        'eval_cond_max': 1.2,   
+        'eval_cond_max': 1.2,
         'eval_n_categories': 10,
-        'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json'
+        'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
+        # 'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
+        # 'filenames_train_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
+        'filenames_train_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
     }
 
-    main(fn_df_hpos_loaded, config_run)
+    top_write_dir = os.path.join(
+        'notebooks', 'data', 'ruggedness', make_datetime_str())
+    os.makedirs(top_write_dir, exist_ok=True)
+
+    if fn_ds is not None:
+        logging.info(f'Simulating ruggedness only for dataset {fn_ds}')
+        run_dataset(fn_ds, config_run, top_write_dir)
+    elif fn_df_hpos_loaded is not None:
+        logging.info(f'Simulating ruggedness for model {fn_df_hpos_loaded}')
+        main(fn_df_hpos_loaded, config_run, top_write_dir)
+    else:
+        logging.info('Specify either fn_df_hpos_loaded or fn_ds')
