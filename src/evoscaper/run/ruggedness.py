@@ -117,25 +117,23 @@ def get_config_bio(config, fn_config_bio, input_species):
 
 
 def verify_rugg(fake_circuits,
-                config,
                 config_bio,
                 input_species,
                 batch_size,
+                eps_perc,
+                x_type,
+                signal_species,
+                analytic,
                 top_write_dir,
+                resimulate_analytics=True,
                 analytics_og=None):
 
-    resimulate_analytics = config['resimulate_analytics']
     batch_size = int(
         np.ceil(batch_size / (fake_circuits.shape[-1] + resimulate_analytics)))
     n_batches = int(np.max([1, np.ceil(len(fake_circuits) / batch_size)]))
-    eps_perc = config['eps_perc']
-    x_type = config['x_type']
-    signal_species = config['signal_species']
-    analytic = config['analytic']
-    eps = eps_perc * np.abs(fake_circuits).max()
 
-    for i in range(1, n_batches):
-        logging.info(f'Batch {i}/{n_batches}')
+    for i in range(n_batches):
+        logging.info(f'Batch {i+1}/{n_batches}')
         ii, ij = i * batch_size, (i + 1) * batch_size
         fake_circuits_batch = fake_circuits[ii:ij]
         top_write_dir_batch = os.path.join(top_write_dir, f'batch_{i}')
@@ -147,8 +145,8 @@ def verify_rugg(fake_circuits,
 
         write_json(analytics_perturbed, os.path.join(
             top_write_dir, 'analytics.json'))
-        for k, i in zip(['ruggedness.npy', 'ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ruggedness, ys, ts, y0m, y00s, ts0]):
-            np.save(os.path.join(top_write_dir_batch, k), i)
+        for k, ii in zip(['ruggedness.npy', 'ys.npy', 'ts.npy', 'y0m.npy', 'y00s.npy', 'ts0.npy'], [ruggedness, ys, ts, y0m, y00s, ts0]):
+            np.save(os.path.join(top_write_dir_batch, k), ii)
 
 
 def load_hpos(fn):
@@ -171,15 +169,22 @@ def run_dataset(fn_ds, config_run, top_write_dir: str):
     data = pd.read_json(fn_ds) if fn_ds.endswith(
         '.json') else pd.read_csv(fn_ds)
     input_species = data['sample_name'].dropna().unique()
-    fn_config_bio = config_run['filenames_train_config']
     config_bio = load_config_bio(
-        fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
+        config_run['filenames_train_config'], input_species, config_run.get('fn_simulation_settings'))
 
     circuits = data[data['sample_name'] == input_species[0]][get_true_interaction_cols(
         data, 'energies', remove_symmetrical=True)].values
-    batch_size = config_run['eval_batch_size']
-    verify_rugg(make_flat_triangle(circuits), config_run, config_bio,
-                input_species, batch_size, top_write_dir, analytics_og=None)
+    verify_rugg(circuits,
+                config_bio,
+                input_species,
+                config_run['eval_batch_size'],
+                config_run['eps_perc'],
+                config_run['x_type'],
+                config_run['signal_species'],
+                config_run['analytic'],
+                top_write_dir=top_write_dir,
+                resimulate_analytics=config_run['resimulate_analytics'],
+                analytics_og=None)
 
 
 def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
@@ -204,9 +209,17 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos, datasets, input_species, postprocs)
 
-    batch_size = config_run['eval_batch_size']
-    verify_rugg(make_flat_triangle(all_fake_circuits), config_run, config_bio,
-                input_species, batch_size, top_write_dir, analytics_og=None)
+    verify_rugg(make_flat_triangle(all_fake_circuits),
+                config_bio,
+                input_species,
+                config_run['eval_batch_size'],
+                config_run['eps_perc'],
+                config_run['x_type'],
+                config_run['signal_species'],
+                config_run['analytic'],
+                top_write_dir=top_write_dir,
+                resimulate_analytics=config_run['resimulate_analytics'],
+                analytics_og=None)
 
 
 if __name__ == "__main__":
@@ -229,7 +242,7 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'eval_batch_size': int(3e5),
+        'eval_batch_size': int(1e6),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
