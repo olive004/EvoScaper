@@ -247,6 +247,8 @@ if __name__ == "__main__":
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
+        'fn_df_hpos_loaded': fn_df_hpos_loaded,
+        'fn_ds': fn_ds,
         'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
         # 'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
         # 'filenames_train_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
