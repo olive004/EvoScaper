@@ -219,8 +219,8 @@ if __name__ == "__main__":
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
     fn_ds = args.fn_ds
     # fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
-    fn_df_hpos_loaded = None  # 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
-    fn_ds = 'data/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
+    fn_ds = None  # 'data/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv'
 
     config_run = {
         'eps_perc': -1e-2,
