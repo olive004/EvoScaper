@@ -18,6 +18,8 @@ from evoscaper.utils.math import make_flat_triangle
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import load_config_bio, sim, prep_cfg, setup_model_brn, compute_analytics
 
+jax.config.update('jax_platform_name', 'gpu')
+
 
 def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type, signal_species, config_bio,
                          analytics_original: Optional[np.ndarray], resimulate_analytics: bool, top_write_dir: str):
@@ -144,7 +146,7 @@ def load_hpos(fn):
     if 'notebooks' in fn:
         df_hpos['filenames_train_table'] = df_hpos['filenames_train_table'].apply(
             lambda x: os.path.join('notebooks', x.replace('./', '')))
-        df_hpos['filenames_train_config'] = df_hpos['filenames_train_config'].apply(
+        df_hpos['filenames_verify_config'] = df_hpos['filenames_verify_config'].apply(
             lambda x: x.replace('../', ''))
     return df_hpos
 
@@ -155,7 +157,7 @@ def run_dataset(fn_ds, config_run, top_write_dir: str):
         '.json') else pd.read_csv(fn_ds)
     input_species = data['sample_name'].dropna().unique()
     config_bio = load_config_bio(
-        config_run['filenames_train_config'], input_species, config_run.get('fn_simulation_settings'))
+        config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
 
     circuits = data[data['sample_name'] == input_species[0]][get_true_interaction_cols(
         data, 'energies', remove_symmetrical=True)].values
@@ -184,7 +186,7 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
         v) for v in df_hpos['filenames_train_table'].unique() if os.path.exists(v)}
     input_species = datasets[list(datasets.keys())[
         0]]['sample_name'].dropna().unique()
-    fn_config_bio = df_hpos['filenames_train_config'].dropna().unique()[0]
+    fn_config_bio = df_hpos['filenames_verify_config'].dropna().unique()[0]
     config_bio = load_config_bio(
         fn_config_bio, input_species, config_run.get('fn_simulation_settings'))
 
@@ -228,7 +230,7 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'eval_batch_size': int(1e6),
+        'eval_batch_size': int(5e5),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
@@ -236,9 +238,9 @@ if __name__ == "__main__":
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'fn_ds': fn_ds,
         'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
-        # 'filenames_train_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
-        # 'filenames_train_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
-        'filenames_train_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
+        # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
+        # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
+        'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
     }
 
     top_write_dir = os.path.join(
