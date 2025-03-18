@@ -58,7 +58,7 @@ def calc_prompt_adherence(pred, real, perc_recall):
 
     diff = jnp.abs(pred - real)
     thresh_recall = jnp.expand_dims(
-        jnp.max(diff, axis=1) * perc_recall, axis=1)
+        jnp.nanmax(diff, axis=1) * perc_recall, axis=1)
     n_prompts_uniq = pred.shape[0]
 
     n_positives_inclass = jnp.nansum(diff < thresh_recall, axis=1)
@@ -568,6 +568,12 @@ def calculate_binned_overlap(dist1, dist2, n_bins=50, epsilon=1e-8):
 
 
 def calculate_kde_overlap_core(sample1, sample2, bw_method=None, x_min=None, x_max=None, num_points=1000):
+    sample1 = sample1[~np.isnan(sample1) & ~np.isinf(sample1)] 
+    sample2 = sample2[~np.isnan(sample2) & ~np.isinf(sample2)] 
+    
+    if len(sample1) == 0 or len(sample2) == 0:
+        return np.nan
+    
     # Create the KDE objects
     kde1 = stats.gaussian_kde(sample1, bw_method=bw_method)
     kde2 = stats.gaussian_kde(sample2, bw_method=bw_method)
