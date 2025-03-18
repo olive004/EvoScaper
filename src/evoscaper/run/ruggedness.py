@@ -256,6 +256,8 @@ if __name__ == "__main__":
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())
     os.makedirs(top_write_dir, exist_ok=True)
+    
+    write_json(config_run, os.path.join(top_write_dir, 'config_run.json'))
 
     if fn_ds is not None:
         logging.info(f'Simulating ruggedness only for dataset {fn_ds}')
