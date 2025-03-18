@@ -13,7 +13,7 @@ from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict
 from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from evoscaper.scripts.verify import full_sim_prep
 from evoscaper.scripts.cvae_scan import generate_all_fake_circuits
-from evoscaper.utils.evolution import calculate_ruggedness_from_perturbations
+from evoscaper.utils.evolution import calculate_ruggedness_core
 from evoscaper.utils.math import make_flat_triangle
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import load_config_bio, sim, prep_cfg, setup_model_brn, compute_analytics
@@ -37,23 +37,8 @@ def calculate_ruggedness(interactions, eps_perc, analytic, input_species, x_type
     write_json(analytics_perturbed, os.path.join(
         top_write_dir, 'analytics.json'))
 
-    analytic_perturbed = jnp.array(
-        analytics_perturbed[analytic]).reshape(n_samples, n_perturbs, -1)
-    if resimulate_analytics:
-        analytic_perturbed = analytic_perturbed[:, :-1, :]
-        analytic_og = analytic_perturbed[:, -1, :]
-    elif analytics_original is not None:
-        analytic_og = np.array(analytics_original[analytic][:n_samples])
-    else:
-        analytic_og = np.zeros_like(analytic_perturbed[:, -1, :])
-
-    # If loaded from previous data where not all analytics were saved
-    if analytic_perturbed.shape[-1] != analytic_og.shape[-1]:
-        analytic_perturbed = analytic_perturbed[..., -analytic_og.shape[-1]:]
-
-    ruggedness = jax.vmap(partial(calculate_ruggedness_from_perturbations, eps=eps))(
-        analytic_perturbed, analytic_og[:, None, :])
-
+    ruggedness = calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
+                                           resimulate_analytics, n_samples, n_perturbs, eps)
     return ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0)
 
 
@@ -209,6 +194,7 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos, datasets, input_species, postprocs)
 
+    np.save(os.path.join(top_write_dir, 'all_fake_circuits.npy'), all_fake_circuits)
     verify_rugg(make_flat_triangle(all_fake_circuits),
                 config_bio,
                 input_species,
@@ -258,8 +244,8 @@ if __name__ == "__main__":
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())
     os.makedirs(top_write_dir, exist_ok=True)
-    
-    write_json(config_run, os.path.join(top_write_dir, 'config_run.json'))
+
+    write_json(config_run, os.path.join(top_write_dir, 'config.json'))
 
     if fn_ds is not None:
         logging.info(f'Simulating ruggedness only for dataset {fn_ds}')
