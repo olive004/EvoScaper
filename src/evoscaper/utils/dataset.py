@@ -91,10 +91,10 @@ def prep_data(data, output_species, col_y, cols_x, filter_settings: FilterSettin
 
 
 def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=True, zero_log_replacement=-10.0):
-    if 'adaptation' not in data:
-        data['adaptation'] = calculate_adaptation(
-            s=np.array(data['sensitivity']),
-            p=np.array(data['precision']))
+    # if 'adaptation' not in data:
+    data['adaptation'] = calculate_adaptation(
+        s=np.array(data['sensitivity']),
+        p=np.array(data['precision']), alpha=2)
     if 'overshoot/initial' not in data:
         data['overshoot/initial'] = data['overshoot'] / \
             data['initial_steady_states']

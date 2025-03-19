@@ -108,7 +108,7 @@ def verify(params, rng, decoder,
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='layer', save_path=os.path.join(top_write_dir, 'sens_layer.png'))
         vis_sampled_histplot(analytics['sensitivity'], all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Sensitivity of generated circuits', x_label=f'Log10 of sensitivity to signal {signal_species}', multiple='fill', save_path=os.path.join(top_write_dir, 'sens_fill.png'))
-        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity'], analytics['precision']), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
+        vis_sampled_histplot(calculate_adaptation(analytics['sensitivity'], analytics['precision'], alpha=2), all_species, output_species, category_array=sampled_cond[..., idx_obj].reshape(np.prod(sampled_cond.shape[:-1]), -1),
                              title=f'Adaptation of generated circuits', x_label=f'Adaptation to signal {signal_species}', multiple='layer', save_path=os.path.join(top_write_dir, 'adapt_layer.png'))
     save(top_write_dir, analytics, ys, ts, y0m,
          y00s, ts0, fake_circuits, sampled_cond)

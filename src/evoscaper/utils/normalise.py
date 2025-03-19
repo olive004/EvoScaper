@@ -89,8 +89,8 @@ class DataNormalizer:
             - Scaled data
             - Metadata for reversing the transformation
         """
-        min_val = jnp.min(data, axis=0)
-        max_val = jnp.max(data, axis=0)
+        min_val = jnp.nanmin(data, axis=0)
+        max_val = jnp.nanmax(data, axis=0)
 
         # Prevent division by zero
         scale = max_val - min_val
@@ -440,7 +440,7 @@ class ContinuousToCategorical:
         # Compute bin edges based on method
         if method == 'equal_width':
             # Initial equal-width binning
-            min_val, max_val = jnp.min(data), jnp.max(data)
+            min_val, max_val = jnp.nanmin(data), jnp.nanmax(data)
             bin_edges = jnp.linspace(min_val, max_val, n_bins + 1)
         elif method == 'equal_frequency':
             # Percentile-based binning
@@ -527,8 +527,8 @@ class ContinuousToCategorical:
                 'count': jnp.sum(bin_mask),
                 'mean': jnp.mean(bin_data) if bin_data.size > 0 else None,
                 'median': jnp.median(bin_data) if bin_data.size > 0 else None,
-                'min': jnp.min(bin_data) if bin_data.size > 0 else None,
-                'max': jnp.max(bin_data) if bin_data.size > 0 else None,
+                'min': jnp.nanmin(bin_data) if bin_data.size > 0 else None,
+                'max': jnp.nanmax(bin_data) if bin_data.size > 0 else None,
                 'bin_range': (bin_edges[bin_label], bin_edges[bin_label + 1])
             }
 
@@ -583,8 +583,8 @@ def main_normalise():
     min_max_scaled = normer.min_max_scaling(jax_data)
     reconstructed_minmax = normer.inverse_min_max_scaling(
         min_max_scaled)
-    print("Original Data Min:", jnp.min(jax_data, axis=0))
-    print("Reconstructed Data Min:", jnp.min(reconstructed_minmax, axis=0))
+    print("Original Data Min:", jnp.nanmin(jax_data, axis=0))
+    print("Reconstructed Data Min:", jnp.nanmin(reconstructed_minmax, axis=0))
     print("Mean Difference:", jnp.mean(
         jnp.abs(jax_data - reconstructed_minmax)))
 
