@@ -18,6 +18,21 @@ def arrayise(d):
     return d
 
 
+def bin_array(data, num_bins=10):
+    original_shape = data.shape
+    flattened_data = data.flatten()
+    min_val = np.nanmin(flattened_data[~np.isinf(flattened_data)])
+    max_val = np.nanmax(flattened_data[~np.isinf(flattened_data)])
+    bin_edges = np.linspace(min_val, max_val, num_bins + 1)
+    bin_means = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in range(num_bins)]
+    bin_indices = np.clip(np.digitize(flattened_data, bin_edges) - 1, 0, num_bins - 1)
+    binned_data = np.array([bin_means[idx] for idx in bin_indices])
+    binned_data = binned_data.reshape(original_shape)
+    bin_labels = [f"Bin {i}: [{bin_edges[i]:.2f}, {bin_edges[i+1]:.2f}), Mean: {bin_means[i]:.2f}"
+                 for i in range(num_bins)]
+    return binned_data, bin_edges, bin_labels
+
+
 def bin_to_nearest_edge(x: np.ndarray, n_bins):
     """ Bin the elements in x to the nearest lowest bin """
     edges = np.linspace(x.min(), x.max(), n_bins)

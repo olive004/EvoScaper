@@ -59,6 +59,14 @@ def construct_binding_img_complex(binding_idxs: list, seq_length: int, sequence_
     return img
 
 
+def format_with_subscript(text):
+    """Convert text like 'RNA_0' to 'RNA₀' with proper subscript formatting"""
+    if '_' in text:
+        base, subscript = text.split('_', 1)
+        return f"{base}$_{{{subscript}}}$"
+    return text
+
+
 def make_datetime_str():
     return str(datetime.now()).split(' ')[0].replace(
         '-', '_') + '__' + str(datetime.now()).split(' ')[-1].split('.')[0].replace(':', '_')
