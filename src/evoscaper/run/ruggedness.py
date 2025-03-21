@@ -197,6 +197,11 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
         df_hpos, datasets, input_species, postprocs)
 
     np.save(os.path.join(top_write_dir, 'all_fake_circuits.npy'), all_fake_circuits)
+    if type(all_sampled_cond) == dict:
+        [os.makedirs(os.path.join(top_write_dir, k), exist_ok=True) for k, v in all_sampled_cond.items()]
+        [np.save(os.path.join(top_write_dir, k, 'all_sampled_cond.npy'), v) for k, v in all_sampled_cond.items()]
+    else:
+        np.save(os.path.join(top_write_dir, 'all_sampled_cond.npy'), all_sampled_cond)
     verify_rugg(make_flat_triangle(all_fake_circuits),
                 config_bio,
                 input_species,

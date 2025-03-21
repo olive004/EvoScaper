@@ -37,24 +37,24 @@ def load_data(config_dataset: DatasetConfig):
     # if config_dataset.use_test_data:
     #     data_test = load(config_dataset.filenames_verify_table)
     # try:
-    X_COLS = make_xcols(data, config_dataset.x_type,
+    x_cols = make_xcols(data, config_dataset.x_type,
                         config_dataset.include_diffs)
     # except AssertionError as e:
     #     print(f'Warning: {e}')
     #     print('Going to create interaction names instead of getting them from the data.')
-    #     X_COLS = create_interaction_cols(config_dataset.x_type,
+    #     x_cols = create_interaction_cols(config_dataset.x_type,
     #                                      data['sample_name'].dropna().nunique(), remove_symmetrical=True)
-    return data, X_COLS
+    return data, x_cols
 
 
-def init_data(data, x_cols: Iterable[str], objective_cols: Iterable[str], OUTPUT_SPECIES: list,
+def init_data(data, x_cols: Iterable[str], objective_cols: Iterable[str], output_species: list,
               TOTAL_DS_MAX, BATCH_SIZE, rng,
               x_norm_settings: NormalizationSettings,
               y_norm_settings: NormalizationSettings,
               filter_settings: FilterSettings
               ):
 
-    df = prep_data(data, OUTPUT_SPECIES, objective_cols,
+    df = prep_data(data, output_species, objective_cols,
                    x_cols, filter_settings)
     TOTAL_DS, N_BATCHES, BATCH_SIZE = adjust_total_ds(
         df, BATCH_SIZE, TOTAL_DS_MAX)
@@ -115,11 +115,11 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
 
 
 # Make xy
-def make_xy(df, TOTAL_DS, X_COLS, objective_cols: Iterable[str],
+def make_xy(df, TOTAL_DS, x_cols, objective_cols: Iterable[str],
             x_norm_settings, y_norm_settings):
 
     x, x_datanormaliser, x_methods_preprocessing = make_x(
-        df, X_COLS, x_norm_settings)
+        df, x_cols, x_norm_settings)
     cond, y_datanormaliser, y_methods_preprocessing = make_y(
         df, objective_cols, y_norm_settings)
 
@@ -133,8 +133,8 @@ def make_xy(df, TOTAL_DS, X_COLS, objective_cols: Iterable[str],
     return x, cond, x_datanormaliser, x_methods_preprocessing, y_datanormaliser, y_methods_preprocessing
 
 
-def make_x(df, X_COLS, x_norm_settings):
-    x = [df[i].values[:, None] for i in X_COLS]
+def make_x(df, x_cols, x_norm_settings):
+    x = [df[i].values[:, None] for i in x_cols]
     x = np.concatenate(x, axis=-1).squeeze()
 
     x_datanormaliser, x_methods_preprocessing = make_chain_f(x_norm_settings)
@@ -187,12 +187,12 @@ def make_training_data(x, cond, train_split, n_batches, batch_size):
 
 # Balance preprocess
 
-def filter_invalids(data, OUTPUT_SPECIES, X_COLS, objective_cols, filter_settings: FilterSettings):
+def filter_invalids(data, output_species, x_cols, objective_cols, filter_settings: FilterSettings):
 
     # Sensitivity and precision
-    filt = data['sample_name'].isin(OUTPUT_SPECIES)
+    filt = data['sample_name'].isin(output_species)
     if filter_settings.filt_x_nans:
-        filt = filt & data[X_COLS].notna().all(axis=1)
+        filt = filt & data[x_cols].notna().all(axis=1)
     if filter_settings.filt_y_nans:
         for k in objective_cols:
             filt = filt & data[k].notna() & (
@@ -234,7 +234,7 @@ def reduce_repeat_samples(df, cols, n_same_circ_max: int = 1, nbin=None):
     return df
 
 
-def reduce_repeat_samples_old(rng, df, X_COLS, n_same_circ_max: int = 1, nbin=None):
+def reduce_repeat_samples_old(rng, df, x_cols, n_same_circ_max: int = 1, nbin=None):
     df = df.reset_index(drop=True)
 
     n_same_circ_max = 100
@@ -242,8 +242,8 @@ def reduce_repeat_samples_old(rng, df, X_COLS, n_same_circ_max: int = 1, nbin=No
     def agg_func(x): return np.sum(x, axis=1)
     def agg_func(x): return tuple(x)
 
-    df.loc[:, X_COLS] = df[X_COLS].apply(lambda x: np.round(x, 1))
-    df_bal = balance_dataset(rng, df, cols=X_COLS, nbin=nbin,
+    df.loc[:, x_cols] = df[x_cols].apply(lambda x: np.round(x, 1))
+    df_bal = balance_dataset(rng, df, cols=x_cols, nbin=nbin,
                              bin_max=n_same_circ_max, use_log=False, func1=agg_func)
     df_bal = df_bal.reset_index(drop=True)
     return df_bal
