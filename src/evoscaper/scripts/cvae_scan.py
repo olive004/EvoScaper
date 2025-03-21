@@ -22,7 +22,7 @@ from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_mod
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import prep_data, concat_conds, load_by_fn, init_data, make_training_data
-from evoscaper.utils.math import make_batch_symmetrical_matrices, make_flat_triangle
+from evoscaper.utils.math import make_batch_symmetrical_matrices, make_flat_triangle, arrayise
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
@@ -367,6 +367,12 @@ def get_input_species(data):
     return data[data['sample_name'].notna()]['sample_name'].unique()
 
 
+def load_params(fn_saves):
+    saves_loaded = load_json_as_dict(fn_saves)
+    params = saves_loaded[str(list(saves_loaded.keys())[-1])]['params']
+    return arrayise(params)
+
+
 def sample_models(hpos, datasets):
     """Run hyperparameter optimization for a single set of parameters"""
     data = datasets[hpos['filenames_train_table']]
@@ -392,8 +398,11 @@ def sample_models(hpos, datasets):
 
     # Init model
     config_model = make_config_model(x, hpos)
-    params, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
+    
+    params_init, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
         rng_model, x, cond, config_model)
+    
+    params = load_params(hpos['filename_saved_model'])
 
     # Generate fake circuits
     n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos[

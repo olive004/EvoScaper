@@ -225,9 +225,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
     fn_ds = args.fn_ds
-    # fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
-    fn_df_hpos_loaded = None  # 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
-    fn_ds = 'data/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv'
+    
+    # fn_saves = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
+    try:
+        fn_saves = [i for i in os.listdir(os.path.dirname(fn_df_hpos_loaded)) if i.startswith('save')][0]
+    except:
+        fn_saves = None
+    fn_ds = None  # 'data/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv'
 
     config_run = {
         'eps_perc': -1e-2,
@@ -240,6 +245,7 @@ if __name__ == "__main__":
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
+        'fn_saves': fn_saves,
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'fn_ds': fn_ds,
         'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
