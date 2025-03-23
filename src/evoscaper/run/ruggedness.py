@@ -198,8 +198,8 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
 
     np.save(os.path.join(top_write_dir, 'all_fake_circuits.npy'), all_fake_circuits)
     if type(all_sampled_cond) == dict:
-        [os.makedirs(os.path.join(top_write_dir, k), exist_ok=True) for k, v in all_sampled_cond.items()]
-        [np.save(os.path.join(top_write_dir, k, 'all_sampled_cond.npy'), v) for k, v in all_sampled_cond.items()]
+        [os.makedirs(os.path.join(top_write_dir, str(k)), exist_ok=True) for k, v in all_sampled_cond.items()]
+        [np.save(os.path.join(top_write_dir, str(k), 'all_sampled_cond.npy'), v) for k, v in all_sampled_cond.items()]
     else:
         np.save(os.path.join(top_write_dir, 'all_sampled_cond.npy'), all_sampled_cond)
     verify_rugg(make_flat_triangle(all_fake_circuits),
@@ -240,7 +240,7 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'eval_batch_size': int(5e5),
+        'eval_batch_size': int(1e6),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
