@@ -402,7 +402,10 @@ def sample_models(hpos, datasets):
     params_init, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
         rng_model, x, cond, config_model)
     
-    params = load_params(hpos['filename_saved_model'])
+    try:
+        params = load_params(hpos['filename_saved_model'])
+    except:
+        params = load_params(os.path.join('notebooks', hpos['filename_saved_model']))
 
     # Generate fake circuits
     n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos[
