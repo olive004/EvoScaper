@@ -56,7 +56,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
-        'eval_batch_size': int(5e5),
+        'eval_batch_size': int(1e5),
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
     }
     max_n_categories_multi = 5
@@ -76,9 +76,9 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic.json',
+    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250324.json',
                         help='Path to basic settings JSON file')
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
@@ -87,5 +87,5 @@ if __name__ == "__main__":
     fn_basic = args.fn_basic
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_06__16_27_57/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_06__16_27_57/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)

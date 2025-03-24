@@ -1,0 +1,8 @@
+{
+    "hpos_to_vary_from_og": [
+    ],
+    "hpos_to_vary_together": [{
+        "temperature": [0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
+        "seed_train": [1, 2, 3, 4, 5]
+    }]
+}
