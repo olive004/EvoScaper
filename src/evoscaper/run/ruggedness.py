@@ -240,7 +240,7 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'analytic': 'Log sensitivity',
-        'eval_batch_size': int(1e6),
+        'eval_batch_size': int(1e5),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,

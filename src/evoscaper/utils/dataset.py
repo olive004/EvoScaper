@@ -101,6 +101,8 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
     if transform_sensitivity_nans:
         data['sensitivity'] = np.where(np.isnan(
             data['sensitivity']), 0, data['sensitivity'])
+    if 'Log ruggedness (Log sensensitivity)' in data and (type(data) == pd.DataFrame):
+        data.rename(columns={'Log ruggedness (Log sensensitivity)': 'Log ruggedness (Log sensitivity'}, inplace=True)
 
     def make_log(k, data):
         data[f'Log {k.split("_")[0]}'] = np.where(
