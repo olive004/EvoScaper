@@ -23,6 +23,10 @@ class DatasetConfig:
     def __post_init__(self):
         self.objective_col = [self.objective_col] if isinstance(
             self.objective_col, str) else list(self.objective_col)
+        if type(self.output_species) == str:
+            self.output_species = [self.output_species]
+        if type(self.signal_species) == str:
+            self.signal_species = [self.signal_species]
 
 
 @dataclass
