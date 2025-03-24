@@ -225,9 +225,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
     fn_ds = args.fn_ds
-    
-    # fn_saves = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_12__16_14_02_ds0211_srugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva97'
-    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_12__16_14_02/hpos_all.json'
+
+    # fn_saves = 'notebooks/data/01_cvae/2025_03_12__16_14_02/saves_2025_03_21__16_12_51_ds0211_ruggsens_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_21__16_12_51/hpos_all.json'
     try:
         fn_saves = [i for i in os.listdir(os.path.dirname(fn_df_hpos_loaded)) if i.startswith('save')][0]
     except:
