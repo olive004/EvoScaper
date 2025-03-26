@@ -86,7 +86,8 @@ def calculate_kl_divergence(feature, sampled_cond_binned, nbins=30):
         print(f'{len(unique_conds)} unique conditions, this may take a while')
 
     # Define consistent bins across all histograms
-    min_val, max_val = np.min(feature), np.max(feature)
+    filt_inf = np.where(np.isfinite(feature))
+    min_val, max_val = np.nanmin(feature[filt_inf]), np.nanmax(feature[filt_inf])
     # 30 bins requires 31 bin edges
     bins = np.linspace(min_val, max_val, nbins + 1)
 

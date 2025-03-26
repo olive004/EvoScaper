@@ -43,7 +43,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
-    df_hpos_main = df_hpos #.iloc[:2]
+    df_hpos_main = df_hpos #.iloc[52:]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -89,4 +89,5 @@ if __name__ == "__main__":
     fn_df_hpos_loaded = args.fn_df_hpos_loaded
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_06__16_27_57/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_24__17_11_20/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
