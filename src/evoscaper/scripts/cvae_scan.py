@@ -554,7 +554,7 @@ def sim_all_models(config_multisim,
             config_bio, model_brn, qreactions, ordered_species,
             results_dir)
         logging.info(
-            f'Simulation complete for batch {i+1} of {n_batches} (took {time_sim - time_start})')
+            f'Simulation complete for batch {i+1} of {n_batches} (took {datetime.now() - time_sim})')
 
         # Save results
         save(results_dir, analytics, ys, ts, y0m, y00s, ts0)
