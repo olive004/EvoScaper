@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Optional
 from copy import deepcopy
 from bioreaction.model.data_containers import BasicModel
 from bioreaction.model.data_containers import QuantifiedReactions
@@ -130,7 +130,7 @@ def test_conditionality(params, rng, decoder,
         overlaps = np.min(overlaps, axis=0)
         overlaps_nodiag = overlaps[~np.eye(overlaps.shape[0], dtype=bool)
                          ].reshape(overlaps.shape[0], -1)
-        kde_overlaps[obj_col] = {'mean': overlaps_nodiag.mean(axis=1),
+        kde_overlaps['Overlap ' + obj_col] = {'mean': overlaps_nodiag.mean(axis=1),
                                  'std': overlaps_nodiag.std(axis=1)}
 
     return mi, kls, kde_overlaps
@@ -232,7 +232,7 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
     return r2_test, mi, kl_div_ave, kde_overlap, latent_stats
 
 
-def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, kl_div_ave: float, latent_stats: Dict[str, float], n_layers_enc, n_layers_dec, info_early_stop):
+def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_test, mutual_information_conditionality, kl_div_ave: float, kde_overlap: Optional[dict], latent_stats: Dict[str, float], n_layers_enc, n_layers_dec, info_early_stop):
     for k, v in zip(
         ['filename_saved_model', 'total_ds', 'n_batches', 'R2_train', 'R2_test',
             'mutual_information_conditionality', 'kl_div_ave', 'n_layers_enc', 'n_layers_dec', 'info_early_stop'],
@@ -241,6 +241,10 @@ def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_tes
 
     for k, v in latent_stats.items():
         hpos[k] = v
+        
+    if kde_overlap is not None:
+        for k, v in kde_overlap.items():
+            hpos[k] = v
     return hpos
 
 
@@ -283,7 +287,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
                                                               y_datanormaliser, y_methods_preprocessing, visualise=not (debug))
 
     # Save stats
-    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, latent_stats,
+    hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, kde_overlap, latent_stats,
                       len(config_model.enc_layers), len(config_model.dec_layers), info_early_stop)
 
     # Verification
