@@ -478,7 +478,7 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
 
     fake_circuits_list = [None] * n_runs
     z_list = [None] * n_runs
-    cond_list = [None] * n_runs
+    sampled_cond_list = [None] * n_runs
     forward_rates_list = [None] * n_runs
     reverse_rates_list = [None] * n_runs
 
@@ -495,7 +495,7 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
 
         fake_circuits_list[idx] = fake_circuits_reshaped
         # z_list[idx] = z
-        cond_list[idx] = sampled_cond
+        sampled_cond_list[idx] = sampled_cond
         forward_rates_list[idx] = forward_rates
         reverse_rates_list[idx] = reverse_rates
 
@@ -504,9 +504,10 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
     all_forward_rates = np.concatenate(forward_rates_list, axis=0)
     all_reverse_rates = np.concatenate(reverse_rates_list, axis=0)
     # all_z = dict(zip(successful_runs.index.tolist(), z_list))
-    all_sampled_cond = dict(zip(successful_runs.index.tolist(), cond_list))
+    # all_sampled_cond = dict(zip(successful_runs.index.tolist(), sampled_cond_list))
+    all_sampled_cond = np.concatenate(sampled_cond_list, axis=0)
 
-    del fake_circuits_list, z_list, cond_list, forward_rates_list, reverse_rates_list
+    del fake_circuits_list, z_list, sampled_cond_list, forward_rates_list, reverse_rates_list
 
     return all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond  # , all_z
 
