@@ -43,7 +43,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
-    df_hpos_main = df_hpos #.iloc[52:]
+    df_hpos_main = df_hpos.iloc[63:]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -72,7 +72,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         
     write_json(config_multisim, fn_config_multisim)
     logging.info(f'\nRunning CVAE scan with {len(df_hpos_main)} models and {config_multisim["eval_n_to_sample"] * len(df_hpos_main)} total samples\n')
-    cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False)
+    cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False, visualise=False)
 
 
 if __name__ == "__main__":
@@ -90,4 +90,5 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_03__21_33_13/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_06__16_27_57/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_24__17_11_20/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_27__16_33_11/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
