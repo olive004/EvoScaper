@@ -1,3 +1,4 @@
+import gc
 import logging
 from typing import Callable, List, Dict, Optional
 from copy import deepcopy
@@ -248,7 +249,8 @@ def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_tes
     return hpos
 
 
-def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=False, debug=False):
+def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=False, debug=False,
+                     visualise=True):
 
     (
         rng, rng_model, rng_dataset,
@@ -284,7 +286,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
                                                               config_dataset, config_norm_x, config_norm_y, config_model,
                                                               x_cols, config_filter, top_write_dir,
                                                               x_datanormaliser, x_methods_preprocessing,
-                                                              y_datanormaliser, y_methods_preprocessing, visualise=not (debug))
+                                                              y_datanormaliser, y_methods_preprocessing, visualise=(not(debug) or visualise))
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, kde_overlap, latent_stats,
@@ -316,7 +318,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
     return hpos
 
 
-def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=False):
+def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=False, visualise=True):
     for i in range(len(df_hpos)):
         hpos = df_hpos.reset_index().iloc[i]
         if (hpos.loc['run_successful'] != 'TO_BE_RECORDED') or (hpos.loc['R2_train'] != 'TO_BE_RECORDED'):
@@ -326,11 +328,13 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
         # hpos['use_grad_clipping'] = True
         if debug:
             hpos = cvae_scan_single(
-                hpos, top_write_dir=top_write_dir, skip_verify=skip_verify)
+                hpos, top_write_dir=top_write_dir, skip_verify=skip_verify,
+                visualise=visualise)
         else:
             try:
                 hpos = cvae_scan_single(
-                    hpos, top_write_dir=top_write_dir, skip_verify=skip_verify)
+                    hpos, top_write_dir=top_write_dir, skip_verify=skip_verify,
+                    visualise=visualise)
                 hpos.loc['run_successful'] = True
                 hpos.loc['error_msg'] = ''
             except Exception as e:
@@ -339,7 +343,8 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                     try:
                         hpos['use_grad_clipping'] = True
                         hpos = cvae_scan_single(
-                            hpos, top_write_dir=top_write_dir)
+                            hpos, top_write_dir=top_write_dir,
+                            visualise=visualise)
                         hpos.loc['run_successful'] = True
                         hpos.loc['error_msg'] = ''
                     except Exception as e:
@@ -364,6 +369,7 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
         df_hpos.to_csv(os.path.join(top_dir, 'df_hpos.csv'))
         write_json(df_hpos.to_dict(), os.path.join(
             top_dir, 'df_hpos.json'), overwrite=True)
+        gc.collect()
     return df_hpos
 
 
@@ -562,12 +568,12 @@ def sim_all_models(config_multisim,
     return analytics, ys, ts, y0m, y00s, ts0, all_fake_circuits, all_sampled_cond
 
 
-def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR, debug=False):
+def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_dir=TOP_WRITE_DIR, debug=False, visualise=True):
     """Run multiple CVAE scans and evaluate generated circuits"""
     os.makedirs(top_write_dir, exist_ok=True)
 
     # First run all models and save results
-    df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True, debug=debug)
+    df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True, debug=debug, visualise=visualise)
 
     # Global options
     config_multisim = load_json_as_dict(fn_config_multisim)
