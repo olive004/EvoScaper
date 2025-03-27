@@ -210,8 +210,18 @@ def vis_histplot_combined_realfake(
     plt.suptitle(f'CVAE: circuit comparison fake vs. real ({k})', fontsize=14)
 
 
+def make_nx_weights(energies, n_nodes):
+    energies_mod = np.interp(
+        energies, (energies.min(), energies.max()), (1, 0))
+    keys = [tuple(sorted(ii)) for ii in zip(*[(i + 1).tolist()
+                                              for i in np.triu_indices(n_nodes)])]
+    weights = dict(zip(keys, energies_mod.round(2).tolist()))
+    return weights
+
+
 def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
-                         edge_weights=None, node_color='lightblue', n_nodes=3):
+                         edge_weights=None, node_color='lightblue', n_nodes=3,
+                         linewidth=1.5):
     """
     Creates a 3-node network with curved bidirectional edges and extended self-loops.
 
@@ -251,15 +261,16 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
     # Position nodes in an equilateral triangle
     scale = 0.9  # Reduced to give more room for loops
     pos_nodes = {
-        1: (-scale/2, -scale/2),
-        2: (scale/2, -scale/2),
-        3: (0, scale/2)
+        3: (-scale/2, -scale/2),
+        1: (scale/2, -scale/2),
+        2: (0, scale/3)
     }
 
     # Draw nodes
     node_size = 400
     nx.draw_networkx_nodes(G, pos_nodes, node_color=node_color,
-                           node_size=node_size, ax=inset_axes)
+                           node_size=node_size, ax=inset_axes,
+                           edgecolors='black')
 
     # Define edge styles
     curved_rad = 0.3     # Curvature of edges between nodes
@@ -277,7 +288,7 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
 
             # Draw self-loops with extended radius
             nx.draw_networkx_edges(G, pos_nodes, edgelist=[(u, v)],
-                                   alpha=weight, width=1.5,
+                                   alpha=weight, width=linewidth,
                                    arrowsize=10,
                                    connectionstyle=f'arc3, rad={rad}',
                                    arrowstyle='-|>',
@@ -289,7 +300,7 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
             weight = weight / 2
 
             nx.draw_networkx_edges(G, pos_nodes, edgelist=[(u, v)],
-                                   alpha=weight, width=1.5,
+                                   alpha=weight, width=linewidth,
                                    arrowsize=10,
                                    connectionstyle=f'arc3, rad={rad}',
                                    arrowstyle='<|-|>',
