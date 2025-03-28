@@ -495,8 +495,8 @@ def KL_per_dist(P, Q):
 def calculate_distributional_overlap(distributions, dist_type='kde'):
     epsilon = 1e-8
     distributions = np.interp(
-        distributions, (distributions.min(), distributions.max()), (epsilon, 1))
-    distributions = distributions / np.sum(distributions)  # , axis=1)[:, None]
+        distributions, (np.nanmin(distributions), np.nanmax(distributions)), (epsilon, 1))
+    distributions = distributions / np.nansum(distributions)  # , axis=1)[:, None]
 
     if dist_type == 'kde':
         f = calculate_kde_overlap_core

@@ -23,7 +23,7 @@ from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_mod
 from evoscaper.scripts.verify import verify
 from evoscaper.utils.dataclasses import DatasetConfig, FilterSettings, ModelConfig, NormalizationSettings, OptimizationConfig, TrainingConfig
 from evoscaper.utils.dataset import prep_data, concat_conds, load_by_fn, init_data, make_training_data
-from evoscaper.utils.math import make_batch_symmetrical_matrices, make_flat_triangle, arrayise
+from evoscaper.utils.math import make_batch_symmetrical_matrices, arrayise
 from evoscaper.utils.normalise import DataNormalizer
 from evoscaper.utils.optimiser import make_optimiser
 from evoscaper.utils.preprocess import make_datetime_str, make_xcols
