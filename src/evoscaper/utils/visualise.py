@@ -2,6 +2,7 @@
 
 from typing import List
 import numpy as np
+import jax
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -55,9 +56,11 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         df_s = pd.DataFrame(columns=[x_label] + [f'VAE conditional input {ii}' for ii in range(category_array.shape[-1])],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
-            df_s[f'VAE conditional input {ii}'] = df_s[f'VAE conditional input {ii}'].astype(float).apply(lambda x: f'{x:.2f}')
-        df_s['VAE conditional input'] = df_s[[f'VAE conditional input {ii}' for ii in range(category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
-            
+            df_s[f'VAE conditional input {ii}'] = df_s[f'VAE conditional input {ii}'].astype(
+                float).apply(lambda x: f'{x:.2f}')
+        df_s['VAE conditional input'] = df_s[[f'VAE conditional input {ii}' for ii in range(
+            category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
+
         ax = plt.subplot(1, 2, i+1)
         f(df_s, x=x_label,
           multiple=multiple, hue='VAE conditional input', palette='viridis',
@@ -324,3 +327,108 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
     inset_axes.set_ylim(-1.2, 1.2)
 
     return inset_axes
+
+
+# Visualise 2D latent space with custom labels
+# This function is used to visualize the 2D latent space of a model using t-SNE or UMAP.
+
+def make_sort_hue(hue, sort, sort_random=False):
+    idxs_hue = np.argsort(hue)[::-1]
+    idxs_hue[:len(idxs_hue)//2] = idxs_hue[:len(idxs_hue)//2][::-1]
+    idxs_hue = idxs_hue if sort else np.arange(len(hue))
+    if sort_random:
+        idxs_hue = np.array(jax.random.choice(jax.random.PRNGKey(0), idxs_hue, idxs_hue.shape, replace=False))
+    return idxs_hue
+
+
+def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, labels_x: list, method='TSNE', save_path=None,
+                                      sort=False, s=10, use_h=False, x_type='energies', sort_random=False):
+    ncols = 4 if len(labels_cond) > 1 else (x_bin.shape[-1] + 1)
+    nrows = len(labels_cond)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(
+        5*ncols, 4*nrows), sharex=True, sharey=True)
+    if nrows == 1:
+        axes = axes[None, :]
+        cond = cond[:, None]
+
+    # Cond plots on the left
+    for i, l in enumerate(labels_cond):
+        ax_main = fig.add_subplot(axes[i, 0])  # Span both rows
+        idxs_hue = make_sort_hue(hue=cond[:, i], sort=sort, sort_random=sort_random)
+        scatter = ax_main.scatter(
+            dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=cond[idxs_hue, i], cmap='viridis', alpha=0.5, s=s)
+        ax_main.set_title(
+            f'{method} clusters {l}', fontsize=14)
+        ax_main.set_xlabel(f'{method} Dimension 1', fontsize=12)
+        ax_main.set_ylabel(f'{method} Dimension 2', fontsize=12)
+        plt.colorbar(scatter, ax=ax_main, label=l)
+
+    # Interaction plots on the right
+    for i in range(x_bin.shape[-1]):
+        row = i // (ncols-1)
+        col = i % (ncols-1) + 1
+        ax = fig.add_subplot(axes[row, col])
+        idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort, sort_random=sort_random)
+        scatter = ax.scatter(
+            dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=x_bin[idxs_hue, i], cmap='plasma', alpha=0.5, s=s)
+        ax.set_title(' + '.join(labels_x[i]), fontsize=14)
+        ax.set_xlabel(f'{method} Dimension 1', fontsize=12)
+        ax.set_ylabel(f'{method} Dimension 2', fontsize=12)
+        # if i == (x_bin.shape[-1] - 1):
+        plt.colorbar(scatter, ax=ax, label=f'Energy (kcal/mol)' if x_type == 'energies' else x_type)
+
+    plt.suptitle(f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, transparent=True)
+    plt.show()
+
+
+def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x: list, method='TSNE', save_path=None,
+                              sort=False, s=10, use_h=False, sort_random=False):
+    """ labels_cond and cond should be [adaptation, log sensitivity, log precision] """
+
+    def small_plot(ax, hue, cbar_label, title, idxs_hue, cmap):
+        scatter = ax.scatter(
+            dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=hue, cmap=cmap, alpha=0.5, s=s//4)
+        ax.set_title(title, fontsize=12)
+        ax.set_xlabel(f'{method} Dimension 1', fontsize=10)
+        ax.set_ylabel(f'{method} Dimension 2', fontsize=10)
+        plt.colorbar(scatter, ax=ax, label=cbar_label)
+
+    fig = plt.figure(figsize=(20, 6))
+    gs = fig.add_gridspec(2, 5, width_ratios=[2, 1, 1, 1, 1])
+
+    # Main plot on the left
+    ax_main = fig.add_subplot(gs[:, 0])  # Span both rows
+    scatter = ax_main.scatter(
+        dimred_result[:, 0], dimred_result[:, 1], c=cond[:, 0], cmap='viridis', alpha=0.5, s=s)
+    ax_main.set_title(
+        f'{method} clusters by condition {labels_cond[0]}', fontsize=16)
+    ax_main.set_xlabel(f'{method} Dimension 1', fontsize=12)
+    ax_main.set_ylabel(f'{method} Dimension 2', fontsize=12)
+    plt.colorbar(scatter, ax=ax_main, label=labels_cond[0])
+
+    # Smaller plots for sens + prec
+    for i, l in enumerate(labels_cond[1:]):
+        row = i
+        col = 1
+        ax = fig.add_subplot(gs[row, col])
+        idxs_hue = make_sort_hue(hue=cond[:, i+1], sort=sort)
+        small_plot(ax, hue=cond[idxs_hue, i+1], cbar_label=l,
+                   title=l, idxs_hue=idxs_hue, cmap='viridis')
+
+    # Smaller plots on the right
+    for i in range(x_bin.shape[-1]):
+        row = i // 3
+        col = i % 3 + 2
+        ax = fig.add_subplot(gs[row, col])
+        idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort)
+        small_plot(ax, hue=x_bin[idxs_hue, i], cbar_label=f'Energy (kcal/mol)',
+                   title=' + '.join(labels_x[i]), idxs_hue=idxs_hue, cmap='plasma')
+
+    plt.suptitle(f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, transparent=True)
+    plt.show()
