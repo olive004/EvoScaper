@@ -30,7 +30,8 @@ jax.devices()
 
 def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
 
-    top_dir = os.path.join('notebooks', 'data', 'cvae_multi', make_datetime_str())
+    top_dir = os.path.join('notebooks', 'data',
+                           'cvae_multi', make_datetime_str())
     os.makedirs(top_dir, exist_ok=True)
 
     if fn_df_hpos_loaded is None:
@@ -39,7 +40,8 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         basic_setting, df_hpos = load_basics(hpos_basic)
         hpos_to_vary_from_og = load_varying(varying['hpos_to_vary_from_og'])
         hpos_to_vary_together = load_varying(varying['hpos_to_vary_together'])
-        df_hpos = expand_df_varying(df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
+        df_hpos = expand_df_varying(
+            df_hpos, basic_setting, hpos_to_vary_from_og, hpos_to_vary_together)
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
@@ -60,19 +62,24 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
     }
     max_n_categories_multi = 5
-    
+
     for k in config_multisim.keys():
         if k.startswith('eval'):
             if k == 'eval_n_categories':
                 # If there are multiple objectives, limit the number of categories (they grow quadratically)
-                df_hpos.loc[:, k] = config_multisim[k] # [config_multisim[k]] * len(df_hpos) if df_hpos['objective_cols'].nunique() == 1 else max_n_categories_multi
-                df_hpos.loc[df_hpos['objective_col'].apply(lambda x: 1 if type(x) == str else len(x)) > 1, k] = max_n_categories_multi
+                # [config_multisim[k]] * len(df_hpos) if df_hpos['objective_cols'].nunique() == 1 else max_n_categories_multi
+                df_hpos.loc[:, k] = config_multisim[k]
+                df_hpos.loc[df_hpos['objective_col'].apply(lambda x: 1 if type(
+                    x) == str else len(x)) > 1, k] = max_n_categories_multi
             else:
-                df_hpos.loc[:, k] = [(config_multisim[k]) for _ in range(len(df_hpos))]
-        
+                df_hpos.loc[:, k] = [(config_multisim[k])
+                                     for _ in range(len(df_hpos))]
+
     write_json(config_multisim, fn_config_multisim)
-    logging.info(f'\nRunning CVAE scan with {len(df_hpos_main)} models and {config_multisim["eval_n_to_sample"] * len(df_hpos_main)} total samples\n')
-    cvae_scan_multi(df_hpos_main, fn_config_multisim, top_dir, debug=False, visualise=False)
+    logging.info(
+        f'\nRunning CVAE scan with {len(df_hpos_main)} models and {config_multisim["eval_n_to_sample"] * len(df_hpos_main)} total samples\n')
+    cvae_scan_multi(df_hpos_main, fn_config_multisim,
+                    top_dir, debug=False, visualise=False)
 
 
 if __name__ == "__main__":
@@ -92,5 +99,6 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_24__17_11_20/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_27__16_33_11/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_28__12_57_27/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_29__14_07_43/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_29__14_07_43/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_31__10_15_42/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
