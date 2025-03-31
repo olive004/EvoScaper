@@ -332,10 +332,16 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
 # Visualise 2D latent space with custom labels
 # This function is used to visualize the 2D latent space of a model using t-SNE or UMAP.
 
-def make_sort_hue(hue, sort, sort_random=False):
-    idxs_hue = np.argsort(hue)[::-1]
-    idxs_hue[:len(idxs_hue)//2] = idxs_hue[:len(idxs_hue)//2][::-1]
-    idxs_hue = idxs_hue if sort else np.arange(len(hue))
+def make_sort_hue(hue, sort, sort_random=False, sort_flip_prop=4):
+    """ A sort_flip_prop of 4 means that the first 1/4 of the hue values are sent to the
+    2/4 - 3/4 position in the sorted idxs, making the two most extreme quarters next to each other """
+    if sort:
+        idxs_hue = np.argsort(hue)[::-1]
+        ib = len(idxs_hue)//sort_flip_prop
+        ij = (sort_flip_prop - 1) * ib
+        idxs_hue[:ij] = np.concatenate([idxs_hue[ib:ij], idxs_hue[:ib][::-1]])
+    else:
+        idxs_hue = np.arange(len(hue))
     if sort_random:
         idxs_hue = np.array(jax.random.choice(jax.random.PRNGKey(0), idxs_hue, idxs_hue.shape, replace=False))
     return idxs_hue
