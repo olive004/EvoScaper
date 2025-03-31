@@ -4,7 +4,7 @@ import argparse
 import logging
 import os
 
-from git import Optional
+from typing import Optional
 from evoscaper.scripts.cvae_scan import cvae_scan_multi
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.scan_prep import load_basics, load_varying, expand_df_varying
@@ -45,7 +45,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
-    df_hpos_main = df_hpos.iloc[63:]
+    df_hpos_main = df_hpos # .iloc[63:]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -99,6 +99,5 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_24__17_11_20/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_27__16_33_11/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_28__12_57_27/df_hpos.json'
-    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_29__14_07_43/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_31__10_15_42/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_03_29__14_07_43/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
