@@ -213,9 +213,11 @@ def vis_histplot_combined_realfake(
     plt.suptitle(f'CVAE: circuit comparison fake vs. real ({k})', fontsize=14)
 
 
-def make_nx_weights(energies, n_nodes):
+def make_nx_weights(energies, n_nodes, vmin=None, vmax=None):
+    vmin = vmin if vmin is not None else energies.min()
+    vmax = vmax if vmax is not None else energies.max()
     energies_mod = np.interp(
-        energies, (energies.min(), energies.max()), (1, 0))
+        energies, (vmin, vmax), (1, 0))
     keys = [tuple(sorted(ii)) for ii in zip(*[(i + 1).tolist()
                                               for i in np.triu_indices(n_nodes)])]
     weights = dict(zip(keys, energies_mod.round(2).tolist()))
@@ -248,7 +250,7 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
 
     # Create directed network
     G = nx.DiGraph()
-    G.add_nodes_from([1, 2, 3])
+    G.add_nodes_from(np.arange(n_nodes) + 1)
 
     # Add bidirectional edges and self-loops
     # edges = [(1, 2), (2, 1), (2, 3), (3, 2), (1, 3), (3, 1),
@@ -264,9 +266,9 @@ def create_network_inset(fig, ax, pos=(0.3, -0.1), width=0.5, height=0.5,
     # Position nodes in an equilateral triangle
     scale = 0.9  # Reduced to give more room for loops
     pos_nodes = {
-        3: (-scale/2, -scale/2),
-        1: (scale/2, -scale/2),
-        2: (0, scale/3)
+        1: (0, scale/3),
+        2: (-scale/2, -scale/2),
+        3: (scale/2, -scale/2)
     }
 
     # Draw nodes
