@@ -76,7 +76,7 @@ def train_full(params, rng, model,
     return params, saves, save_path, r2_train, info_early_stop
 
 
-def vis(saves, x, pred_y, top_write_dir):
+def vis(saves: dict, x, pred_y, top_write_dir):
     vis_training(saves, save_path=os.path.join(
         top_write_dir, 'training.png'))
     vis_parity(x, pred_y, save_path=os.path.join(
@@ -197,7 +197,7 @@ def collect_latent_stats(params, rng, encoder, decoder, h2mu, h2logvar, cond, ob
     return latent_stats
 
 
-def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves, data_test,
+def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves: dict, data_test,
          config_dataset: DatasetConfig, config_norm_x: NormalizationSettings, config_norm_y: NormalizationSettings, config_model: ModelConfig,
          x_cols, config_filter: FilterSettings, top_write_dir,
          x_datanormaliser: DataNormalizer, x_methods_preprocessing,
