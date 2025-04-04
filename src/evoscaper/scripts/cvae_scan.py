@@ -510,8 +510,8 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
     all_forward_rates = np.concatenate(forward_rates_list, axis=0)
     all_reverse_rates = np.concatenate(reverse_rates_list, axis=0)
     # all_z = dict(zip(successful_runs.index.tolist(), z_list))
-    # all_sampled_cond = dict(zip(successful_runs.index.tolist(), sampled_cond_list))
-    all_sampled_cond = np.concatenate(sampled_cond_list, axis=0)
+    all_sampled_cond = dict(zip(successful_runs.index.tolist(), sampled_cond_list))
+    # all_sampled_cond = np.concatenate(sampled_cond_list, axis=0)
 
     del fake_circuits_list, z_list, sampled_cond_list, forward_rates_list, reverse_rates_list
 
@@ -540,7 +540,10 @@ def sim_all_models(config_multisim,
     all_fake_circuits, all_forward_rates, all_reverse_rates, all_sampled_cond = generate_all_fake_circuits(
         df_hpos, datasets, input_species, postprocs)
     np.save(os.path.join(top_write_dir, 'fake_circuits.npy'), all_fake_circuits)
-    np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
+    # np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
+    os.makedirs(os.path.join(top_write_dir, 'sampled_cond'), exist_ok=True)
+    for i in all_sampled_cond.keys():
+        np.save(os.path.join(top_write_dir, 'sampled_cond', f'sampled_cond_{i}'), all_sampled_cond[i])
 
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
     time_start = datetime.now()
