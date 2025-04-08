@@ -57,7 +57,7 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
             df_s[f'VAE conditional input {ii}'] = df_s[f'VAE conditional input {ii}'].astype(
-                float).apply(lambda x: f'{x:.2f}')
+                float).apply(lambda x: f'{x:.1f}')
         df_s['VAE conditional input'] = df_s[[f'VAE conditional input {ii}' for ii in range(
             category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
 
@@ -395,6 +395,8 @@ def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, l
 def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x: list, method='TSNE', save_path=None,
                               sort=False, s=10, use_h=False, sort_random=False):
     """ labels_cond and cond should be [adaptation, log sensitivity, log precision] """
+
+    labels_cond = [c.replace('Log', r'$Log_{10}$') for c in labels_cond]
 
     def small_plot(ax, hue, cbar_label, title, idxs_hue, cmap):
         scatter = ax.scatter(
