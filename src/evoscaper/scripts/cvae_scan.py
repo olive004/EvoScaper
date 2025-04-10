@@ -16,7 +16,8 @@ import os
 
 from sklearn.metrics import r2_score
 from synbio_morpher.utils.data.data_format_tools.common import write_json
-from evoscaper.model.evaluation import calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy, latent_cluster_separation, calculate_distributional_overlap, within_condition_variance_ratio, nearest_neighbor_condition_accuracy
+from evoscaper.model.evaluation import (calculate_kl_divergence_aves, estimate_mutual_information_knn, conditional_latent_entropy,
+                                        latent_cluster_separation, calculate_distributional_overlap, within_condition_variance_ratio, nearest_neighbor_condition_accuracy)
 from evoscaper.model.sampling import sample_reconstructions
 from evoscaper.model.vae import sample_z
 from evoscaper.scripts.init_from_hpos import init_from_hpos, make_loss, init_model
@@ -123,16 +124,17 @@ def test_conditionality(params, rng, decoder,
             fake_circuits = np.where(fake_circuits > 1, 1, fake_circuits)
             fake_circuits = np.where(fake_circuits < 0, 0, fake_circuits)
 
-        overlaps = np.zeros((fake_circuits.shape[-1], sampled_cond.shape[0], sampled_cond.shape[0]))
+        overlaps = np.zeros(
+            (fake_circuits.shape[-1], sampled_cond.shape[0], sampled_cond.shape[0]))
         for ix in range(fake_circuits.shape[-1]):
             kde = calculate_distributional_overlap(fake_circuits.reshape(sampled_cond.shape[0], -1, fake_circuits.shape[-1])[..., ix],
                                                    dist_type='binned')
             overlaps[ix] = kde
         overlaps = np.min(overlaps, axis=0)
         overlaps_nodiag = overlaps[~np.eye(overlaps.shape[0], dtype=bool)
-                         ].reshape(overlaps.shape[0], -1)
+                                   ].reshape(overlaps.shape[0], -1)
         kde_overlaps['Overlap ' + obj_col] = {'mean': overlaps_nodiag.mean(axis=1),
-                                 'std': overlaps_nodiag.std(axis=1)}
+                                              'std': overlaps_nodiag.std(axis=1)}
 
     return mi, kls, kde_overlaps
 
@@ -242,7 +244,7 @@ def save_stats(hpos: pd.Series, save_path, total_ds, n_batches, r2_train, r2_tes
 
     for k, v in latent_stats.items():
         hpos[k] = v
-        
+
     if kde_overlap is not None:
         for k, v in kde_overlap.items():
             hpos[k] = v
@@ -286,7 +288,7 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
                                                               config_dataset, config_norm_x, config_norm_y, config_model,
                                                               x_cols, config_filter, top_write_dir,
                                                               x_datanormaliser, x_methods_preprocessing,
-                                                              y_datanormaliser, y_methods_preprocessing, visualise=(not(debug) or visualise))
+                                                              y_datanormaliser, y_methods_preprocessing, visualise=(not (debug) or visualise))
 
     # Save stats
     hpos = save_stats(hpos, save_path, total_ds, n_batches, r2_train, r2_test, mi, kl_div_ave, kde_overlap, latent_stats,
@@ -408,14 +410,15 @@ def sample_models(hpos, datasets):
 
     # Init model
     config_model = make_config_model(x, hpos)
-    
+
     params_init, encoder, decoder, model, h2mu, h2logvar, reparam = init_model(
         rng_model, x, cond, config_model)
-    
+
     try:
         params = load_params(hpos['filename_saved_model'])
     except:
-        params = load_params(os.path.join('notebooks', hpos['filename_saved_model']))
+        params = load_params(os.path.join(
+            'notebooks', hpos['filename_saved_model']))
 
     # Generate fake circuits
     n_categories = config_norm_y.categorical_n_bins if 'eval_n_categories' not in hpos.index else hpos[
@@ -510,7 +513,8 @@ def generate_all_fake_circuits(df_hpos, datasets, input_species, postprocs: dict
     all_forward_rates = np.concatenate(forward_rates_list, axis=0)
     all_reverse_rates = np.concatenate(reverse_rates_list, axis=0)
     # all_z = dict(zip(successful_runs.index.tolist(), z_list))
-    all_sampled_cond = dict(zip(successful_runs.index.tolist(), sampled_cond_list))
+    all_sampled_cond = dict(
+        zip(successful_runs.index.tolist(), sampled_cond_list))
     # all_sampled_cond = np.concatenate(sampled_cond_list, axis=0)
 
     del fake_circuits_list, z_list, sampled_cond_list, forward_rates_list, reverse_rates_list
@@ -543,7 +547,8 @@ def sim_all_models(config_multisim,
     # np.save(os.path.join(top_write_dir, 'sampled_cond.npy'), all_sampled_cond)
     os.makedirs(os.path.join(top_write_dir, 'sampled_cond'), exist_ok=True)
     for i in all_sampled_cond.keys():
-        np.save(os.path.join(top_write_dir, 'sampled_cond', f'sampled_cond_{i}'), all_sampled_cond[i])
+        np.save(os.path.join(top_write_dir, 'sampled_cond',
+                f'sampled_cond_{i}'), all_sampled_cond[i])
 
     n_batches = int(np.ceil(len(all_fake_circuits) / batch_size))
     time_start = datetime.now()
@@ -576,7 +581,8 @@ def cvae_scan_multi(df_hpos: pd.DataFrame, fn_config_multisim: str, top_write_di
     os.makedirs(top_write_dir, exist_ok=True)
 
     # First run all models and save results
-    df_hpos = loop_scans(df_hpos, top_write_dir, skip_verify=True, debug=debug, visualise=visualise)
+    df_hpos = loop_scans(df_hpos, top_write_dir,
+                         skip_verify=True, debug=debug, visualise=visualise)
 
     # Global options
     config_multisim = load_json_as_dict(fn_config_multisim)
