@@ -9,10 +9,10 @@ from functools import partial
 def calculate_ruggedness_from_perturbations(analytic_perturbed, analytic_og, eps):
     """ Calculate the ruggedness using the perturbations of the analytic landscape.
     The combined metric is the L2 norm of the perturbation for each unique interaction.
-    
+
     Args:
-        analytic_perturbed: The perturbed analytic landscape.
-        analytic_og: The original analytic landscape.
+        analytic_perturbed: The perturbed analytic landscape, shape [n_samples, n_perturbs, n_species].
+        analytic_og: The original analytic landscape, [n_samples, 1, n_species].
         eps: The perturbation size.
     """
 
@@ -23,9 +23,26 @@ def calculate_ruggedness_from_perturbations(analytic_perturbed, analytic_og, eps
     return ruggedness
 
 
+def calculate_ruggedness_from_perturbations_alt(analytic_perturbed, analytic_og, eps):
+    """ Calculate the ruggedness using the perturbations of the analytic landscape.
+
+    Args:
+        analytic_perturbed: The perturbed analytic landscape, shape [n_samples, n_perturbs, n_species].
+        analytic_og: The original analytic landscape, [n_samples, 1, n_species].
+        eps: The perturbation size.
+    """
+
+    ratios = jnp.where(analytic_og == 0, 1 + (analytic_perturbed - analytic_og),
+                       analytic_perturbed / analytic_og)
+
+    ruggedness = jnp.sum(jnp.log10(ratios), axis=0)
+
+    return ruggedness
+
 
 def calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
-                              resimulate_analytics, n_samples, n_perturbs, eps):
+                              resimulate_analytics, n_samples, n_perturbs, eps,
+                              use_alt_algo=False):
 
     analytic_perturbed = jnp.array(
         analytics_perturbed[analytic]).reshape(n_samples, n_perturbs, -1)
@@ -41,7 +58,8 @@ def calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
     if analytic_perturbed.shape[-1] != analytic_og.shape[-1]:
         analytic_perturbed = analytic_perturbed[..., -analytic_og.shape[-1]:]
 
-    ruggedness = jax.vmap(partial(calculate_ruggedness_from_perturbations, eps=eps))(
+    f = calculate_ruggedness_from_perturbations_alt if use_alt_algo else calculate_ruggedness_from_perturbations
+    ruggedness = jax.vmap(partial(f, eps=eps))(
         analytic_perturbed, analytic_og[:, None, :])
 
     return ruggedness
