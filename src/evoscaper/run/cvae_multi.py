@@ -54,7 +54,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
-        'eval_n_to_sample': int(1e4),
+        'eval_n_to_sample': int(5e3),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250324.json',
                         help='Path to basic settings JSON file')
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss2.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
