@@ -107,5 +107,6 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_02__11_24_31/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_02__11_18_07/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_02__14_36_19/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_10__13_58_26/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_10__13_58_26/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_11__15_04_39/df_hpos.json'
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
