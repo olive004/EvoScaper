@@ -321,44 +321,50 @@ def cvae_scan_single(hpos: pd.Series, top_write_dir=TOP_WRITE_DIR, skip_verify=F
 
 
 def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=False, visualise=True):
+    os.makedirs(top_dir, exist_ok=True)
     for i in range(len(df_hpos)):
         hpos = df_hpos.reset_index().iloc[i]
-        if (hpos.loc['run_successful'] != 'TO_BE_RECORDED') or (hpos.loc['R2_train'] != 'TO_BE_RECORDED'):
-            continue
         top_write_dir = os.path.join(
             top_dir, 'cvae_scan', f'hpo_{hpos["index"]}')
-        # hpos['use_grad_clipping'] = True
-        if debug:
-            hpos = cvae_scan_single(
-                hpos, top_write_dir=top_write_dir, skip_verify=skip_verify,
-                visualise=visualise)
+        os.makedirs(top_write_dir, exist_ok=True)
+        if (hpos.loc['run_successful'] != 'TO_BE_RECORDED') or (hpos.loc['R2_train'] != 'TO_BE_RECORDED'):
+            if os.path.exists(hpos['filename_saved_model']):
+                dest_path = os.path.join(top_write_dir, os.path.basename(hpos['filename_saved_model']))
+                os.system(f"cp {hpos['filename_saved_model']} {dest_path}")
+                hpos['filename_saved_model'] = dest_path
         else:
-            try:
+            # hpos['use_grad_clipping'] = True
+            if debug:
                 hpos = cvae_scan_single(
                     hpos, top_write_dir=top_write_dir, skip_verify=skip_verify,
                     visualise=visualise)
-                hpos.loc['run_successful'] = True
-                hpos.loc['error_msg'] = ''
-            except Exception as e:
-                print("Try 1", e)
-                if ('nan' in str(e).lower()) and (hpos.loc['use_grad_clipping'] == False):
-                    try:
-                        hpos['use_grad_clipping'] = True
-                        hpos = cvae_scan_single(
-                            hpos, top_write_dir=top_write_dir,
-                            visualise=visualise)
-                        hpos.loc['run_successful'] = True
-                        hpos.loc['error_msg'] = ''
-                    except Exception as e:
-                        print("Try 2", e)
+            else:
+                try:
+                    hpos = cvae_scan_single(
+                        hpos, top_write_dir=top_write_dir, skip_verify=skip_verify,
+                        visualise=visualise)
+                    hpos.loc['run_successful'] = True
+                    hpos.loc['error_msg'] = ''
+                except Exception as e:
+                    print("Try 1", e)
+                    if ('nan' in str(e).lower()) and (hpos.loc['use_grad_clipping'] == False):
+                        try:
+                            hpos['use_grad_clipping'] = True
+                            hpos = cvae_scan_single(
+                                hpos, top_write_dir=top_write_dir,
+                                visualise=visualise)
+                            hpos.loc['run_successful'] = True
+                            hpos.loc['error_msg'] = ''
+                        except Exception as e:
+                            print("Try 2", e)
+                            hpos.loc['run_successful'] = False
+                            hpos.loc['error_msg'] = str(e)
+                    else:
                         hpos.loc['run_successful'] = False
                         hpos.loc['error_msg'] = str(e)
-                else:
+                except:
                     hpos.loc['run_successful'] = False
-                    hpos.loc['error_msg'] = str(e)
-            except:
-                hpos.loc['run_successful'] = False
-                hpos.loc['error_msg'] = 'sys exit'
+                    hpos.loc['error_msg'] = 'sys exit'
 
         hpos = pd.Series(hpos) if type(
             hpos) == dict else hpos.drop('index')
@@ -367,7 +373,6 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
                 df_hpos.loc[:, c] = 'TO_BE_RECORDED'
         df_hpos.iloc[i] = hpos
         # df_hpos.loc[i] = pd.DataFrame.from_dict(hpos).drop('index')
-        os.makedirs(top_dir, exist_ok=True)
         df_hpos.to_csv(os.path.join(top_dir, 'df_hpos.csv'))
         write_json(df_hpos.to_dict(), os.path.join(
             top_dir, 'df_hpos.json'), overwrite=True)
