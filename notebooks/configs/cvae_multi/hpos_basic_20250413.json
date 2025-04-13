@@ -31,7 +31,7 @@
         "use_l2_reg": false,
         "l2_reg_alpha": 5e-2,
         "use_kl_div": true,
-        "kl_weight": 2e-4,
+        "kl_weight": 5e-5,
         "use_grad_clipping": false,
         "use_contrastive_loss": true,
         "temperature": 0.1,
