@@ -379,7 +379,8 @@ def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, l
         idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort, sort_random=sort_random)
         scatter = ax.scatter(
             dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=x_bin[idxs_hue, i], cmap='plasma', alpha=0.5, s=s)
-        ax.set_title(' + '.join(labels_x[i]), fontsize=14)
+        # ax.set_title(' + '.join(labels_x[i]), fontsize=14)
+        ax.set_title(labels_x[i], fontsize=14)
         ax.set_xlabel(f'{method} Dimension 1', fontsize=12)
         ax.set_ylabel(f'{method} Dimension 2', fontsize=12)
         # if i == (x_bin.shape[-1] - 1):
@@ -396,7 +397,7 @@ def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x:
                               sort=False, s=10, use_h=False, sort_random=False):
     """ labels_cond and cond should be [adaptation, log sensitivity, log precision] """
 
-    labels_cond = [c.replace('Log', r'$Log_{10}$') for c in labels_cond]
+    # labels_cond = [c.replace('Log', r'$Log_{10}$') for c in labels_cond]
 
     def small_plot(ax, hue, cbar_label, title, idxs_hue, cmap):
         scatter = ax.scatter(
@@ -435,7 +436,8 @@ def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x:
         ax = fig.add_subplot(gs[row, col])
         idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort)
         small_plot(ax, hue=x_bin[idxs_hue, i], cbar_label=f'Energy (kcal/mol)',
-                   title=' + '.join(labels_x[i]), idxs_hue=idxs_hue, cmap='plasma')
+                   title=labels_x[i], idxs_hue=idxs_hue, cmap='plasma')
+                #    title=' + '.join(labels_x[i]), idxs_hue=idxs_hue, cmap='plasma')
 
     plt.suptitle(f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
