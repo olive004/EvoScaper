@@ -40,13 +40,10 @@ def save_plot():
 
 @save_plot()
 def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
-                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, **kwargs):
+                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, include_hue_vlines=False, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
-
-    # category_array = np.array(sorted(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"].values())).repeat(
-    #     len(analytic)//len(y_datanormaliser.metadata[y_datanormaliser.cols_separate[0]]["category_map"]))
 
     fig = plt.figure(figsize=(13, 4))
     fig.subplots_adjust(wspace=0.6)
@@ -65,6 +62,12 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         f(df_s, x=x_label,
           multiple=multiple, hue='VAE conditional input', palette='viridis',
           **kwargs)
+        
+        c_uniq = sorted(np.unique(category_array[:, 0]))
+        if include_hue_vlines:
+            colors = sns.color_palette('viridis', len(c_uniq))
+            for ih, hue_val in enumerate(c_uniq):
+                plt.axvline(hue_val, linestyle='--', color=colors[ih]) #, label=f'{hue_val} mean')
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
         plt.title(title_curr)
