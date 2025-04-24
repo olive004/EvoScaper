@@ -228,10 +228,14 @@ def test(model, params, rng, encoder, h2mu, h2logvar, decoder, saves: dict, data
         print(f'Error in test_conditionality: {e}')
         mi, kl_div_ave, kde_overlap = None, None, None
 
-    latent_stats = collect_latent_stats(
-        params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col,
-        config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y,
-        n_categories=10, n_to_sample=int(1e4))
+    try:
+        latent_stats = collect_latent_stats(
+            params, rng, encoder, decoder, h2mu, h2logvar, cond, config_dataset.objective_col,
+            config_dataset, config_model, x_datanormaliser, x_methods_preprocessing, config_norm_y,
+            n_categories=10, n_to_sample=int(1e4))
+    except ValueError as e:
+        print(f'Error in collect_latent_stats: {e}')
+        latent_stats = {}
     return r2_test, mi, kl_div_ave, kde_overlap, latent_stats
 
 
@@ -329,7 +333,8 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
         os.makedirs(top_write_dir, exist_ok=True)
         if (hpos.loc['run_successful'] != 'TO_BE_RECORDED') or (hpos.loc['R2_train'] != 'TO_BE_RECORDED'):
             if os.path.exists(hpos['filename_saved_model']):
-                dest_path = os.path.join(top_write_dir, os.path.basename(hpos['filename_saved_model']))
+                dest_path = os.path.join(
+                    top_write_dir, os.path.basename(hpos['filename_saved_model']))
                 os.system(f"cp {hpos['filename_saved_model']} {dest_path}")
                 hpos['filename_saved_model'] = dest_path
         else:

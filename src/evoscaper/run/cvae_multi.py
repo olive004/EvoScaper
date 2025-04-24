@@ -89,6 +89,7 @@ if __name__ == "__main__":
                         help='Path to basic settings JSON file')
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
     parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives2.json',
+    # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives_test.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss4.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
@@ -115,4 +116,5 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_11__18_52_29/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_13__12_04_45/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_10__11_34_20/df_hpos.json'
+
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
