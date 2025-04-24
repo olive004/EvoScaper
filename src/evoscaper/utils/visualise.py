@@ -39,8 +39,8 @@ def save_plot():
 
 
 @save_plot()
-def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
-                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, include_hue_vlines=False, **kwargs):
+def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool, 
+                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, include_hue_vlines=False, vline_uniqs=None, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
@@ -48,28 +48,30 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
     fig = plt.figure(figsize=(13, 4))
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
-        title_curr = title + f': species {output_specie}'
+        title_curr = title + f': species ${output_specie}$'
         output_idx = all_species.index(output_specie)
-        df_s = pd.DataFrame(columns=[x_label] + [f'VAE conditional input {ii}' for ii in range(category_array.shape[-1])],
+        df_s = pd.DataFrame(columns=[x_label] + [f'Conditional input {ii}' for ii in range(category_array.shape[-1])],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
-            df_s[f'VAE conditional input {ii}'] = df_s[f'VAE conditional input {ii}'].astype(
+            df_s[f'Conditional input {ii}'] = df_s[f'Conditional input {ii}'].astype(
                 float).apply(lambda x: f'{x:.1f}')
-        df_s['VAE conditional input'] = df_s[[f'VAE conditional input {ii}' for ii in range(
+        df_s['Conditional input'] = df_s[[f'Conditional input {ii}' for ii in range(
             category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
 
         ax = plt.subplot(1, 2, i+1)
         f(df_s, x=x_label,
-          multiple=multiple, hue='VAE conditional input', palette='viridis',
+          multiple=multiple, hue='Conditional input', palette='viridis',
           **kwargs)
         
-        c_uniq = sorted(np.unique(category_array[:, 0]))
+        c_uniq = sorted(np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
         if include_hue_vlines:
             colors = sns.color_palette('viridis', len(c_uniq))
             for ih, hue_val in enumerate(c_uniq):
                 plt.axvline(hue_val, linestyle='--', color=colors[ih]) #, label=f'{hue_val} mean')
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+        if i != (len(output_species) - 1):
+            ax.legend_.remove()
         plt.title(title_curr)
 
     if show:
@@ -410,7 +412,7 @@ def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x:
         ax.set_ylabel(f'{method} Dimension 2', fontsize=10)
         plt.colorbar(scatter, ax=ax, label=cbar_label)
 
-    fig = plt.figure(figsize=(20, 6))
+    fig = plt.figure(figsize=(23, 7))
     gs = fig.add_gridspec(2, 5, width_ratios=[2, 1, 1, 1, 1])
 
     # Main plot on the left
@@ -418,10 +420,10 @@ def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x:
     scatter = ax_main.scatter(
         dimred_result[:, 0], dimred_result[:, 1], c=cond[:, 0], cmap='viridis', alpha=0.5, s=s)
     ax_main.set_title(
-        f'{method} clusters by condition {labels_cond[0]}', fontsize=16)
+        f'{method} clusters by prompt ({labels_cond[0]})', fontsize=16)
     ax_main.set_xlabel(f'{method} Dimension 1', fontsize=12)
     ax_main.set_ylabel(f'{method} Dimension 2', fontsize=12)
-    plt.colorbar(scatter, ax=ax_main, label=labels_cond[0])
+    plt.colorbar(scatter, ax=ax_main, label=labels_cond[0].capitalize())
 
     # Smaller plots for sens + prec
     for i, l in enumerate(labels_cond[1:]):
