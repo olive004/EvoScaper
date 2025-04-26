@@ -23,7 +23,7 @@ def save_plot():
     """
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, save_path=None, **kwargs):
+        def wrapper(*args, save_path=None, show=False, **kwargs):
             # Execute original function
             result = func(*args, **kwargs)
 
@@ -31,6 +31,10 @@ def save_plot():
             plt.tight_layout()
             if save_path is not None:
                 plt.savefig(save_path, transparent=True, dpi=300)
+
+            if show:
+                plt.show()
+
             plt.close()  # Close to prevent memory leaks
 
             return result
@@ -39,8 +43,9 @@ def save_plot():
 
 
 @save_plot()
-def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool, 
-                         title: str, x_label: str, multiple='fill', show=False, f=sns.histplot, include_hue_vlines=False, vline_uniqs=None, **kwargs):
+def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
+                         title: str, x_label: str, multiple='fill', f=sns.histplot,
+                         include_hue_vlines=False, vline_uniqs=None, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
@@ -62,20 +67,19 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         f(df_s, x=x_label,
           multiple=multiple, hue='Conditional input', palette='viridis',
           **kwargs)
-        
-        c_uniq = sorted(np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
+
+        c_uniq = sorted(
+            np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
         if include_hue_vlines:
             colors = sns.color_palette('viridis', len(c_uniq))
             for ih, hue_val in enumerate(c_uniq):
-                plt.axvline(hue_val, linestyle='--', color=colors[ih]) #, label=f'{hue_val} mean')
+                # , label=f'{hue_val} mean')
+                plt.axvline(hue_val, linestyle='--', color=colors[ih])
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
         if i != (len(output_species) - 1):
             ax.legend_.remove()
         plt.title(title_curr)
-
-    if show:
-        plt.show()
 
 
 @save_plot()
@@ -350,7 +354,8 @@ def make_sort_hue(hue, sort, sort_random=False, sort_flip_prop=4):
     else:
         idxs_hue = np.arange(len(hue))
     if sort_random:
-        idxs_hue = np.array(jax.random.choice(jax.random.PRNGKey(0), idxs_hue, idxs_hue.shape, replace=False))
+        idxs_hue = np.array(jax.random.choice(jax.random.PRNGKey(
+            0), idxs_hue, idxs_hue.shape, replace=False))
     return idxs_hue
 
 
@@ -367,7 +372,8 @@ def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, l
     # Cond plots on the left
     for i, l in enumerate(labels_cond):
         ax_main = fig.add_subplot(axes[i, 0])  # Span both rows
-        idxs_hue = make_sort_hue(hue=cond[:, i], sort=sort, sort_random=sort_random)
+        idxs_hue = make_sort_hue(
+            hue=cond[:, i], sort=sort, sort_random=sort_random)
         scatter = ax_main.scatter(
             dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=cond[idxs_hue, i], cmap='viridis', alpha=0.5, s=s)
         ax_main.set_title(
@@ -381,7 +387,8 @@ def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, l
         row = i // (ncols-1)
         col = i % (ncols-1) + 1
         ax = fig.add_subplot(axes[row, col])
-        idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort, sort_random=sort_random)
+        idxs_hue = make_sort_hue(
+            hue=x_bin[:, i], sort=sort, sort_random=sort_random)
         scatter = ax.scatter(
             dimred_result[idxs_hue, 0], dimred_result[idxs_hue, 1], c=x_bin[idxs_hue, i], cmap='plasma', alpha=0.5, s=s)
         # ax.set_title(' + '.join(labels_x[i]), fontsize=14)
@@ -389,9 +396,11 @@ def visualize_dimred_2d_custom_labels(dimred_result, cond, x_bin, labels_cond, l
         ax.set_xlabel(f'{method} Dimension 1', fontsize=12)
         ax.set_ylabel(f'{method} Dimension 2', fontsize=12)
         # if i == (x_bin.shape[-1] - 1):
-        plt.colorbar(scatter, ax=ax, label=f'Energy (kcal/mol)' if x_type == 'energies' else x_type)
+        plt.colorbar(
+            scatter, ax=ax, label=f'Energy (kcal/mol)' if x_type == 'energies' else x_type)
 
-    plt.suptitle(f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
+    plt.suptitle(
+        f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if save_path is not None:
         plt.savefig(save_path, dpi=300, transparent=True)
@@ -442,9 +451,10 @@ def visualize_dimred_adapt_sp(dimred_result, cond, x_bin, labels_cond, labels_x:
         idxs_hue = make_sort_hue(hue=x_bin[:, i], sort=sort)
         small_plot(ax, hue=x_bin[idxs_hue, i], cbar_label=f'Energy (kcal/mol)',
                    title=labels_x[i], idxs_hue=idxs_hue, cmap='plasma')
-                #    title=' + '.join(labels_x[i]), idxs_hue=idxs_hue, cmap='plasma')
+        #    title=' + '.join(labels_x[i]), idxs_hue=idxs_hue, cmap='plasma')
 
-    plt.suptitle(f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
+    plt.suptitle(
+        f'{method} visualization of latent space ({"h" if use_h else "z"})', fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if save_path is not None:
         plt.savefig(save_path, dpi=300, transparent=True)
