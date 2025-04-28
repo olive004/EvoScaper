@@ -84,8 +84,8 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250413.json',
-    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250424.json',
+    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250413.json',
+    # parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250424.json',
                         help='Path to basic settings JSON file')
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
     parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives2.json',
@@ -118,6 +118,6 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_10__11_34_20/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_24__20_51_02/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_25__09_25_04/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_26__19_01_53/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_26__19_01_53/df_hpos.json'
 
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
