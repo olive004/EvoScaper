@@ -235,7 +235,7 @@ if __name__ == "__main__":
         fn_saves = [i for i in os.listdir(os.path.dirname(fn_df_hpos_loaded)) if i.startswith('save')][0]
     except:
         fn_saves = None
-    fn_ds = 'data/raw/summarise_simulation/2025_01_29__18_12_38/tabulated_mutation_info.csv'
+    fn_ds = 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
 
     config_run = {
         'eps_perc': -1e-2,
