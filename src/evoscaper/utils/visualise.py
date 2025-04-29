@@ -45,7 +45,7 @@ def save_plot():
 @save_plot()
 def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
                          title: str, x_label: str, multiple='fill', f=sns.histplot,
-                         include_hue_vlines=False, vline_uniqs=None, **kwargs):
+                         include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
@@ -76,7 +76,7 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
                 # , label=f'{hue_val} mean')
                 plt.axvline(hue_val, linestyle='--', color=colors[ih])
 
-        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1), title=hue_label)
         if i != (len(output_species) - 1):
             ax.legend_.remove()
         plt.title(title_curr)
