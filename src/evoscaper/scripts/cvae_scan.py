@@ -376,11 +376,12 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
         for c in hpos.index:
             if c not in df_hpos.columns:
                 df_hpos.loc[:, c] = 'TO_BE_RECORDED'
+        
         df_hpos.iloc[i] = hpos
-        # df_hpos.loc[i] = pd.DataFrame.from_dict(hpos).drop('index')
         df_hpos.to_csv(os.path.join(top_dir, 'df_hpos.csv'))
         write_json(df_hpos.to_dict(), os.path.join(
             top_dir, 'df_hpos.json'), overwrite=True)
+        df_hpos.to_json(os.path.join(top_dir, 'df_hpos2.json'), lines=True)
         gc.collect()
     return df_hpos
 
