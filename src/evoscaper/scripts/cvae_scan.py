@@ -381,7 +381,7 @@ def loop_scans(df_hpos: pd.DataFrame, top_dir: str, skip_verify=False, debug=Fal
         df_hpos.to_csv(os.path.join(top_dir, 'df_hpos.csv'))
         write_json(df_hpos.to_dict(), os.path.join(
             top_dir, 'df_hpos.json'), overwrite=True)
-        df_hpos.to_json(os.path.join(top_dir, 'df_hpos2.json'), lines=True)
+        df_hpos.to_json(os.path.join(top_dir, 'df_hpos2.json'))
         gc.collect()
     return df_hpos
 
