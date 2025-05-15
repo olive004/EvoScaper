@@ -193,6 +193,9 @@ def filter_invalids(data, output_species, x_cols, objective_cols, filter_setting
 
     # Sensitivity and precision
     filt = data['sample_name'].isin(output_species)
+    # df = data[filt]
+    # df = df.reset_index(drop=True)
+    
     if filter_settings.filt_x_nans:
         filt = filt & data[x_cols].notna().all(axis=1)
     if filter_settings.filt_y_nans:
