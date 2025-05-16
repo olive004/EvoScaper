@@ -50,7 +50,7 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
 
-    fig = plt.figure(figsize=(13, 4))
+    fig = plt.figure(figsize=(13, 5))
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species ${output_specie}$'
