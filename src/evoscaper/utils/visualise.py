@@ -45,12 +45,13 @@ def save_plot():
 @save_plot()
 def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
                          title: str, x_label: str, multiple='fill', f=sns.histplot,
-                         include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', **kwargs):
+                         include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', 
+                         figsize=(13, 5), **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
 
-    fig = plt.figure(figsize=(13, 5))
+    fig = plt.figure(figsize=figsize)
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species ${output_specie}$'
