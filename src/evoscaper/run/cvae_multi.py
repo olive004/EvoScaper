@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250424.json',
                         help='Path to basic settings JSON file')
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives2.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives3.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives_test.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss4.json',
                         help='Path to varying settings JSON file')

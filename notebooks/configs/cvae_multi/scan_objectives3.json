@@ -1,0 +1,10 @@
+{
+    "hpos_to_vary_from_og": [
+    ],
+    "hpos_to_vary_together": [{
+        "objective_col": [["adaptation"], ["Log sensitivity", "Log precision"], ["Log sensitivity > 0", "Log precision > 1"],
+        ["Log sensitivity", "Log precision", "overshoot/initial"]],
+        "seed_train": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        "use_contrastive_loss": [false]
+    }]
+}
