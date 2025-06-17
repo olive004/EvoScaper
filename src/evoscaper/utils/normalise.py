@@ -89,11 +89,17 @@ class DataNormalizer:
             - Scaled data
             - Metadata for reversing the transformation
         """
-        min_val = jnp.nanmin(data, axis=0)
-        max_val = jnp.nanmax(data, axis=0)
+        
+        d = self.metadata[col] if col is not None else self.metadata
+        min_val = d.get('min_val', jnp.nanmin(data, axis=0))
+        max_val = d.get('max_val', jnp.nanmax(data, axis=0))
+        scale = d.get('scale', max_val - min_val)
+            
+        # min_val = jnp.nanmin(data, axis=0)
+        # max_val = jnp.nanmax(data, axis=0)
 
         # Prevent division by zero
-        scale = max_val - min_val
+        # scale = max_val - min_val
         scale = jnp.where(scale == 0, 1.0, scale)
 
         # Map to desired feature range
@@ -103,6 +109,7 @@ class DataNormalizer:
 
         k = {
             'min_val': min_val,
+            'max_val': max_val,
             'scale': scale,
             'feature_range': feature_range
         }
@@ -149,11 +156,9 @@ class DataNormalizer:
             - Robustly scaled data
             - Metadata for reversing the transformation
         """
-        median = jnp.median(data, axis=0)
-        q1 = jnp.percentile(data, 25, axis=0)
-        q3 = jnp.percentile(data, 75, axis=0)
-
-        iqr = q3 - q1
+        d = self.metadata[col] if col is not None else self.metadata
+        median = d.get('median', jnp.median(data, axis=0))
+        iqr = d.get('iqr', jnp.percentile(data, 75, axis=0) - jnp.percentile(data, 25, axis=0))
         iqr = jnp.where(iqr == 0, 1.0, iqr)
 
         robust_scaled = (data - median) / iqr

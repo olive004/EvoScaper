@@ -39,6 +39,7 @@ sudo docker create -it \
 --rm \
 --gpus all \
 --name evo \
+--runtime nvidia \
 --mount type=bind,source="$(pwd)",target=/workdir \
 genetic_glitch:latest
 sudo docker container start evo
