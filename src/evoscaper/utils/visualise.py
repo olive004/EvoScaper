@@ -60,14 +60,11 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
             df_s[f'Conditional input {ii}'] = df_s[f'Conditional input {ii}'].astype(
-                float).apply(lambda x: f'{x:.1f}')
+                float).apply(lambda x: f'{x:.2f}')
         df_s['Conditional input'] = df_s[[f'Conditional input {ii}' for ii in range(
             category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
 
         ax = plt.subplot(1, 2, i+1)
-        f(df_s, x=x_label,
-          multiple=multiple, hue='Conditional input', palette='viridis',
-          **kwargs)
 
         c_uniq = sorted(
             np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
@@ -76,6 +73,10 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
             for ih, hue_val in enumerate(c_uniq):
                 # , label=f'{hue_val} mean')
                 plt.axvline(hue_val, linestyle='--', color=colors[ih])
+
+        f(df_s, x=x_label,
+          multiple=multiple, hue='Conditional input', palette='viridis',
+          **kwargs)
 
         sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1), title=hue_label)
         if i != (len(output_species) - 1):
