@@ -43,7 +43,7 @@ def save_plot():
 
 
 @save_plot()
-def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: bool,
+def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: np.ndarray,
                          title: str, x_label: str, multiple='fill', f=sns.histplot,
                          include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', 
                          figsize=(13, 5), **kwargs):
@@ -61,15 +61,20 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         for ii in range(category_array.shape[-1]):
             df_s[f'Conditional input {ii}'] = df_s[f'Conditional input {ii}'].astype(
                 float).apply(lambda x: f'{x:.2f}')
-        df_s['Conditional input'] = df_s[[f'Conditional input {ii}' for ii in range(
-            category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
+        if category_array.shape[-1] > 1:
+            df_s['Conditional input'] = df_s[[f'Conditional input {ii}' for ii in range(
+                category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
+        else:
+            df_s['Conditional input'] = category_array.flatten().astype(float).round(2)
 
         ax = plt.subplot(1, 2, i+1)
 
         c_uniq = sorted(
             np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
         if include_hue_vlines:
-            colors = sns.color_palette('viridis', len(c_uniq))
+            colors = list(sns.color_palette('viridis', len(c_uniq)).as_hex())
+            colors[-1] = '#f5e61c'
+            colors = sns.blend_palette(colors, n_colors=len(c_uniq))
             for ih, hue_val in enumerate(c_uniq):
                 # , label=f'{hue_val} mean')
                 plt.axvline(hue_val, linestyle='--', color=colors[ih])
