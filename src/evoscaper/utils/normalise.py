@@ -7,6 +7,15 @@ from typing import Dict, Any, List, Tuple, Literal, Union, Optional
 from evoscaper.utils.dataclasses import NormalizationSettings
 
 
+def calc_robust_scaled(data, median, iqr):
+    return (data - median) / iqr
+
+
+def calc_minmax(data, min_val, scale, max_range, min_range):
+    return ((data - min_val) / scale) * \
+        (max_range - min_range) + min_range
+
+
 class DataNormalizer:
     """
     A comprehensive data normalization utility with reversible transformations
@@ -22,7 +31,14 @@ class DataNormalizer:
         else:
             self.metadata: Dict[str, Any] = {}
 
-    def standardise(self, data: jnp.ndarray, col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def _fetch_metadata(self, key, val, col):
+        if col is not None:
+            val = self.metadata[col].get(key, val)
+        else:
+            val = self.metadata.get(key, val)
+        return val
+
+    def standardise(self, data: jnp.ndarray, col=None) -> jnp.ndarray:
         """
         Standardize data to have zero mean and unit variance
 
@@ -30,9 +46,7 @@ class DataNormalizer:
             data (jnp.ndarray): Input data array
 
         Returns:
-            Tuple of:
-            - Standardized data
-            - Metadata for reversing the transformation
+            jnp.ndarray: Standardized data
         """
         mean = jnp.mean(data, axis=0)
         std = jnp.std(data, axis=0)
@@ -75,8 +89,9 @@ class DataNormalizer:
         self,
         data: jnp.ndarray,
         feature_range: Tuple[float, float] = (0, 1),
-        col=None
-    ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
+        col=None,
+        use_precomputed: bool = False
+    ) -> jnp.ndarray:
         """
         Scale features to a given range using min-max scaling
 
@@ -89,25 +104,21 @@ class DataNormalizer:
             - Scaled data
             - Metadata for reversing the transformation
         """
-        
-        if col:
-            min_val = self.metadata[col].get('min_val', jnp.nanmin(data, axis=0))
-            scale = self.metadata[col].get('scale', jnp.nanmax(data, axis=0) - min_val)
-        else:
-            min_val = self.metadata.get('min_val', jnp.nanmin(data, axis=0))
-            scale = self.metadata.get('scale', jnp.nanmax(data, axis=0) - min_val)
-            
-        # min_val = jnp.nanmin(data, axis=0)
-        # max_val = jnp.nanmax(data, axis=0)
+
+        min_val = jnp.nanmin(data, axis=0)
+        max_val = jnp.nanmax(data, axis=0)
+        scale = max_val - min_val
+
+        if use_precomputed:
+            min_val = self._fetch_metadata('min_val', min_val, col)
+            scale = self._fetch_metadata('scale', scale, col)
 
         # Prevent division by zero
-        # scale = max_val - min_val
         scale = jnp.where(scale == 0, 1.0, scale)
 
         # Map to desired feature range
         min_range, max_range = feature_range
-        scaled = ((data - min_val) / scale) * \
-            (max_range - min_range) + min_range
+        scaled = calc_minmax(data, min_val, scale, max_range, min_range)
 
         k = {
             'min_val': min_val,
@@ -145,7 +156,8 @@ class DataNormalizer:
         # Reverse the min-max transformation
         return unscaled * d['scale'] + d['min_val']
 
-    def robust_scaling(self, data: jnp.ndarray, col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def robust_scaling(self, data: jnp.ndarray, col=None,
+                       use_precomputed: bool = False) -> jnp.ndarray:
         """
         Scale features using median and interquartile range
 
@@ -164,7 +176,11 @@ class DataNormalizer:
         iqr = q3 - q1
         iqr = jnp.where(iqr == 0, 1.0, iqr)
 
-        robust_scaled = (data - median) / iqr
+        if use_precomputed:
+            median = self._fetch_metadata('median', median, col)
+            iqr = self._fetch_metadata('iqr', iqr, col)
+
+        robust_scaled = calc_robust_scaled(data, median, iqr)
 
         k = {
             'median': median,
@@ -195,7 +211,7 @@ class DataNormalizer:
         d = self.metadata[col] if col is not None else self.metadata
         return normalized_data * d['iqr'] + d['median']
 
-    def make_categorical(self, data: jnp.ndarray, n_bins: int = 10, method='equal_width', col=None) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def make_categorical(self, data: jnp.ndarray, n_bins: int = 10, method: str = 'equal_width', col=None) -> jnp.ndarray:
         """
         Convert continuous data to categorical data
 
@@ -203,9 +219,7 @@ class DataNormalizer:
             data (jnp.ndarray): Input data array
 
         Returns:
-            Tuple of:
-            - Categorical data
-            - Metadata for reversing the transformation
+            jnp.ndarray: Categorical data
         """
         # unique_values = jnp.unique(data)
         # categories = jnp.arange(len(unique_values))
@@ -235,7 +249,7 @@ class DataNormalizer:
             self.metadata.update(k)
         return categorical_data
 
-    def inverse_categorical(self, data: jnp.array, col=None):
+    def inverse_categorical(self, data: jnp.ndarray, col=None):
         """
         Convert categorical data back to continuous data
 
@@ -248,7 +262,7 @@ class DataNormalizer:
         d = self.metadata[col] if col is not None else self.metadata
         return np.vectorize(d['category_map'].get)(data)
 
-    def categorical_onehot(self, data: jnp.ndarray) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
+    def categorical_onehot(self, data: jnp.ndarray) -> jnp.ndarray:
         """
         Convert continuous data to one-hot encoded categorical data
 
@@ -256,9 +270,7 @@ class DataNormalizer:
             data (jnp.ndarray): Input data array
 
         Returns:
-            Tuple of:
-            - One-hot encoded data
-            - Metadata for reversing the transformation
+            jnp.ndarray: One-hot encoded data
         """
         onehot_data = jax.nn.one_hot(data, int(data.max() + 1)).squeeze()
 
@@ -341,14 +353,14 @@ class DataNormalizer:
         Returns:
             hk.Module: A normalization layer with forward and inverse methods
         """
-        def chain_preprocess(x, col=None):
+        def chain_preprocess(x: jnp.ndarray, col=None, use_precomputed: bool = False):
             for method in methods:
                 if method == 'standardise':
                     x = self.standardise(x, col=col)
                 elif method == 'min_max':
-                    x = self.min_max_scaling(x, col=col)
+                    x = self.min_max_scaling(x, col=col, use_precomputed=use_precomputed)
                 elif method == 'robust_scaling':
-                    x = self.robust_scaling(x, col=col)
+                    x = self.robust_scaling(x, col=col, use_precomputed=use_precomputed)
                 elif method == 'negative':
                     x = self.negative_scaling(x)
                 elif method == 'logscale':
