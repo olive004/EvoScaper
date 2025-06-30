@@ -29,6 +29,7 @@ def calculate_ruggedness(interactions, eps_perc: float, analytic, input_species,
 
     perturbations, eps = get_perturbations(
         interactions, eps_perc, n_samples, n_perturbs, resimulate_analytics, perturb_once)
+    np.save(os.path.join(top_write_dir, 'eps.npy'), eps)
 
     ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0) = sim_save_rugg(
         perturbations, x_type, signal_species, config_bio, input_species, top_write_dir,
@@ -37,7 +38,8 @@ def calculate_ruggedness(interactions, eps_perc: float, analytic, input_species,
     return ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0)
 
 
-def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_analytics, perturb_once):
+def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_analytics, perturb_once,
+                      seed=0):
 
     n_interactions = interactions.shape[1]
 
@@ -47,8 +49,9 @@ def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_
         perturbations = jax.vmap(
             partial(create_perturbations, eps=eps))(interactions)
     else:
-        eps = np.random.rand(
-            n_samples, n_perturbs, n_interactions) * eps_perc * np.abs(interactions).max()
+        eps = jax.random.uniform(
+            jax.random.PRNGKey(seed),
+            (n_samples, n_perturbs, n_interactions)) * eps_perc * np.abs(interactions).max()
         perturbations = interactions[:, None, :] + eps
 
     perturbations = add_original(
@@ -192,7 +195,8 @@ def run_circuits(fn_circuits, config_run, top_write_dir: str):
 
     if type(fn_circuits) == str:
         fn_circuits = [fn_circuits]
-    circuits = np.concatenate([np.load(fn)[None, ...] for fn in fn_circuits], axis=0)
+    circuits = np.concatenate([np.load(fn)[None, ...]
+                              for fn in fn_circuits], axis=0)
     input_species = config_run['input_species']
     config_bio = load_config_bio(
         config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
@@ -318,7 +322,7 @@ if __name__ == "__main__":
         'resimulate_analytics': True,
         'perturb_once': False,
         'n_perturbs': int(1e5),
-        'analytic': 'adaptation',
+        'analytic': 'Log sensitivity',
         'eval_batch_size': int(1e5),
         'eval_n_to_sample': int(1e5),
         'eval_cond_min': -0.2,
