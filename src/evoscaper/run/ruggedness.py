@@ -2,7 +2,7 @@
 
 import logging
 import argparse
-from typing import List, Optional, Union
+from typing import Optional
 import numpy as np
 import pandas as pd
 import os
@@ -201,6 +201,9 @@ def run_circuits(fn_circuits, config_run, top_write_dir: str):
     input_species = config_run['input_species']
     config_bio = load_config_bio(
         config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
+    config_bio['simulation']['save_steps'] = 1000
+    config_bio['simulation']['dt0'] = 0.0005
+    config_bio['simulation']['threshold_steady_states'] = 0.001
     simulate_rugg(circuits,
                   config_bio,
                   input_species,
