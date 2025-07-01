@@ -27,7 +27,7 @@ def calculate_ruggedness(interactions, eps_perc: float, analytic, input_species,
 
     n_samples = interactions.shape[0]
 
-    perturbations, eps = get_perturbations(
+    perturbations, eps, n_perturbs = get_perturbations(
         interactions, eps_perc, n_samples, n_perturbs, resimulate_analytics, perturb_once)
     np.save(os.path.join(top_write_dir, 'eps.npy'), eps)
 
@@ -53,11 +53,12 @@ def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_
             jax.random.PRNGKey(seed),
             (n_samples, n_perturbs, n_interactions)) * eps_perc * np.abs(interactions).max()
         perturbations = interactions[:, None, :] + eps
+        n_perturbs = n_perturbs + resimulate_analytics
 
     perturbations = add_original(
         perturbations, interactions, resimulate_analytics)
 
-    return perturbations, eps
+    return perturbations, eps, n_perturbs
 
 
 def sim_save_rugg(perturbations, x_type, signal_species, config_bio, input_species, top_write_dir,
@@ -338,6 +339,24 @@ if __name__ == "__main__":
         'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
         'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
     }
+    
+    # config_run = {
+    #     "eps_perc": -0.01,
+    #     "x_type": "energies",
+    #     "signal_species": "RNA_0",
+    #     "resimulate_analytics": True,
+    #     "analytic": "Log sensitivity",
+    #     "eval_batch_size": 100000,
+    #     "eval_n_to_sample": int(1e6),
+    #     "eval_cond_min": 0.5,
+    #     "eval_cond_max": 1.2,
+    #     "eval_n_categories": 10,
+    #     "fn_saves": None,
+    #     "fn_df_hpos_loaded": None,
+    #     "fn_ds": "notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json",
+    #     "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings.json",
+    #     "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
+    # }
 
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())
