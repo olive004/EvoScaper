@@ -59,7 +59,7 @@ def calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
         analytic_perturbed = analytic_perturbed[..., -analytic_og.shape[-1]:]
 
     f = calculate_ruggedness_from_perturbations_alt if use_alt_algo else calculate_ruggedness_from_perturbations
-    if type(eps) is not float:
+    if (type(eps) is jnp.ndarray) or (type(eps) is np.ndarray):
         eps = jnp.mean(eps, axis=-1, keepdims=True)
     ruggedness = jax.vmap(f)(
         analytic_perturbed, analytic_og[:, None, :], eps*np.ones_like(analytic_perturbed))

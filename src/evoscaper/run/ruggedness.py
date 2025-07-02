@@ -203,7 +203,8 @@ def run_circuits(fn_circuits, config_run, top_write_dir: str):
         config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
     config_bio['simulation']['save_steps'] = 1000
     config_bio['simulation']['dt0'] = 0.0005
-    config_bio['simulation']['threshold_steady_states'] = 0.001
+    config_bio['simulation']['t1'] = 200
+    config_bio['simulation']['threshold_steady_states'] = 0.01
     simulate_rugg(circuits,
                   config_bio,
                   input_species,
@@ -307,10 +308,10 @@ if __name__ == "__main__":
     fn_circuits = args.fn_circuits
 
     # fn_saves = 'notebooks/data/01_cvae/2025_03_25__12_04_01/saves_2025_03_25__12_04_01_ds0211_arugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
-    fn_df_hpos_loaded = None  # 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
     fn_saves = None
+    fn_df_hpos_loaded = None  #'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
     fn_ds = None  # 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
-    fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
+    fn_circuits =  ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
                    'notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_lo.npy']
     if fn_df_hpos_loaded is not None:
         try:
@@ -348,6 +349,8 @@ if __name__ == "__main__":
     #     "x_type": "energies",
     #     "signal_species": "RNA_0",
     #     "resimulate_analytics": True,
+    #     'perturb_once': True,
+    #     'n_perturbs': 1,
     #     "analytic": "Log sensitivity",
     #     "eval_batch_size": 100000,
     #     "eval_n_to_sample": int(1e6),
@@ -355,8 +358,9 @@ if __name__ == "__main__":
     #     "eval_cond_max": 1.2,
     #     "eval_n_categories": 10,
     #     "fn_saves": None,
-    #     "fn_df_hpos_loaded": None,
-    #     "fn_ds": "notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json",
+    #     "fn_df_hpos_loaded": fn_df_hpos_loaded,
+    #     "fn_ds": fn_ds,
+    #     'fn_circuits': fn_circuits,
     #     "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings.json",
     #     "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
     # }
