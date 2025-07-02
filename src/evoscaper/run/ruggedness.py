@@ -203,7 +203,7 @@ def run_circuits(fn_circuits, config_run, top_write_dir: str):
         config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
     config_bio['simulation']['save_steps'] = 500
     # config_bio['simulation']['dt0'] = 0.0005
-    # config_bio['simulation']['t1'] = 800
+    config_bio['simulation']['t1'] = 500
     # config_bio['simulation']['threshold_steady_states'] = 0.005
     simulate_rugg(circuits,
                   config_bio,
@@ -249,8 +249,12 @@ def main(fn_df_hpos_loaded, config_run: dict, top_write_dir: str):
 
     df_hpos = load_hpos(fn_df_hpos_loaded)
     df_hpos['eval_n_to_sample'] = config_run['eval_n_to_sample']
-    df_hpos['eval_cond_min'] = config_run['eval_cond_min']
-    df_hpos['eval_cond_max'] = config_run['eval_cond_max']
+    cond_min = [tuple(config_run['eval_cond_min'])] * len(df_hpos) if type(
+        config_run['eval_cond_min']) in [list, tuple] else config_run['eval_cond_min']
+    cond_max = [tuple(config_run['eval_cond_max'])] * len(df_hpos) if type(
+        config_run['eval_cond_max']) in [list, tuple] else config_run['eval_cond_max']
+    df_hpos['eval_cond_min'] = cond_min
+    df_hpos['eval_cond_max'] = cond_max
     df_hpos['eval_n_categories'] = config_run['eval_n_categories']
 
     datasets = {v: pd.read_json(
@@ -307,12 +311,13 @@ if __name__ == "__main__":
     fn_ds = args.fn_ds
     fn_circuits = args.fn_circuits
 
-    # fn_saves = 'notebooks/data/01_cvae/2025_03_25__12_04_01/saves_2025_03_25__12_04_01_ds0211_arugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
     fn_saves = None
-    fn_df_hpos_loaded = None  #'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
+    fn_saves = 'notebooks/data/01_cvae/2025_03_25__12_04_01/saves_2025_03_25__12_04_01_ds0211_arugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
+    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
     fn_ds = None  # 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
-    fn_circuits =  ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
-                   'notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_lo.npy']
+    # ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
+    fn_circuits = None
+    #    'notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_lo.npy']
     if fn_df_hpos_loaded is not None:
         try:
             fn_saves = [i for i in os.listdir(os.path.dirname(
@@ -320,50 +325,52 @@ if __name__ == "__main__":
         except:
             pass
 
-    config_run = {
-        'eps_perc': 0.1,
-        'x_type': 'energies',
-        'signal_species': 'RNA_0',
-        'resimulate_analytics': True,
-        'perturb_once': False,
-        'n_perturbs': int(2e4),
-        'analytic': 'Log sensitivity',
-        'eval_batch_size': int(1e5),
-        'eval_n_to_sample': int(1e5),
-        'eval_cond_min': -0.2,
-        'eval_cond_max': 1.2,
-        'eval_n_categories': 10,
-        'fn_saves': fn_saves,
-        'fn_df_hpos_loaded': fn_df_hpos_loaded,
-        'fn_ds': fn_ds,
-        'fn_circuits': fn_circuits,
-        'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
-        # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
-        # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
-        'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
-        'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
-    }
-    
+    # Run circuits individually
     # config_run = {
-    #     "eps_perc": -0.01,
-    #     "x_type": "energies",
-    #     "signal_species": "RNA_0",
-    #     "resimulate_analytics": True,
-    #     'perturb_once': True,
-    #     'n_perturbs': 1,
-    #     "analytic": "Log sensitivity",
-    #     "eval_batch_size": 100000,
-    #     "eval_n_to_sample": int(1e6),
-    #     "eval_cond_min": 0.5,
-    #     "eval_cond_max": 1.2,
-    #     "eval_n_categories": 10,
-    #     "fn_saves": None,
-    #     "fn_df_hpos_loaded": fn_df_hpos_loaded,
-    #     "fn_ds": fn_ds,
+    #     'eps_perc': 0.1,
+    #     'x_type': 'energies',
+    #     'signal_species': 'RNA_0',
+    #     'resimulate_analytics': True,
+    #     'perturb_once': False,
+    #     'n_perturbs': int(2e4),
+    #     'analytic': 'Log sensitivity',
+    #     'eval_batch_size': int(1e5),
+    #     'eval_n_to_sample': int(1e5),
+    #     'eval_cond_min': -0.2,
+    #     'eval_cond_max': 1.2,
+    #     'eval_n_categories': 10,
+    #     'fn_saves': fn_saves,
+    #     'fn_df_hpos_loaded': fn_df_hpos_loaded,
+    #     'fn_ds': fn_ds,
     #     'fn_circuits': fn_circuits,
-    #     "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings.json",
-    #     "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
+    #     'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
+    #     # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
+    #     # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
+    #     'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
+    #     'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
     # }
+
+    # Run model-generated circuits
+    config_run = {
+        "eps_perc": -0.01,
+        "x_type": "energies",
+        "signal_species": "RNA_0",
+        "resimulate_analytics": True,
+        'perturb_once': True,
+        'n_perturbs': 1,
+        "analytic": "Log sensitivity",
+        "eval_batch_size": int(1e5),
+        "eval_n_to_sample": int(1e1), #int(1e6),
+        "eval_cond_min": [0.5, -0.2],
+        "eval_cond_max": [1.2, 1.2],
+        "eval_n_categories": 10,
+        "fn_saves": None,
+        "fn_df_hpos_loaded": fn_df_hpos_loaded,
+        "fn_ds": fn_ds,
+        'fn_circuits': fn_circuits,
+        "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings.json",
+        "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
+    }
 
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())

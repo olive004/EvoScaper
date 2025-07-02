@@ -67,7 +67,7 @@ def make_categories(n_categories: int, n_objectives: int, cond_min: Union[float,
         assert len(cond_min) == len(cond_max) == n_objectives, \
             f"cond_min and cond_max must be lists of length {n_objectives}, got {len(cond_min)} and {len(cond_max)}"
         categories = np.array(list(itertools.product(
-            *([np.linspace(c_min, c_max, n_categories).tolist() for c_min, c_max in zip(cond_min, cond_max)] * n_objectives))))
+            *([np.linspace(c_min, c_max, n_categories).tolist() for c_min, c_max in zip(cond_min, cond_max)]))))
 
     return categories
 
