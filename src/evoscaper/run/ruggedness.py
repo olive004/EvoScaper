@@ -33,7 +33,7 @@ def calculate_ruggedness(interactions, eps_perc: float, analytic, input_species,
 
     ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0) = sim_save_rugg(
         perturbations, x_type, signal_species, config_bio, input_species, top_write_dir,
-        analytics_original, analytic, resimulate_analytics, n_samples, n_perturbs, eps)
+        analytics_original, analytic, resimulate_analytics, n_samples, n_perturbs, eps, perturb_once)
 
     return ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0)
 
@@ -62,7 +62,7 @@ def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_
 
 
 def sim_save_rugg(perturbations, x_type, signal_species, config_bio, input_species, top_write_dir,
-                  analytics_original, analytic, resimulate_analytics, n_samples, n_perturbs, eps):
+                  analytics_original, analytic, resimulate_analytics, n_samples, n_perturbs, eps, perturb_once: bool):
 
     analytics_perturbed, ys, ts, y0m, y00s, ts0 = simulate_perturbations(
         perturbations, x_type, signal_species, config_bio, input_species, top_write_dir)
@@ -70,7 +70,7 @@ def sim_save_rugg(perturbations, x_type, signal_species, config_bio, input_speci
         top_write_dir, 'analytics.json'))
 
     ruggedness = calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
-                                           resimulate_analytics, n_samples, n_perturbs, eps)
+                                           resimulate_analytics, n_samples, n_perturbs, eps, perturb_once)
     return ruggedness, (analytics_perturbed, ys, ts, y0m, y00s, ts0)
 
 
@@ -201,10 +201,10 @@ def run_circuits(fn_circuits, config_run, top_write_dir: str):
     input_species = config_run['input_species']
     config_bio = load_config_bio(
         config_run['filenames_verify_config'], input_species, config_run.get('fn_simulation_settings'))
-    config_bio['simulation']['save_steps'] = 1000
-    config_bio['simulation']['dt0'] = 0.0005
-    config_bio['simulation']['t1'] = 200
-    config_bio['simulation']['threshold_steady_states'] = 0.01
+    config_bio['simulation']['save_steps'] = 500
+    # config_bio['simulation']['dt0'] = 0.0005
+    # config_bio['simulation']['t1'] = 800
+    # config_bio['simulation']['threshold_steady_states'] = 0.005
     simulate_rugg(circuits,
                   config_bio,
                   input_species,
@@ -326,7 +326,7 @@ if __name__ == "__main__":
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
         'perturb_once': False,
-        'n_perturbs': int(1e5),
+        'n_perturbs': int(2e4),
         'analytic': 'Log sensitivity',
         'eval_batch_size': int(1e5),
         'eval_n_to_sample': int(1e5),
