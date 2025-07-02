@@ -1,0 +1,81 @@
+{
+    "interaction_simulator": {
+        "name": "IntaRNA",
+        "postprocess": true,
+        "simulator_kwargs": {
+            "qidxpos0": 1,
+            "tidxpos0": 1,
+            "outcsvcols": "id1, id2, E, bpList",
+            "threads": 0,
+            "n": 1,
+            "param_file": "synbio_morpher/utils/common/configs/simulators/intaRNA_parameterFile.sh",
+            "query": null,
+            "target": null
+        }
+    },
+    "molecular_params": {
+        "avg_mRNA_per_cell": 100,
+        "cell_doubling_time": 1200,
+        "creation_rate": 2.35,
+        "starting_copynumbers": 200,
+        "degradation_rate": 0.01175,
+        "association_binding_rate": 1000000,
+        "creation_rate_per_molecule": 3.5475152795e-09,
+        "degradation_rate_per_molecule": 1.77375763975e-11,
+        "association_binding_rate_per_molecule": 0.00150958097
+    },
+    "circuit_generation": {
+        "repetitions": 200000,
+        "species_count": 3,
+        "sequence_length": 20,
+        "perc_non_interacting": 0.1,
+        "seed": 0
+    },
+    "identities": {
+        "input": "RNA_0",
+        "output": "RNA_2"
+    },
+    "include_prod_deg": false,
+    "signal": {
+        "inputs": [
+            "RNA_0"
+        ],
+        "outputs": [
+            "RNA_1"
+        ],
+        "function_name": "step_function",
+        "function_kwargs": {
+            "impulse_center": 1,
+            "impulse_halfwidth": 0.5,
+            "target": 2
+        }
+    },
+    "simulation": {
+        "dt0": 0.0005,
+        "dt1": 0.5,
+        "t0": 0,
+        "t1": 800,
+        "tmax": 8000,
+        "solver": "diffrax",
+        "use_batch_mutations": true,
+        "interaction_factor": 1,
+        "batch_size": 4000,
+        "max_circuits": 60000,
+        "device": "gpu",
+        "threshold_steady_states": 0.01,
+        "use_initial_to_add_signal": false,
+        "use_rate_scaling": true,
+        "method": "Dopri5",
+        "stepsize_controller": "adaptive",
+        "save_steps": 200
+    },
+    "simulation_steady_state": {
+        "max_time": 20,
+        "method": "Dopri5",
+        "steady_state_solver": "diffrax",
+        "time_interval": 0.01,
+        "use_zero_rates": true,
+        "stepsize_controller": "adaptive"
+    },
+    "system_type": "RNA"
+}

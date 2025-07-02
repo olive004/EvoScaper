@@ -59,16 +59,16 @@ def make_sampled_conditions(categories: np.ndarray, n_categories: int, n_to_samp
 def make_categories(n_categories: int, n_objectives: int, cond_min: Union[float, List[float]], cond_max: Union[float, List[float]]):
     """ Sample a different range of conditions for all objectives """
 
-    if (type(cond_max) is not list) or (type(cond_max) is not np.ndarray):
-
-        categories = np.array(list(itertools.product(
-            *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
-    else:
+    if isinstance(cond_min, (list, tuple, np.ndarray)):
         assert len(cond_min) == len(cond_max) == n_objectives, \
             f"cond_min and cond_max must be lists of length {n_objectives}, got {len(cond_min)} and {len(cond_max)}"
         categories = np.array(list(itertools.product(
             *([np.linspace(c_min, c_max, n_categories).tolist() for c_min, c_max in zip(cond_min, cond_max)]))))
+    else:
+        categories = np.array(list(itertools.product(
+            *([np.linspace(cond_min, cond_max, n_categories).tolist()] * n_objectives))))
 
+    assert categories.ndim == 2, f"Categories should be 2D, got {categories.ndim}D with shape {categories.shape}"
     return categories
 
 

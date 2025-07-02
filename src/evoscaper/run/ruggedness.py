@@ -343,7 +343,7 @@ if __name__ == "__main__":
     #     'fn_df_hpos_loaded': fn_df_hpos_loaded,
     #     'fn_ds': fn_ds,
     #     'fn_circuits': fn_circuits,
-    #     'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
+    #     'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings2.json',
     #     # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
     #     # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
     #     'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         "fn_df_hpos_loaded": fn_df_hpos_loaded,
         "fn_ds": fn_ds,
         'fn_circuits': fn_circuits,
-        "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings.json",
+        "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings2.json",
         "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
     }
 
