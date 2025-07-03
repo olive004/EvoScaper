@@ -22,7 +22,7 @@ import jax.numpy as jnp
 import diffrax as dfx
 
 
-def num_unsteadied(comparison: np.ndarray, threshold: float):
+def calc_num_unsteadied(comparison: np.ndarray, threshold: float):
     return np.nansum(np.abs(comparison) > threshold)
 
 
@@ -90,13 +90,13 @@ def simulate_steady_states(y0, total_time, sim_func, t0, t1,
             fderiv = jnp.gradient(ys[:, -3:, :], axis=1)[:, -1, :]  # / y00
         else:
             fderiv = ys[:, -1, :] - y00
-        if (num_unsteadied(fderiv / ys[:, -1, :], threshold) == 0) or (ti >= total_time):
+        n_unsteadied = calc_num_unsteadied(fderiv / ys[:, -1, :], threshold)
+        if (n_unsteadied == 0) or (ti >= total_time):
             if not disable_logging:
                 print('Done: ', datetime.now() - iter_time)
             break
         if not disable_logging:
-            print('Steady states: ', ti, ' iterations. ', num_unsteadied(
-                fderiv, threshold), ' left to steady out. ', datetime.now() - iter_time)
+            print('Steady states: ', ti, ' iterations. ', n_unsteadied, ' left to steady out. ', datetime.now() - iter_time)
 
     if ts_full.ndim > 1:
         ts_full = ts_full[0]

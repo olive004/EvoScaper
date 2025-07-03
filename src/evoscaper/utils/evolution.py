@@ -42,7 +42,7 @@ def calculate_ruggedness_from_perturbations_alt(analytic_perturbed, analytic_og,
 
 def calculate_ruggedness_core(analytics_perturbed, analytics_original, analytic,
                               resimulate_analytics, n_samples, n_perturbs, eps,
-                              perturb_once,
+                              perturb_once=True,
                               use_alt_algo=False):
 
     analytic_perturbed = jnp.array(

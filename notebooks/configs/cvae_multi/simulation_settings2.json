@@ -54,7 +54,7 @@
         "dt0": 0.0005,
         "dt1": 0.5,
         "t0": 0,
-        "t1": 800,
+        "t1": 300,
         "tmax": 8000,
         "solver": "diffrax",
         "use_batch_mutations": true,
@@ -62,12 +62,12 @@
         "batch_size": 4000,
         "max_circuits": 60000,
         "device": "gpu",
-        "threshold_steady_states": 0.01,
+        "threshold_steady_states": 0.005,
         "use_initial_to_add_signal": false,
         "use_rate_scaling": true,
         "method": "Dopri5",
         "stepsize_controller": "adaptive",
-        "save_steps": 200
+        "save_steps": 500
     },
     "simulation_steady_state": {
         "max_time": 20,
