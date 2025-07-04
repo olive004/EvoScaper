@@ -47,7 +47,6 @@ class MLPWithActivation(hk.Module):
         if self.activation_final is not None:
             l.append(self.activation_final)
 
-            hk.nets.MLP
         return l
 
     def __call__(self,

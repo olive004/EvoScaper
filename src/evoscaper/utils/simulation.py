@@ -163,6 +163,10 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     threshold_steady_states = simulation_settings.get(
         'threshold_steady_states', 0.01)
     save_steps = simulation_settings.get('save_steps', 50)
+    save_steps_uselog = simulation_settings.get(('save_steps_uselog', False))
+    if save_steps_uselog:
+        save_steps = np.logspace(np.log10(t0 + 1), np.log10(t1), save_steps, base=10, endpoint=True) - 1.
+        save_steps[-1] = t1
     max_steps = simulation_settings.get('max_steps', (16**5) * 5)
 
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, tmax, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates
@@ -279,6 +283,7 @@ def sim_core(
     dt0 = np.min([1 / (5 * rate_max), dt0])
     dt1 = dt1_factor * dt0
     total_time = t1 - t0 if total_time is None else total_time
+    save_steps_ts = np.linspace(t0, t1, save_steps) if type(save_steps) == int else save_steps
 
     sim_func = jax.jit(jax.vmap(partial(bioreaction_sim_dfx_expanded,
                                 t0=t0, t1=t1, dt0=dt0,
@@ -288,7 +293,7 @@ def sim_core(
                                 forward_rates=forward_rates,
                                 solver=dfx.Tsit5(),
                                 saveat=dfx.SaveAt(
-                                    ts=np.linspace(t0, t1, save_steps)),
+                                    ts=save_steps_ts),
                                 max_steps=max_steps,
                                 stepsize_controller=make_stepsize_controller(
                                     t0=t0, t1=t1, dt0=dt0, dt1=dt1, choice=stepsize_controller),
