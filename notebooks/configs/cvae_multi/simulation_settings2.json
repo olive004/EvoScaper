@@ -67,7 +67,8 @@
         "use_rate_scaling": true,
         "method": "Dopri5",
         "stepsize_controller": "adaptive",
-        "save_steps": 50
+        "save_steps": 50,
+        "save_steps_uselog": true
     },
     "simulation_steady_state": {
         "max_time": 20,
