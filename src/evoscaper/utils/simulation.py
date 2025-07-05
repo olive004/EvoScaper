@@ -163,10 +163,10 @@ def prep_sim(signal_species: List[str], qreactions: QuantifiedReactions, fake_ci
     threshold_steady_states = simulation_settings.get(
         'threshold_steady_states', 0.01)
     save_steps = simulation_settings.get('save_steps', 50)
-    save_steps_uselog = simulation_settings.get(('save_steps_uselog', False))
+    save_steps_uselog = simulation_settings.get('save_steps_uselog', False)
     if save_steps_uselog:
         save_steps = np.logspace(np.log10(t0 + 1), np.log10(t1), save_steps, base=10, endpoint=True) - 1.
-        save_steps[-1] = t1
+        # save_steps[-1] = t1
     max_steps = simulation_settings.get('max_steps', (16**5) * 5)
 
     return signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, tmax, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates

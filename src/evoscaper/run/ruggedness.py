@@ -360,7 +360,7 @@ if __name__ == "__main__":
         'n_perturbs': 1,
         "analytic": "Log sensitivity",
         "eval_batch_size": int(1e5),
-        "eval_n_to_sample": int(15), #00000), #int(1e6),
+        "eval_n_to_sample": int(1500000), #int(1e6),
         "eval_cond_min": [-0.1, -0.1],
         "eval_cond_max": [1.1, 1.1],
         "eval_n_categories": 13,
