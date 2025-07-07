@@ -60,10 +60,10 @@
         "signal_species": [
             "RNA_0"
         ],
-        "filenames_train_config": "./data/simulate_circuits/2025_01_29__18_12_38/config.json",
-        "filenames_train_table": "./data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json",
-        "filenames_verify_config": "../data/raw/summarise_simulation/2024_11_21_160955/ensemble_config.json",
-        "filenames_verify_table": "../data/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv",
+        "filenames_train_config": "notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json",
+        "filenames_train_table": "notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json",
+        "filenames_verify_config": "data/raw/summarise_simulation/2024_11_21_160955/ensemble_config.json",
+        "filenames_verify_table": "data/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv",
         "use_test_data": false,
         "total_ds_max": 10000000,
         "train_split": 0.8,
@@ -114,16 +114,16 @@
     },
     
     "info_to_be_recorded": {
-        "filename_saved_model": "data/01_cvae/2025_03_20__14_23_17/saves_2025_03_20__14_23_17_ds0129_a2_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98",
-        "total_ds": 504576,
-        "n_batches": 1971,
-        "R2_train": 0.9698219895362854,
+        "filename_saved_model": "TO_BE_RECORDED",
+        "total_ds": "TO_BE_RECORDED",
+        "n_batches": "TO_BE_RECORDED",
+        "R2_train": "TO_BE_RECORDED",
         "R2_test": "TO_BE_RECORDED",
         "mutual_information_conditionality": "TO_BE_RECORDED",
         "n_layers_enc": "TO_BE_RECORDED",
         "n_layers_dec": "TO_BE_RECORDED",
-        "run_successful": true,
-        "info_early_stop": "Early stopping triggered after 27 epochs:\nTrain loss: -0.9929800629615784\nVal loss: -0.9931607246398926\nVal accuracy: 0.9816076755523682\nEpochs no improvement: 1",
+        "run_successful": "TO_BE_RECORDED",
+        "info_early_stop": "TO_BE_RECORDED",
         "error_msg": "TO_BE_RECORDED"
     }
 }
