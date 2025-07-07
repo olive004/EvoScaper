@@ -61,6 +61,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'eval_batch_size': int(1e5),
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
     }
+    
     max_n_categories_multi = 5
 
     for k in config_multisim.keys():
@@ -84,13 +85,15 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250413.json',
+    # parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250413.json',
     # parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250424.json',
+    parser.add_argument('--fn_basic', type=str, default='notebooks/configs/cvae_multi/hpos_basic_20250707.json',
                         help='Path to basic settings JSON file')
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_datasize.json',
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives3.json',
+    # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives3.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives_test.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss4.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives4.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
