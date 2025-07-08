@@ -123,5 +123,6 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_25__09_25_04/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_26__19_01_53/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_28__16_15_32/df_hpos.json'
+    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_07_07__16_27_26/df_hpos.json'
 
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
