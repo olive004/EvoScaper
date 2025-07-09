@@ -315,8 +315,8 @@ if __name__ == "__main__":
     fn_saves = 'notebooks/data/01_cvae/2025_03_25__12_04_01/saves_2025_03_25__12_04_01_ds0211_arugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
     fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
     fn_ds = None  # 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
-    # ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
     fn_circuits = None
+    # fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
     #    'notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_lo.npy']
     if fn_df_hpos_loaded is not None:
         try:
