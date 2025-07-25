@@ -565,7 +565,7 @@ def sim_all_models(config_multisim,
     batch_dir = os.path.join(top_write_dir, 'batch_results')
     os.makedirs(batch_dir, exist_ok=True)
     analytics, ys, ts, y0m, y00s, ts0 = {}, None, None, None, None, None
-    for i in range(5, n_batches):
+    for i in range(0, n_batches):
         results_dir = os.path.join(batch_dir, f'batch_{i}')
         os.makedirs(results_dir, exist_ok=True)
 
