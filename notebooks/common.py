@@ -93,14 +93,15 @@ def load_stitch_analytics(dir_src_rugg):
     else:
         # Stitch together ruggedness from batches
         analytics_rugg = {}
+        batch_dirs = [c for c in os.listdir(dir_src_rugg) if c.startswith('batch')]
+        batch_dirs.sort(key=lambda x: int(x.split('_')[1]))
         # for fn_analytic in ['analytics.json', 'analytics2.json']:
-        for dir_batch in [f'batch_{i}' for i in np.arange(12)]:
+        for dir_batch in batch_dirs:
             if (not os.path.exists(os.path.join(dir_src_rugg, dir_batch))) or (
                     len(os.listdir(os.path.join(dir_src_rugg, dir_batch))) == 0):
                 continue
             analytics_batch = load_json_as_dict(os.path.join(
                 dir_src_rugg, dir_batch, 'analytics.json'))
-            # analytics_batch = load_json_as_dict(os.path.join(dir_src_rugg, fn_analytic))
             for k, v in analytics_batch.items():
                 if k not in analytics_rugg:
                     analytics_rugg[k] = np.array(v)
@@ -155,8 +156,8 @@ def load_rugg(all_fake_circuits, config_rugg, analytics_rugg):
                                                          config_rugg['resimulate_analytics'], n_samples, n_perturbs, eps)
 
     if config_rugg['resimulate_analytics']:
-        n_max = n_samples * n_perturbs
-        analytics_og = {k: np.array(v[:n_max]).reshape(
+        # n_max = n_samples * n_perturbs
+        analytics_og = {k: np.array(v).reshape(
             n_samples, n_perturbs, -1)[:, -1, :] for k, v in analytics_rugg.items()}
     else:
         analytics_og = {}
