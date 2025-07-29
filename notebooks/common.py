@@ -155,7 +155,8 @@ def load_rugg(all_fake_circuits, config_rugg, analytics_rugg):
                                                          config_rugg['resimulate_analytics'], n_samples, n_perturbs, eps)
 
     if config_rugg['resimulate_analytics']:
-        analytics_og = {k: np.array(v).reshape(
+        n_max = n_samples * n_perturbs
+        analytics_og = {k: np.array(v[:n_max]).reshape(
             n_samples, n_perturbs, -1)[:, -1, :] for k, v in analytics_rugg.items()}
     else:
         analytics_og = {}
