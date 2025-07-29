@@ -80,13 +80,14 @@ def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
     return result_dimred, idxs_show, cond_unique, cond_binned, x_bin_all, x_rev_all, cond_rev_all, emb, h_all, z_all
 
 
-def load_stitch_analytics(dir_src_rugg):
+def load_stitch_analytics(dir_src_rugg, last_idx=None):
     fn_analytics = os.path.join(dir_src_rugg, 'analytics.json')
 
+    last_idx = last_idx if last_idx is not None else slice(None, None, 1)
     if os.path.exists(fn_analytics):
         analytics_rugg = load_json_as_dict(fn_analytics)
         for k, v in analytics_rugg.items():
-            analytics_rugg[k] = np.array(v)
+            analytics_rugg[k] = np.array(v)[..., last_idx]
         if 'adaptation' not in analytics_rugg.keys():
             analytics_rugg['adaptation'] = calculate_adaptation(
                 analytics_rugg['sensitivity'], analytics_rugg['precision'], alpha=2)
@@ -104,10 +105,10 @@ def load_stitch_analytics(dir_src_rugg):
                 dir_src_rugg, dir_batch, 'analytics.json'))
             for k, v in analytics_batch.items():
                 if k not in analytics_rugg:
-                    analytics_rugg[k] = np.array(v)
+                    analytics_rugg[k] = np.array(v)[..., last_idx]
                 else:
                     analytics_rugg[k] = np.concatenate(
-                        [analytics_rugg[k], np.array(v)], axis=0)
+                        [analytics_rugg[k], np.array(v)[..., last_idx]], axis=0)
 
         analytics_rugg['Log sensitivity'] = np.log10(
             analytics_rugg['sensitivity'])
