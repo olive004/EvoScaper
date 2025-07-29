@@ -81,16 +81,24 @@ def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
 
 
 def load_stitch_analytics(dir_src_rugg, last_idx=None):
+    
+    def add_properties(analytics_rugg):
+        analytics_rugg['Log sensitivity'] = np.log10(
+            analytics_rugg['sensitivity'])
+        analytics_rugg['Log precision'] = np.log10(analytics_rugg['precision'])
+        if 'adaptation' not in analytics_rugg.keys():
+            analytics_rugg['adaptation'] = calculate_adaptation(
+                analytics_rugg['sensitivity'], analytics_rugg['precision'], alpha=2)
+        return analytics_rugg
+        
     fn_analytics = os.path.join(dir_src_rugg, 'analytics.json')
 
     last_idx = last_idx if last_idx is not None else slice(None, None, 1)
     if os.path.exists(fn_analytics):
         analytics_rugg = load_json_as_dict(fn_analytics)
         for k, v in analytics_rugg.items():
-            analytics_rugg[k] = np.array(v)[..., last_idx]
-        if 'adaptation' not in analytics_rugg.keys():
-            analytics_rugg['adaptation'] = calculate_adaptation(
-                analytics_rugg['sensitivity'], analytics_rugg['precision'], alpha=2)
+            analytics_rugg[k] = np.array(v) #[..., last_idx]
+        analytics_rugg = add_properties(analytics_rugg)
     else:
         # Stitch together ruggedness from batches
         analytics_rugg = {}
@@ -109,13 +117,7 @@ def load_stitch_analytics(dir_src_rugg, last_idx=None):
                 else:
                     analytics_rugg[k] = np.concatenate(
                         [analytics_rugg[k], np.array(v)[..., last_idx]], axis=0)
-
-        analytics_rugg['Log sensitivity'] = np.log10(
-            analytics_rugg['sensitivity'])
-        analytics_rugg['Log precision'] = np.log10(analytics_rugg['precision'])
-        if 'adaptation' not in analytics_rugg.keys():
-            analytics_rugg['adaptation'] = calculate_adaptation(
-                analytics_rugg['sensitivity'], analytics_rugg['precision'], alpha=2)
+        analytics_rugg = add_properties(analytics_rugg)
 
         write_json(analytics_rugg, fn_analytics)
 

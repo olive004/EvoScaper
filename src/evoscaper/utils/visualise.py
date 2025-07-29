@@ -46,7 +46,7 @@ def save_plot():
 def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: np.ndarray,
                          title: str, x_label: str, multiple='fill', f=sns.histplot,
                          include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', 
-                         figsize=(13, 5), **kwargs):
+                         figsize=(13, 5), output_idx=None, **kwargs):
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
             kwargs.setdefault(k, v)
@@ -55,7 +55,7 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species ${output_specie}$'
-        output_idx = all_species.index(output_specie)
+        output_idx = all_species.index(output_specie) if (output_idx is None) else output_idx
         df_s = pd.DataFrame(columns=[x_label] + [f'Conditional input {ii}' for ii in range(category_array.shape[-1])],
                             data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
