@@ -313,12 +313,18 @@ if __name__ == "__main__":
 
     fn_saves = None
     fn_saves = 'notebooks/data/01_cvae/2025_03_25__12_04_01/saves_2025_03_25__12_04_01_ds0211_arugg_hs32_nl3_KL2e4_cont01ts095pd3_lr1e3_teva98'
-    fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
+    
+    # Run main
+    fn_df_hpos_loaded = None # 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
+    
+    # Run dataset only
     fn_ds = None  # 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
-    fn_circuits = None
+    
+    # Run circuits only
+    # fn_circuits = None
     fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_hi.npy',
        'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_lo.npy']
-    /workdir/notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30
+    
     if fn_df_hpos_loaded is not None:
         try:
             fn_saves = [i for i in os.listdir(os.path.dirname(
@@ -328,7 +334,7 @@ if __name__ == "__main__":
 
     # Run circuits individually
     config_run = {
-        'eps_perc': 0.1,
+        "eps_perc": -0.01,
         'x_type': 'energies',
         'signal_species': 'RNA_0',
         'resimulate_analytics': True,
@@ -337,9 +343,9 @@ if __name__ == "__main__":
         'analytic': 'Log sensitivity',
         'eval_batch_size': int(1e5),
         'eval_n_to_sample': int(1e5),
-        'eval_cond_min': -0.2,
-        'eval_cond_max': 1.2,
-        'eval_n_categories': 10,
+        "eval_cond_min": [-0.1, -0.1],
+        "eval_cond_max": [1.1, 1.1],
+        "eval_n_categories": 13,
         'fn_saves': fn_saves,
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'fn_ds': fn_ds,
@@ -349,13 +355,6 @@ if __name__ == "__main__":
         # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
         'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
         'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
-    }
-    
-    config_run = {
-        "eps_perc": -0.01,
-        "eval_cond_min": [-0.1, -0.1],
-        "eval_cond_max": [1.1, 1.1],
-        "eval_n_categories": 13,
     }
 
     # Run model-generated circuits
