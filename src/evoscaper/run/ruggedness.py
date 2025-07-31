@@ -316,8 +316,9 @@ if __name__ == "__main__":
     fn_df_hpos_loaded = 'notebooks/data/01_cvae/2025_03_25__12_04_01/hpos_all.json'
     fn_ds = None  # 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/tabulated_mutation_info.json'
     fn_circuits = None
-    # fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_hi.npy',
-    #    'notebooks/data/16_visualise_rugged_verify/2025_06_27__10_52_01/circuit_chosen_rugg_lo.npy']
+    fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_hi.npy',
+       'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_lo.npy']
+    /workdir/notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30
     if fn_df_hpos_loaded is not None:
         try:
             fn_saves = [i for i in os.listdir(os.path.dirname(
@@ -326,51 +327,58 @@ if __name__ == "__main__":
             pass
 
     # Run circuits individually
-    # config_run = {
-    #     'eps_perc': 0.1,
-    #     'x_type': 'energies',
-    #     'signal_species': 'RNA_0',
-    #     'resimulate_analytics': True,
-    #     'perturb_once': False,
-    #     'n_perturbs': int(2e4),
-    #     'analytic': 'Log sensitivity',
-    #     'eval_batch_size': int(1e5),
-    #     'eval_n_to_sample': int(1e5),
-    #     'eval_cond_min': -0.2,
-    #     'eval_cond_max': 1.2,
-    #     'eval_n_categories': 10,
-    #     'fn_saves': fn_saves,
-    #     'fn_df_hpos_loaded': fn_df_hpos_loaded,
-    #     'fn_ds': fn_ds,
-    #     'fn_circuits': fn_circuits,
-    #     'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings2.json',
-    #     # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
-    #     # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
-    #     'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
-    #     'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
-    # }
-
-    # Run model-generated circuits
+    config_run = {
+        'eps_perc': 0.1,
+        'x_type': 'energies',
+        'signal_species': 'RNA_0',
+        'resimulate_analytics': True,
+        'perturb_once': False,
+        'n_perturbs': int(2e4),
+        'analytic': 'Log sensitivity',
+        'eval_batch_size': int(1e5),
+        'eval_n_to_sample': int(1e5),
+        'eval_cond_min': -0.2,
+        'eval_cond_max': 1.2,
+        'eval_n_categories': 10,
+        'fn_saves': fn_saves,
+        'fn_df_hpos_loaded': fn_df_hpos_loaded,
+        'fn_ds': fn_ds,
+        'fn_circuits': fn_circuits,
+        'fn_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings2.json',
+        # 'filenames_verify_config': 'data/raw/summarise_simulation/2024_12_05_210221/ensemble_config_update.json'
+        # 'filenames_verify_config': 'notebooks/data/simulate_circuits/2025_01_29__18_12_38/config.json',
+        'filenames_verify_config': 'data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json',
+        'input_species': ['RNA_0', 'RNA_1', 'RNA_2']  # None,
+    }
+    
     config_run = {
         "eps_perc": -0.01,
-        "x_type": "energies",
-        "signal_species": "RNA_0",
-        "resimulate_analytics": True,
-        'perturb_once': True,
-        'n_perturbs': 1,
-        "analytic": "Log sensitivity",
-        "eval_batch_size": int(1e5),
-        "eval_n_to_sample": int(1500000), #int(1e6),
         "eval_cond_min": [-0.1, -0.1],
         "eval_cond_max": [1.1, 1.1],
         "eval_n_categories": 13,
-        "fn_saves": None,
-        "fn_df_hpos_loaded": fn_df_hpos_loaded,
-        "fn_ds": fn_ds,
-        'fn_circuits': fn_circuits,
-        "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings2.json",
-        "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
     }
+
+    # Run model-generated circuits
+    # config_run = {
+    #     "eps_perc": -0.01,
+    #     "x_type": "energies",
+    #     "signal_species": "RNA_0",
+    #     "resimulate_analytics": True,
+    #     'perturb_once': True,
+    #     'n_perturbs': 1,
+    #     "analytic": "Log sensitivity",
+    #     "eval_batch_size": int(1e5),
+    #     "eval_n_to_sample": int(1500000), #int(1e6),
+    #     "eval_cond_min": [-0.1, -0.1],
+    #     "eval_cond_max": [1.1, 1.1],
+    #     "eval_n_categories": 13,
+    #     "fn_saves": None,
+    #     "fn_df_hpos_loaded": fn_df_hpos_loaded,
+    #     "fn_ds": fn_ds,
+    #     'fn_circuits': fn_circuits,
+    #     "fn_simulation_settings": "notebooks/configs/cvae_multi/simulation_settings2.json",
+    #     "filenames_verify_config": "data/raw/summarise_simulation/2024_11_27_145142/ensemble_config.json"
+    # }
 
     top_write_dir = os.path.join(
         'notebooks', 'data', 'ruggedness', make_datetime_str())

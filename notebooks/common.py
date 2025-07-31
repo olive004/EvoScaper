@@ -80,6 +80,50 @@ def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
     return result_dimred, idxs_show, cond_unique, cond_binned, x_bin_all, x_rev_all, cond_rev_all, emb, h_all, z_all
 
 
+def load_stitch_ys(dir_src_rugg, idx_output, n_samples, time_steps = 800):
+    
+    def check_expansion(ys_out, t_len):
+        if ys_out.shape[1] < t_len:
+            ys_out = np.concatenate(
+                [ys_out, np.ones((ys_out.shape[0], t_len - ys_out.shape[1]), dtype=np.float32) * np.nan], axis=1)
+        return ys_out
+    
+    batch_dirs = [c for c in os.listdir(dir_src_rugg) if c.startswith('batch')]
+    batch_dirs.sort(key=lambda x: int(x.split('_')[1]))
+
+    fn_ys = os.path.join(dir_src_rugg, 'ys.npy')
+    fn_ys_out = os.path.join(dir_src_rugg, 'ys_out.npy')
+    if os.path.exists(fn_ys):
+        ys_out = np.load(fn_ys)[..., idx_output]
+        ts = np.load(fn_ys.replace('ys', 'ts'))
+    elif os.path.exists(fn_ys_out):
+        ys_out = np.load(fn_ys_out)
+        ts = np.load(fn_ys_out.replace('ys_out', 'ts'))
+    else:
+        ys_out = np.ones((n_samples, time_steps), dtype=np.float32) * np.nan
+        t_max = 0
+        for i, b in enumerate(batch_dirs):
+            ys_i = np.load(os.path.join(dir_src_rugg, b, 'ys.npy'))
+            if i == 0: 
+                ts = np.load(os.path.join(dir_src_rugg, b, 'ts.npy'))
+
+            t_len = ys_i.shape[1]
+            if t_len > t_max:
+                t_max = t_len
+            ys_out = check_expansion(ys_out, t_len)
+            ys_out[i * len(ys_i) : (i+1) * len(ys_i), :t_len] = ys_i[..., idx_output].astype(np.float32)
+            if t_len < time_steps:
+                ys_out[i * len(ys_i) : (i+1) * len(ys_i), t_len:] = ys_i[:, -1, idx_output].astype(np.float32)[:, None]
+        if t_max < time_steps:
+            ys_out = ys_out[:, :t_max]
+
+        ys_out = ys_out.reshape(*ys_out.shape, 1)
+        np.save(fn_ys_out, ys_out)
+        np.save(fn_ys_out.replace('ys_out', 'ts'), ts)
+    
+    return ys_out, ts
+
+
 def load_stitch_analytics(dir_src_rugg, last_idx=None):
     
     def add_properties(analytics_rugg):
