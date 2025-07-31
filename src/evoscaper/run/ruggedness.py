@@ -49,7 +49,7 @@ def get_perturbations(interactions, eps_perc, n_samples, n_perturbs, resimulate_
         perturbations = jax.vmap(
             partial(create_perturbations, eps=eps))(interactions)
     else:
-        eps = jax.random.uniform(
+        eps = jax.random.normal(
             jax.random.PRNGKey(seed),
             (n_samples, n_perturbs, n_interactions)) * eps_perc * np.abs(interactions).max()
         perturbations = interactions[:, None, :] + eps
@@ -323,7 +323,9 @@ if __name__ == "__main__":
     # Run circuits only
     # fn_circuits = None
     fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_hi.npy',
-       'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_lo.npy']
+       'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_lo.npy',
+       'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_random.npy',
+       ]
     
     if fn_df_hpos_loaded is not None:
         try:
