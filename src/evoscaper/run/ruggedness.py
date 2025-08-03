@@ -324,7 +324,7 @@ if __name__ == "__main__":
     # fn_circuits = None
     fn_circuits = ['notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_hi.npy',
        'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_chosen_rugg_lo.npy',
-       'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_random.npy',
+    #    'notebooks/data/16_visualise_rugged_verify/2025_07_31__09_47_30/circuit_random.npy',
        ]
     
     if fn_df_hpos_loaded is not None:
