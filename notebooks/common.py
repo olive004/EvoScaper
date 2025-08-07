@@ -169,7 +169,7 @@ def load_stitch_analytics(dir_src_rugg, last_idx=None):
     return analytics_rugg
 
 
-def norm_rugg(rugg, rugg_training, y_datanormaliser, col_rugg='Log ruggedness (adaptation)'):
+def norm_rugg(rugg, rugg_training, y_datanormaliser, min_range=0, max_range=1, col_rugg='Log ruggedness (adaptation)'):
     # Robust scaling
     median = y_datanormaliser.metadata[col_rugg]['median']
     iqr = y_datanormaliser.metadata[col_rugg]['iqr']
@@ -184,7 +184,7 @@ def norm_rugg(rugg, rugg_training, y_datanormaliser, col_rugg='Log ruggedness (a
     scale = np.where(scale == 0, 1.0, scale)
 
     # Map to desired feature range
-    min_range, max_range = (0, 1)
+    
     rugg_norm = ((robust_scaled - y_datanormaliser.metadata[col_rugg]['min_val']) / y_datanormaliser.metadata[col_rugg]['scale']) * \
         (max_range - min_range) + min_range
 
