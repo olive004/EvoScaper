@@ -16,8 +16,16 @@ from synbio_morpher.utils.results.analytics.timeseries import calculate_adaptati
 from synbio_morpher.utils.data.data_format_tools.common import write_json
 from evoscaper.utils.evolution import calculate_ruggedness_core
 from evoscaper.utils.math import make_flat_triangle
+from evoscaper.utils.normalise import calc_minmax
 
 
+def scale_norm(x, key, data, vmin=0, vmax=1):
+    """Scale and normalize the data."""
+    return calc_minmax(
+        x, min_val=data[key].min(), scale=data[key].max() - data[key].min(),
+        max_range=vmax, min_range=vmin)
+    
+    
 def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
                                   x, cond, use_h,
                                   y_datanormaliser, y_methods_preprocessing,
