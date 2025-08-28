@@ -119,8 +119,9 @@ def main(top_write_dir=None, cfg_path=None):
             'circuit_generation': {
                 'use_dataset': False,
                 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
-                'repetitions': 1000000,
-                'species_count': 4,
+                'repetitions': 2,
+                # 'repetitions': 1000000,
+                'species_count': 3,
                 'sequence_length': 20,
                 'generator_protocol': 'random',
                 'proportion_to_mutate': 0.5,
