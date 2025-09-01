@@ -54,7 +54,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
-        'eval_n_to_sample': int(3e3),
+        'eval_n_to_sample': int(1e4),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
@@ -94,7 +94,8 @@ if __name__ == "__main__":
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives3.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives_test.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_contloss4.json',
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives4.json',
+    # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_objectives4.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
