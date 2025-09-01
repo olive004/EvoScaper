@@ -17,6 +17,21 @@ from synbio_morpher.utils.data.data_format_tools.common import write_json
 from evoscaper.utils.evolution import calculate_ruggedness_core
 from evoscaper.utils.math import make_flat_triangle
 from evoscaper.utils.normalise import calc_minmax
+import hdbscan
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
+
+
+def cluster_parameter_groups(df, eps=0.5, cols=['UMAP 1', 'UMAP 2'], min_cluster_size=5, min_samples=1, method='HDBSCAN',
+                             n_true_clusters=5):
+    if method == 'HDBSCAN':
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+    elif method == 'KMeans':
+        clusterer = KMeans(n_clusters=n_true_clusters, random_state=42, n_init='auto')
+    else:
+        clusterer = DBSCAN(eps=eps, min_samples=min_samples)
+    df['Cluster'] = clusterer.fit_predict(df[cols])
+    return df
 
 
 def scale_norm(x, key, data, vmin=0, vmax=1):
