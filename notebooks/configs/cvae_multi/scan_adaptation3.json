@@ -7,7 +7,7 @@
         "kl_weight": [2e-4],
         "objective_col": [["adaptation"]],
         "use_contrastive_loss": [false],
-        "threshold_early_val_acc": [0.99],
+        "threshold_early_val_acc": [0.98],
         "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
         "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
         "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
