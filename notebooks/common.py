@@ -27,7 +27,7 @@ def cluster_parameter_groups(df, eps=0.5, cols=['UMAP 1', 'UMAP 2'], min_cluster
     if method == 'HDBSCAN':
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
     elif method == 'KMeans':
-        clusterer = KMeans(n_clusters=n_true_clusters, random_state=42, n_init='auto')
+        clusterer = KMeans(n_clusters=n_true_clusters, random_state=0, n_init='auto')
     else:
         clusterer = DBSCAN(eps=eps, min_samples=min_samples)
     df['Cluster'] = clusterer.fit_predict(df[cols])
