@@ -55,9 +55,9 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
         title_curr = title + f': species ${output_specie}$'
-        output_idx = all_species.index(output_specie) if (output_idx is None) else output_idx
+        idx_output = all_species.index(output_specie) if (output_idx is None) else output_idx
         df_s = pd.DataFrame(columns=[x_label] + [f'Conditional input {ii}' for ii in range(category_array.shape[-1])],
-                            data=np.concatenate([analytic[:, output_idx][:, None], category_array], axis=-1))
+                            data=np.concatenate([analytic[:, idx_output][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
             df_s[f'Conditional input {ii}'] = df_s[f'Conditional input {ii}'].astype(
                 float).apply(lambda x: f'{x:.2f}')
