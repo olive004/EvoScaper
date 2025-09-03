@@ -54,7 +54,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
-        'eval_n_to_sample': int(1e4),
+        'eval_n_to_sample': int(2e3),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
