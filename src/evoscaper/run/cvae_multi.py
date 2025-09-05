@@ -72,12 +72,12 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
             if k == 'eval_n_categories':
                 # If there are multiple objectives, limit the number of categories (they grow quadratically)
                 # [config_multisim[k]] * len(df_hpos) if df_hpos['objective_cols'].nunique() == 1 else max_n_categories_multi
-                df_hpos.loc[:, k] = config_multisim[k]
-                df_hpos.loc[df_hpos['objective_col'].apply(lambda x: 1 if type(
+                df_hpos_main.loc[:, k] = config_multisim[k]
+                df_hpos_main.loc[df_hpos_main['objective_col'].apply(lambda x: 1 if type(
                     x) == str else len(x)) > 1, k] = max_n_categories_multi
             else:
-                df_hpos.loc[:, k] = [(config_multisim[k])
-                                     for _ in range(len(df_hpos))]
+                df_hpos_main.loc[:, k] = [(config_multisim[k])
+                                          for _ in range(len(df_hpos_main))]
 
     write_json(config_multisim, fn_config_multisim)
     logging.info(
