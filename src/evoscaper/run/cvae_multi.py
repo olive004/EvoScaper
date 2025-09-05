@@ -46,8 +46,8 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
     logging.warning('!! Using subset of hyperparameters! !! df_hpos.iloc[...]')
-    df_hpos_main = df_hpos.iloc[[6, 10, 11, 14, 22, 24, 25, 27,
-                                 34, 40, 51, 57, 60, 66, 70, 75, 91, 100, 101, 111, 114, 117]]
+    df_hpos_main = df_hpos.iloc[[6, 10, 11, 14, 24, 25, 27,
+                                 34, 40, 51, 57, 60, 66, 70, 75, 91, 100, 101, 114, 117]]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
