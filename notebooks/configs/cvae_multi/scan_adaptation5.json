@@ -1,0 +1,53 @@
+{
+    "hpos_to_vary_from_og": [
+    ],
+    "hpos_to_vary_together": [{
+        "seed_train": [0],
+        "seed_arch": [2, 12, 20, 22],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    }, 
+    {
+        "seed_train": [3],
+        "seed_arch": [2, 3, 5, 25],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    },
+    {
+        "seed_train": [4],
+        "seed_arch": [3, 18],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    },
+    {
+        "seed_train": [5],
+        "seed_arch": [1, 17],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    },
+    {
+        "seed_train": [6],
+        "seed_arch": [3, 12, 25],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    },
+    {
+        "seed_train": [9],
+        "seed_arch": [1, 5, 12, 17, 25],
+        "threshold_early_val_acc": 0.99,
+        "filenames_train_config": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/config.json"],
+        "filenames_train_table": ["notebooks/data/simulate_circuits/2025_02_11__13_56_51/tabulated_mutation_info.json"],
+        "filenames_verify_config": ["notebooks/configs/cvae_multi/simulation_settings2.json"]
+    }
+]
+}

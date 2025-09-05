@@ -45,9 +45,9 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
-    logging.warning('!! Using subset of hyperparameters! !! df_hpos.iloc[...]')
-    df_hpos_main = df_hpos.iloc[[6, 10, 11, 14, 24, 25, 27,
-                                 34, 40, 51, 57, 60, 66, 70, 75, 91, 100, 101, 114, 117]]
+    # logging.warning('!! Using subset of hyperparameters! !! df_hpos.iloc[...]')
+    df_hpos_main = df_hpos #.iloc[[6, 10, 11, 14, 24, 25, 27,
+                                #  34, 40, 51, 57, 60, 66, 70, 75, 91, 100, 101, 114, 117]]
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -56,7 +56,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'fn_df_hpos_loaded': fn_df_hpos_loaded,
         'signal_species': ('RNA_0',),
         'output_species': ('RNA_2',),
-        'eval_n_to_sample': int(5e3),
+        'eval_n_to_sample': int(3e3),
         'eval_cond_min': -0.2,
         'eval_cond_max': 1.2,
         'eval_n_categories': 10,
@@ -100,7 +100,8 @@ if __name__ == "__main__":
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation2.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation3.json',
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation4.json',
+    # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation4.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation5.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
@@ -131,6 +132,6 @@ if __name__ == "__main__":
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_26__19_01_53/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_04_28__16_15_32/df_hpos.json'
     # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_07_07__16_27_26/df_hpos.json'
-    fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_09_03__11_20_07/df_hpos.json'
+    # fn_df_hpos_loaded = 'notebooks/data/cvae_multi/2025_09_03__11_20_07/df_hpos.json'
 
     main(fn_basic, fn_varying, fn_df_hpos_loaded)
