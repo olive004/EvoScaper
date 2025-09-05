@@ -100,8 +100,8 @@ if __name__ == "__main__":
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation2.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation3.json',
+    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation3b.json',
     # parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation4.json',
-    parser.add_argument('--fn_varying', type=str, default='notebooks/configs/cvae_multi/scan_adaptation5.json',
                         help='Path to varying settings JSON file')
     parser.add_argument('--fn_df_hpos_loaded', type=str, default=None,
                         help='Path to dataframe of hyperparameters and results from previous run (json).')
