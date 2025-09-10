@@ -232,9 +232,10 @@ def load_rugg(all_fake_circuits, config_rugg, analytics_rugg):
     else:
         analytics_og = {}
 
-    k_rugg = 'Log ruggedness (adaptation)'
-
-    ruggedness[k_rugg] = np.log10(ruggedness['Log sensitivity'])
+    k_chosen = 'adaptation'
+    k_rugg = f'Log ruggedness ({k_chosen})'
+    # BUG at one point this was accidentally ruggedness['Log sensitivity'], but it should be adaptation
+    ruggedness[k_rugg] = np.log10(ruggedness[k_chosen])
 
     return ruggedness, analytics_og, n_samples, n_perturbs, n_interactions, eps, k_rugg
 
@@ -258,8 +259,8 @@ def make_df_rugg(analytics_og, ruggedness, idx_output, all_sampled_cond,
         df_rugg[f'Log ruggedness ({col_rugg})'] = np.where(
             ruggedness[col_rugg][..., idx_output] == 0, np.nan, np.log10(ruggedness[col_rugg][..., idx_output]))
 
-    df_rugg['Log ruggedness (adaptation) norm'] = y_datanormaliser.create_chain_preprocessor(
-        y_methods_preprocessing)(df_rugg['Log ruggedness (adaptation)'].values, col=k_rugg, use_precomputed=True)
+    # df_rugg['Log ruggedness (adaptation) norm'] = y_datanormaliser.create_chain_preprocessor(
+    #     y_methods_preprocessing)(df_rugg['Log ruggedness (adaptation)'].values, col=k_rugg, use_precomputed=True)
 
     for col_bin in ['Log ruggedness (adaptation)', 'adaptation']:
         df_rugg[f'{col_bin} bin'] = pd.cut(
