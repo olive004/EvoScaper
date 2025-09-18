@@ -113,6 +113,7 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
     data = make_log('precision', data)
     data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
     data['Log precision > 1'] = data['Log precision'] > 1
+    data['Adaptable'] = (data['Log sensitivity'] >= 0) & (data['Log precision'] >= 1)
     return data
 
 
