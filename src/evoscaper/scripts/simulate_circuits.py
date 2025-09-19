@@ -129,11 +129,11 @@ def main(top_write_dir=None, cfg_path=None):
                 'seed': 5
             },
             'simulation': {
-                'dt0': 0.0005,
+                'dt0': 0.0001,
                 'dt1': 0.5,
                 't0': 0,
                 't1': 1000,
-                'tmax': 8000,
+                'tmax': 10000,
                 # 'total_time': 80000,
                 'solver': 'diffrax',
                 'use_batch_mutations': True,
