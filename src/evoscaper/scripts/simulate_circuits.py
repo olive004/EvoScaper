@@ -42,7 +42,7 @@ def simulate_interactions(interactions, input_species, config):
     forward_rates, reverse_rates = make_rates(
         config['x_type'], interactions_reshaped, postprocs)
 
-    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, threshold_steady_states, total_time, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
+    (signal_onehot, signal_target, y00, t0, t1, dt0, dt1, stepsize_controller, total_time, threshold_steady_states, save_steps, max_steps, forward_rates, reverse_rates) = prep_sim(
         config['signal_species'], qreactions, interactions_reshaped, config, forward_rates, reverse_rates)
 
     print('Starting sim')
@@ -119,7 +119,7 @@ def main(top_write_dir=None, cfg_path=None):
             'circuit_generation': {
                 'use_dataset': False,
                 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
-                'repetitions': 2,
+                'repetitions': 100,
                 # 'repetitions': 1000000,
                 'species_count': 3,
                 'sequence_length': 20,
@@ -129,14 +129,25 @@ def main(top_write_dir=None, cfg_path=None):
                 'seed': 5
             },
             'simulation': {
-                't0': 0,
-                't1': 2000,
-                'dt0': 0.001,
+                'dt0': 0.0005,
                 'dt1': 0.5,
-                'threshold_steady_states': 0.01,
-                'total_time': 80000,
-                'stepsize_controller': 'adaptive',
+                't0': 0,
+                't1': 1000,
+                'tmax': 8000,
+                # 'total_time': 80000,
+                'solver': 'diffrax',
+                'use_batch_mutations': True,
+                'interaction_factor': 1,
+                'batch_size': 4000,
+                'max_circuits': 60000,
+                'device': 'gpu',
+                'threshold_steady_states': 0.02,
                 'use_initial_to_add_signal': False,
+                'use_rate_scaling': True,
+                'method': 'Dopri5',
+                'stepsize_controller': 'adaptive',
+                'save_steps': 100,
+                'save_steps_uselog': True
             },
         }
     else:
