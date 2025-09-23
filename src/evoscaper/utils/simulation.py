@@ -338,7 +338,8 @@ def sim(y00, forward_rates, reverse_rates,
         dt1_factor=5,
         threshold=0.01,
         total_time=None,
-        disable_logging=False):
+        disable_logging=False,
+        return_analytics=True):
     """ Concentrations should be in the form [circuits, time, species] """
 
     ys, ts, y0m, y00s, ts0 = sim_core(y00, forward_rates, reverse_rates,
@@ -346,7 +347,10 @@ def sim(y00, forward_rates, reverse_rates,
                                       t0, t1, dt0, dt1, save_steps, max_steps,
                                       stepsize_controller, dt1_factor, threshold, total_time, disable_logging)
 
-    analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
-        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+    if return_analytics:
+        analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
+            ys.shape[-1]), signal_onehot=signal_onehot))(ys)
 
-    return analytics, ys, ts, y0m, y00s, ts0
+        return analytics, ys, ts, y0m, y00s, ts0
+    else:
+        return ys, ts, y0m, y00s, ts0

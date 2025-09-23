@@ -7,7 +7,7 @@ import jax
 import pandas as pd
 
 from evoscaper.utils.preprocess import make_datetime_str
-from evoscaper.utils.simulation import setup_model, make_rates, prep_sim, sim, prep_cfg
+from evoscaper.utils.simulation import compute_analytics, setup_model, make_rates, prep_sim, sim, prep_cfg
 from evoscaper.utils.math import make_batch_symmetrical_matrices, make_symmetrical_matrix_from_sequence
 from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from synbio_morpher.utils.data.fake_data_generation.energies import generate_energies
@@ -29,7 +29,8 @@ def save(returns_kwrgs, top_write_dir):
     print(top_write_dir)
 
 
-def simulate_interactions(interactions, input_species, config):
+def simulate_interactions(interactions, input_species, config,
+                          top_write_dir):
 
     if interactions.ndim == 2:
         interactions_reshaped = make_batch_symmetrical_matrices(
@@ -47,18 +48,23 @@ def simulate_interactions(interactions, input_species, config):
         config['signal_species'], qreactions, interactions_reshaped, config, forward_rates, reverse_rates)
 
     print('Starting sim')
-    analytics, ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
+    ys, ts, y0m, y00s, ts0 = sim(y00, forward_rates[0], reverse_rates,
                                             qreactions,
                                             signal_onehot, signal_target,
                                             t0, t1, dt0, dt1,
                                             save_steps, max_steps,
                                             stepsize_controller,
                                             threshold=threshold_steady_states,
-                                            total_time=total_time)
-    # analytics['Log sensitivity'] = np.log10(
-    #     analytics['sensitivity'])
-    # analytics['Log precision'] = np.log10(analytics['precision'])
+                                            total_time=total_time,
+                                            return_analytics=False)
 
+    save({'ys.npy': ys, 'ts.npy': ts, 'y0m.npy': y0m, 'y00s.npy': y00s, 'ts0.npy': ts0,
+          'interactions.npy': interactions,
+          'config.json': config}, top_write_dir)
+    
+    analytics = jax.vmap(partial(compute_analytics, t=ts, labels=np.arange(
+        ys.shape[-1]), signal_onehot=signal_onehot))(ys)
+    
     return analytics, ys, ts, y0m, y00s, ts0
 
 
@@ -188,7 +194,7 @@ def main(top_write_dir=None, cfg_path=None):
     os.makedirs(top_write_dir, exist_ok=True)
 
     analytics, ys, ts, y0m, y00s, ts0 = simulate_interactions(
-        interactions, input_species, config)
+        interactions, input_species, config, top_write_dir)
 
     save({'analytics.json': analytics,
           'ys.npy': ys, 'ts.npy': ts, 'y0m.npy': y0m, 'y00s.npy': y00s, 'ts0.npy': ts0,
