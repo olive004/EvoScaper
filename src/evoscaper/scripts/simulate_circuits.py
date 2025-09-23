@@ -1,5 +1,6 @@
 
 
+from functools import partial
 import numpy as np
 import os
 import jax
@@ -7,7 +8,7 @@ import pandas as pd
 
 from evoscaper.utils.preprocess import make_datetime_str
 from evoscaper.utils.simulation import setup_model, make_rates, prep_sim, sim, prep_cfg
-from evoscaper.utils.math import make_batch_symmetrical_matrices
+from evoscaper.utils.math import make_batch_symmetrical_matrices, make_symmetrical_matrix_from_sequence
 from synbio_morpher.utils.results.analytics.naming import get_true_interaction_cols
 from synbio_morpher.utils.data.fake_data_generation.energies import generate_energies
 from synbio_morpher.utils.data.data_format_tools.common import load_json_as_dict, write_json
@@ -117,8 +118,9 @@ def main(top_write_dir=None, cfg_path=None):
                 'association_binding_rate': 1000000
             },
             'circuit_generation': {
-                'use_dataset': False,
-                'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
+                'use_dataset': True,
+                # 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
+                'dataset_src': f'{data_dir}/raw/generate_sequence_batch/2025_09_20_103744/energies.json',
                 'repetitions': 100,
                 # 'repetitions': 1000000,
                 'species_count': 3,
@@ -162,9 +164,17 @@ def main(top_write_dir=None, cfg_path=None):
     config = prep_cfg(config, input_species)
 
     if config['circuit_generation']['use_dataset']:
-        data = pd.read_csv(config['circuit_generation']['dataset_src'])
-        n_species = len(data[~data['sample_name'].isna()]['sample_name'].unique())
-        interactions = data[data['sample_name'] == 'RNA_2'][get_true_interaction_cols(data, 'energies', remove_symmetrical=False)].values.reshape(-1, n_species, n_species)
+        fn = config['circuit_generation']['dataset_src']
+        data = pd.read_csv(fn) if fn.endswith('.csv') else pd.read_json(fn)
+        if 'sample_name' in data.columns:
+            n_species = len(data[~data['sample_name'].isna()]['sample_name'].unique())
+            interactions = data[data['sample_name'] == 'RNA_2'][get_true_interaction_cols(data, 'energies', remove_symmetrical=False)].values.reshape(-1, n_species, n_species)
+        else:
+            # CUSTOM FOR energies.json
+            n_species = 3
+            assert len(data.columns) == 6
+            interactions = jax.vmap(partial(make_symmetrical_matrix_from_sequence, side_length=n_species))(
+                data.values).reshape(-1, n_species, n_species)
     else:
         interactions = generate_energies(
             n_circuits=config['circuit_generation'].get("repetitions", 1),
