@@ -45,8 +45,7 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
     else:
         df_hpos = pd.read_json(fn_df_hpos_loaded)
 
-    logging.warning('!! Using subset of hyperparameters! !! df_hpos.iloc[...]')
-    df_hpos_main = df_hpos.iloc[[14, 56, 112]]
+    df_hpos_main = df_hpos
 
     fn_config_multisim = os.path.join(top_dir, 'config_multisim.json')
     config_multisim = {
@@ -61,7 +60,6 @@ def main(fn_basic, fn_varying, fn_df_hpos_loaded: Optional[str]):
         'eval_n_categories': 10,
         'eval_batch_size': int(1e5),
         'filename_simulation_settings': 'notebooks/configs/cvae_multi/simulation_settings.json',
-
     }
 
     max_n_categories_multi = 5

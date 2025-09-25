@@ -24,11 +24,11 @@ def loss_fn(
         loss = mse_loss(y, pred_y.reshape(y.shape))
 
     # Add L2 loss
-    if use_l2_reg:
-        loss += sum(
-            l2_loss(w, alpha=l2_reg_alpha)
-            for w in jax.tree_util.tree_leaves(params)
-        )
+    # if use_l2_reg:
+    #     loss += sum(
+    #         l2_loss(w, alpha=l2_reg_alpha)
+    #         for w in jax.tree_util.tree_leaves(params)
+    #     )
     return loss
 
 
@@ -145,6 +145,14 @@ def accuracy_regression(
     threshold=0.1, **kwargs
 ) -> Float[Array, ""]:
     return jnp.mean(jnp.abs(y - pred_y) <= threshold)
+
+
+@eqx.filter_jit
+def accuracy_regression_meandim(
+    pred_y: Float[Array, "batch num_interactions"], y: Int[Array, " batch n_head"],
+    threshold=0.1, **kwargs
+) -> Float[Array, ""]:
+    return jnp.mean(jnp.abs(y - pred_y).mean(axis=-1) <= threshold)
 
 
 @eqx.filter_jit
