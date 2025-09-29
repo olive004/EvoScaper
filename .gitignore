@@ -14,3 +14,4 @@ notebooks/data
 notebooks_sRNA/data
 src/nucleotide_transformer
 src/core-bioreaction-simulation
+.vscode
