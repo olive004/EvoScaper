@@ -18,7 +18,7 @@ The following installation instructions pertain to Linux machines, but can be ad
 
 A docker container is available for reproducing simulation and model training. For convenience, run the `docker/start_docker.sh` source file or run commands within this script. Once the container is up, run the `docker/post_install.sh` to ensure custom dependencies were installed correctly.
 
-```bash docker/start_docker.sh
-bash docker/post_install.sh```
-
+```bash
+bash docker/start_docker.sh bash docker/post_install.sh
+```
 
