@@ -23,6 +23,12 @@ bash docker/start_docker.sh
 bash docker/post_install.sh
 ```
 
+### Notebooks
+
+As a starting point, a model can be trained with the first notebook `notebooks/01_cvae.ipynb`. Subsequently, model outputs can be verified with the second notebook `notebooks/02_cvae_verify.ipynb`. 
+
+The remaining notebooks explore aspects of model parameters, training, Monte Carlo sampling simulations, and other visualisation / verification results.
+
 ### CLI
 
 To train and verify multiple CVAE models with different configurations, modify the `src/evoscaper/run/cvae_multi.py` script with path names indicating configuration files. 
