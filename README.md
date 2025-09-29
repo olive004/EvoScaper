@@ -1,8 +1,8 @@
 # EvoScaper
 
-![Project overview](assets/cvae_figure1.png)
-
 Pre-print: Generative design of synthetic gene circuits for functional and evolutionary properties ([BioRxiv](https://www.biorxiv.org/content/10.1101/2025.09.26.678595v1))
+
+![Project overview](assets/cvae_figure1.jpg)
 
 ## Usage
 
