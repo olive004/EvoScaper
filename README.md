@@ -23,4 +23,8 @@ bash docker/start_docker.sh
 bash docker/post_install.sh
 ```
 
+### CLI
 
+To train and verify multiple CVAE models with different configurations, modify the `src/evoscaper/run/cvae_multi.py` script with path names indicating configuration files. 
+
+To calculate the ruggedness of a set of genetic circuits, run the `src/evoscaper/run/ruggedness.py` script with modifications to the config in the script, specifying parameters such as the number of mutated circuits and the mutation strategy. 
