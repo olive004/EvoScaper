@@ -1,32 +1,19 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: evoscaper
 Version: 0.0.1
 Summary: EvoScaper: Predicting the robustness of genetic circuits against mutations
 Home-page: https://github.com/olive004/EvoScaper
 Author: Olivia Gallup
 Author-email: olivia.gallup@gmail.com
+License: UNKNOWN
 Keywords: Synthetic Biology,Biotech,Deep Learning,JAX
+Platform: UNKNOWN
 Classifier: Intended Audience :: Science/Research
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-Requires-Dist: absl-py
-Requires-Dist: jax
-Requires-Dist: jaxlib
-Requires-Dist: numpy>=1.23.5
-Requires-Dist: tqdm
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: keywords
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
 
 # EvoScaper
 
@@ -64,3 +51,5 @@ The remaining notebooks explore aspects of model parameters, training, Monte Car
 To train and verify multiple CVAE models with different configurations, modify the `src/evoscaper/run/cvae_multi.py` script with path names indicating configuration files. 
 
 To calculate the ruggedness of a set of genetic circuits, run the `src/evoscaper/run/ruggedness.py` script with modifications to the config in the script, specifying parameters such as the number of mutated circuits and the mutation strategy. 
+
+
