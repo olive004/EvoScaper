@@ -8,6 +8,7 @@ import jax
 import os
 import umap
 from matplotlib import pyplot as plt
+from matplotlib import font_manager
 import pandas as pd
 import seaborn as sns
 from sklearn.manifold import TSNE
@@ -20,6 +21,18 @@ from evoscaper.utils.normalise import calc_minmax
 import hdbscan
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
+
+
+def set_theme(font_scale=1.0):
+    
+    font_path = os.path.join('..', 'notebooks', 'Harding_Regular.ttf')
+    font_manager.fontManager.addfont(font_path)
+    font_name = font_manager.FontProperties(fname=font_path).get_name()
+    plt.rcParams['font.family'] = font_name
+    plt.rcParams['font.sans-serif'] = [font_name]
+
+    sns.set_theme(context='notebook', font=font_name, style='white', font_scale=font_scale)
+
 
 
 def cluster_parameter_groups(df, eps=0.5, cols=['UMAP 1', 'UMAP 2'], min_cluster_size=5, min_samples=1, method='HDBSCAN',
