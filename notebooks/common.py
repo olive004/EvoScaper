@@ -23,24 +23,26 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
 
 
-def set_theme(font_scale=1.0):
-    
+def set_theme(font_scale=1.0, style='white'):
+
     font_path = os.path.join('..', 'notebooks', 'Harding_Regular.ttf')
     font_manager.fontManager.addfont(font_path)
     font_name = font_manager.FontProperties(fname=font_path).get_name()
     plt.rcParams['font.family'] = font_name
     plt.rcParams['font.sans-serif'] = [font_name]
 
-    sns.set_theme(context='notebook', font=font_name, style='white', font_scale=font_scale)
-
+    sns.set_theme(context='notebook', font=font_name,
+                  style=style, font_scale=font_scale)
 
 
 def cluster_parameter_groups(df, eps=0.5, cols=['UMAP 1', 'UMAP 2'], min_cluster_size=5, min_samples=1, method='HDBSCAN',
                              n_true_clusters=5):
     if method == 'HDBSCAN':
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size, min_samples=min_samples)
     elif method == 'KMeans':
-        clusterer = KMeans(n_clusters=n_true_clusters, random_state=0, n_init='auto')
+        clusterer = KMeans(n_clusters=n_true_clusters,
+                           random_state=0, n_init='auto')
     else:
         clusterer = DBSCAN(eps=eps, min_samples=min_samples)
     df['Cluster'] = clusterer.fit_predict(df[cols])
@@ -52,8 +54,8 @@ def scale_norm(x, key, data, vmin=0, vmax=1):
     return calc_minmax(
         x, min_val=data[key].min(), scale=data[key].max() - data[key].min(),
         max_range=vmax, min_range=vmin)
-    
-    
+
+
 def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
                                   x, cond, use_h,
                                   y_datanormaliser, y_methods_preprocessing,
@@ -116,14 +118,14 @@ def get_model_latent_space_dimred(p, rng, encoder, h2mu, h2logvar,
     return result_dimred, idxs_show, cond_unique, cond_binned, x_bin_all, x_rev_all, cond_rev_all, emb, h_all, z_all
 
 
-def load_stitch_ys(dir_src_rugg, idx_output, n_samples, time_steps = 800):
-    
+def load_stitch_ys(dir_src_rugg, idx_output, n_samples, time_steps=800):
+
     def check_expansion(ys_out, t_len):
         if ys_out.shape[1] < t_len:
             ys_out = np.concatenate(
                 [ys_out, np.ones((ys_out.shape[0], t_len - ys_out.shape[1]), dtype=np.float32) * np.nan], axis=1)
         return ys_out
-    
+
     batch_dirs = [c for c in os.listdir(dir_src_rugg) if c.startswith('batch')]
     batch_dirs.sort(key=lambda x: int(x.split('_')[1]))
 
@@ -140,28 +142,30 @@ def load_stitch_ys(dir_src_rugg, idx_output, n_samples, time_steps = 800):
         t_max = 0
         for i, b in enumerate(batch_dirs):
             ys_i = np.load(os.path.join(dir_src_rugg, b, 'ys.npy'))
-            if i == 0: 
+            if i == 0:
                 ts = np.load(os.path.join(dir_src_rugg, b, 'ts.npy'))
 
             t_len = ys_i.shape[1]
             if t_len > t_max:
                 t_max = t_len
             ys_out = check_expansion(ys_out, t_len)
-            ys_out[i * len(ys_i) : (i+1) * len(ys_i), :t_len] = ys_i[..., idx_output].astype(np.float32)
+            ys_out[i * len(ys_i): (i+1) * len(ys_i),
+                   :t_len] = ys_i[..., idx_output].astype(np.float32)
             if t_len < time_steps:
-                ys_out[i * len(ys_i) : (i+1) * len(ys_i), t_len:] = ys_i[:, -1, idx_output].astype(np.float32)[:, None]
+                ys_out[i * len(ys_i): (i+1) * len(ys_i), t_len:] = ys_i[:, -
+                                                                        1, idx_output].astype(np.float32)[:, None]
         if t_max < time_steps:
             ys_out = ys_out[:, :t_max]
 
         ys_out = ys_out.reshape(*ys_out.shape, 1)
         np.save(fn_ys_out, ys_out)
         np.save(fn_ys_out.replace('ys_out', 'ts'), ts)
-    
+
     return ys_out, ts
 
 
 def load_stitch_analytics(dir_src_rugg, last_idx=None):
-    
+
     def add_properties(analytics_rugg):
         analytics_rugg['Log sensitivity'] = np.log10(
             analytics_rugg['sensitivity'])
@@ -170,19 +174,20 @@ def load_stitch_analytics(dir_src_rugg, last_idx=None):
             analytics_rugg['adaptation'] = calculate_adaptation(
                 analytics_rugg['sensitivity'], analytics_rugg['precision'], alpha=2)
         return analytics_rugg
-        
+
     fn_analytics = os.path.join(dir_src_rugg, 'analytics.json')
 
     last_idx = last_idx if last_idx is not None else slice(None, None, 1)
     if os.path.exists(fn_analytics):
         analytics_rugg = load_json_as_dict(fn_analytics)
         for k, v in analytics_rugg.items():
-            analytics_rugg[k] = np.array(v) #[..., last_idx]
+            analytics_rugg[k] = np.array(v)  # [..., last_idx]
         analytics_rugg = add_properties(analytics_rugg)
     else:
         # Stitch together ruggedness from batches
         analytics_rugg = {}
-        batch_dirs = [c for c in os.listdir(dir_src_rugg) if c.startswith('batch')]
+        batch_dirs = [c for c in os.listdir(
+            dir_src_rugg) if c.startswith('batch')]
         batch_dirs.sort(key=lambda x: int(x.split('_')[1]))
         # for fn_analytic in ['analytics.json', 'analytics2.json']:
         for dir_batch in batch_dirs:
@@ -220,7 +225,7 @@ def norm_rugg(rugg, rugg_training, y_datanormaliser, min_range=0, max_range=1, c
     scale = np.where(scale == 0, 1.0, scale)
 
     # Map to desired feature range
-    
+
     rugg_norm = ((robust_scaled - y_datanormaliser.metadata[col_rugg]['min_val']) / y_datanormaliser.metadata[col_rugg]['scale']) * \
         (max_range - min_range) + min_range
 
@@ -257,17 +262,17 @@ def make_df_rugg(analytics_og, ruggedness, idx_output, all_sampled_cond,
                  y_datanormaliser, y_methods_preprocessing, config_dataset, k_rugg):
 
     df_rugg = pd.DataFrame()
-    
+
     for col in ['overshoot', 'initial_steady_states', 'steady_states', 'Log sensitivity', 'Log precision', 'adaptation', 'response_time']:
         df_rugg[col] = analytics_og[col][..., idx_output]
-        
+
     df_rugg['Prompt Adaptation'] = all_sampled_cond[...,
                                                     config_dataset.objective_col.index('adaptation')].flatten()
     df_rugg['Prompt Ruggedness'] = all_sampled_cond[...,
                                                     config_dataset.objective_col.index(k_rugg)].flatten()
     df_rugg['Prompt Ruggedness Unnorm'] = y_datanormaliser.create_chain_preprocessor_inverse(
         y_methods_preprocessing)(all_sampled_cond[..., config_dataset.objective_col.index(k_rugg)].flatten(), col=k_rugg)
-    
+
     for col_rugg in ['adaptation', 'Log sensitivity', 'Log precision']:
         df_rugg[f'Log ruggedness ({col_rugg})'] = np.where(
             ruggedness[col_rugg][..., idx_output] == 0, np.nan, np.log10(ruggedness[col_rugg][..., idx_output]))
@@ -280,7 +285,7 @@ def make_df_rugg(analytics_og, ruggedness, idx_output, all_sampled_cond,
             df_rugg[col_bin], bins=10)
         df_rugg[f'{col_bin} bin'] = df_rugg[f'{col_bin} bin'].apply(
             lambda x: x.mid).astype(float).round(2)
-        
+
     df_rugg.loc[np.isinf(df_rugg['Log precision']), 'Log precision'] = np.nan
 
     return df_rugg
