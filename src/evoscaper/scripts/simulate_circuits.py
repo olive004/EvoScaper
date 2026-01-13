@@ -126,7 +126,8 @@ def main(top_write_dir=None, cfg_path=None):
             'circuit_generation': {
                 'use_dataset': True,
                 # 'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_21_160955/tabulated_mutation_info.csv',
-                'dataset_src': f'{data_dir}/raw/generate_sequence_batch/2025_09_20_103744/energies.json',
+                # 'dataset_src': f'{data_dir}/raw/generate_sequence_batch/2025_09_20_103744/energies.json',
+                'dataset_src': f'{data_dir}/raw/summarise_simulation/2024_11_27_145142/tabulated_mutation_info.csv',
                 'repetitions': 100,
                 # 'repetitions': 1000000,
                 'species_count': 3,
