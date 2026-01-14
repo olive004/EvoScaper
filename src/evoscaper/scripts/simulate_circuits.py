@@ -119,7 +119,8 @@ def main(top_write_dir=None, cfg_path=None):
                 'avg_mRNA_per_cell': 100,
                 'cell_doubling_time': 1200,
                 'creation_rate': 2.35,
-                'starting_copynumbers': 100,
+                # 'starting_copynumbers': 100,
+                'starting_copynumbers': 200,
                 'degradation_rate': 0.01175,
                 'association_binding_rate': 1000000
             },
