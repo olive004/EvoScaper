@@ -120,7 +120,7 @@ def main(top_write_dir=None, cfg_path=None):
                 'cell_doubling_time': 1200,
                 'creation_rate': 2.35,
                 # 'starting_copynumbers': 100,
-                'starting_copynumbers': 200,
+                'starting_copynumbers': 100,
                 'degradation_rate': 0.01175,
                 'association_binding_rate': 1000000
             },
@@ -139,11 +139,11 @@ def main(top_write_dir=None, cfg_path=None):
                 'seed': 5
             },
             'simulation': {
-                'dt0': 0.0001,
+                'dt0': 0.01,
                 'dt1': 0.5,
                 't0': 0,
-                't1': 1000,
-                'tmax': 8000,
+                't1': 500,
+                'tmax': 2000,
                 # 'total_time': 80000,
                 'solver': 'diffrax',
                 'use_batch_mutations': True,
@@ -151,7 +151,7 @@ def main(top_write_dir=None, cfg_path=None):
                 'batch_size': 4000,
                 'max_circuits': 60000,
                 'device': 'gpu',
-                'threshold_steady_states': 0.02,
+                'threshold_steady_states': 0.05,
                 'use_initial_to_add_signal': False,
                 'use_rate_scaling': True,
                 'method': 'Dopri5',
