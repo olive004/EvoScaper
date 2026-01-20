@@ -33,6 +33,13 @@ def set_theme(font_scale=1.0, style='white'):
 
     sns.set_theme(context='notebook', font=font_name,
                   style=style, font_scale=font_scale)
+    
+    
+def add_sample_names(df, names_species_input, n_species_input, n_species_total):
+    df['sample_name'] = (np.arange(n_species_total) * np.ones((int(len(df)/n_species_total), n_species_total))).flatten()
+    df = df[df['sample_name'].isin(list(np.arange(n_species_total)[-n_species_input:]))].reset_index(drop=True)
+    df['sample_name'] = df['sample_name'].map(lambda x: names_species_input[int(x - (n_species_total - n_species_input))])
+    return df
 
 
 def cluster_parameter_groups(df, eps=0.5, cols=['UMAP 1', 'UMAP 2'], min_cluster_size=5, min_samples=1, method='HDBSCAN',
