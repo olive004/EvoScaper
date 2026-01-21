@@ -45,17 +45,30 @@ def save_plot():
 @save_plot()
 def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[str], category_array: np.ndarray,
                          title: str, x_label: str, multiple='fill', f=sns.histplot,
-                         include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input', 
+                         include_hue_vlines=False, vline_uniqs=None, hue_label='Conditional input',
                          figsize=(13, 5), output_idx=None, **kwargs):
+    # Set defaults
     if f == sns.histplot:
         for k, v in zip(('element', 'bins', 'log_scale'), ('step', 20, [True, False])):
+            # Set default if not specified in function call
             kwargs.setdefault(k, v)
+        # Override user's input after saving it
+        log_scale = kwargs.get('log_scale', [True, False])
+        # seaborn handles y-axis log scale badly, plot it with pyplot instead
+        kwargs['log_scale'] = [log_scale[0], False]
+    else:
+        log_scale = kwargs.get('log_scale', [False, False])
 
     fig = plt.figure(figsize=figsize)
     fig.subplots_adjust(wspace=0.6)
     for i, output_specie in enumerate(output_species):
+
         title_curr = title + f': species ${output_specie}$'
-        idx_output = all_species.index(output_specie) if (output_idx is None) else output_idx
+        idx_output = all_species.index(output_specie) if (
+            output_idx is None) else output_idx
+        ax = plt.subplot(1, 2, i+1)
+
+        # Prepare dataframe for plotting
         df_s = pd.DataFrame(columns=[x_label] + [f'Conditional input {ii}' for ii in range(category_array.shape[-1])],
                             data=np.concatenate([analytic[:, idx_output][:, None], category_array], axis=-1))
         for ii in range(category_array.shape[-1]):
@@ -65,10 +78,10 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
             df_s['Conditional input'] = df_s[[f'Conditional input {ii}' for ii in range(
                 category_array.shape[-1])]].apply(lambda x: ', '.join(x), axis=1)
         else:
-            df_s['Conditional input'] = category_array.flatten().astype(float).round(2)
+            df_s['Conditional input'] = category_array.flatten().astype(
+                float).round(2)
 
-        ax = plt.subplot(1, 2, i+1)
-
+        # Prepare colors for vlines
         c_uniq = sorted(
             np.unique(category_array[:, 0])) if vline_uniqs is None else vline_uniqs
         if include_hue_vlines:
@@ -82,8 +95,13 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         f(df_s, x=x_label,
           multiple=multiple, hue='Conditional input', palette='viridis',
           **kwargs)
+        if log_scale[0]:
+            ax.set_xscale('log')
+        if log_scale[1]:
+            ax.set_yscale('log')
 
-        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1), title=hue_label)
+        sns.move_legend(ax, "upper left",
+                        bbox_to_anchor=(1, 1), title=hue_label)
         if i != (len(output_species) - 1):
             ax.legend_.remove()
         plt.title(title_curr)
