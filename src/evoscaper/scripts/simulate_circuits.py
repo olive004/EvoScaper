@@ -139,7 +139,7 @@ def main(top_write_dir=None, cfg_path=None):
                 'seed': 5
             },
             'simulation': {
-                'dt0': 0.01,
+                'dt0': 0.0001,
                 'dt1': 0.5,
                 't0': 0,
                 't1': 500,
