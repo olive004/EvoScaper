@@ -82,9 +82,9 @@ signal_onehot = np.array([1 if s in idxs_signal else 0 for s in np.arange(len(sp
 k_a = 0.00150958097
 signal_target = 2
 t0 = 0
-t1 = 500
+t1 = 500  # 1  # 
 ts = np.linspace(t0, t1, 500)
-tmax = 2000
+tmax = 2000  # 1  # 
 dt0 = 0.0001
 dt1 = 0.5
 max_steps = 16**4 * 10
@@ -97,9 +97,9 @@ save_steps = 100
 save_steps_uselog = True
 
 # BO parameters
-total_steps = 30
-n_init = 64  # Total samples in initial design
-bo_batch_size = 4
+total_steps = 20
+n_init = 5000  # Total samples in initial design
+bo_batch_size = 1  # 4
 energy_min, energy_max = -30.0, 0.0
 run_bo = True
 
@@ -216,7 +216,9 @@ def evaluate_energies(
 
 
 if run_bo:
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	# GPU device for data storage, CPU device for botorch/GPyTorch
+	# gpu_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	cpu_device = torch.device("cpu")
 
 	# Set up simulator
 	sim_func = jax.vmap(
@@ -247,8 +249,8 @@ if run_bo:
 		init_energies, sim_func, t0, t1, tmax, batch_size, threshold_steady_state
 	)
 
-	train_x = torch.tensor(init_energies, dtype=torch.double, device=device)
-	train_y = torch.tensor(init_scores, dtype=torch.double, device=device).unsqueeze(-1)
+	train_x = torch.tensor(init_energies, dtype=torch.double, device=cpu_device)
+	train_y = torch.tensor(init_scores, dtype=torch.double, device=cpu_device).unsqueeze(-1)
 
 	all_records = []
 	for i in range(len(init_energies)):
@@ -265,23 +267,29 @@ if run_bo:
 		)
 
 	bounds = torch.tensor(
-		[[energy_min] * n_params, [energy_max] * n_params], dtype=torch.double, device=device
+		[[energy_min] * n_params, [energy_max] * n_params], dtype=torch.double, device=cpu_device
 	)
 
 	for step in range(1, total_steps + 1):
 		print(f"\n\nStarting BO iteration {step} out of {total_steps}\n\n")
 
-		model = SingleTaskGP(train_x, train_y)
+		# Ensure tensors are on CPU for botorch/GPyTorch operations
+		train_x_cpu = train_x.to(cpu_device)
+		# train_y_cpu = train_y.to(cpu_device)
+		train_y_cpu = torch.ones_like(train_y)  # Free up GPU memory
+		
+		model = SingleTaskGP(train_x_cpu, train_y_cpu)
 		mll = ExactMarginalLogLikelihood(model.likelihood, model)
 		fit_gpytorch_mll(mll)
 
-		best_f = train_y.max()
+		best_f = train_y_cpu.max()
 		acq = ExpectedImprovement(model=model, best_f=best_f)
 
+		bounds_cpu = bounds.to(cpu_device)
 		candidate, _ = optimize_acqf(
 			acq_function=acq,
-			bounds=bounds,
-			q=bo_batch_size,
+			bounds=bounds_cpu,
+			q=1,  # bo_batch_size,
 			num_restarts=10,
 			raw_samples=128,
 		)
@@ -291,8 +299,8 @@ if run_bo:
 			cand_np, sim_func, t0, t1, tmax, batch_size, threshold_steady_state
 		)
 
-		new_x = torch.tensor(cand_np, dtype=torch.double, device=device)
-		new_y = torch.tensor(cand_scores, dtype=torch.double, device=device).unsqueeze(-1)
+		new_x = torch.tensor(cand_np, dtype=torch.double, device=cpu_device)
+		new_y = torch.tensor(cand_scores, dtype=torch.double, device=cpu_device).unsqueeze(-1)
 
 		train_x = torch.cat([train_x, new_x], dim=0)
 		train_y = torch.cat([train_y, new_y], dim=0)
