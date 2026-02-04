@@ -99,7 +99,8 @@ save_steps_uselog = True
 # BO parameters
 total_steps = 20
 n_init = 5000  # Total samples in initial design
-bo_batch_size = 1  # 4
+bo_batch_size = 1  # Must be 1 for botorch optimize_acqf
+n_bo_candidates = n_init  # Number of candidates to evaluate per BO iteration
 energy_min, energy_max = -30.0, 0.0
 run_bo = True
 
@@ -286,13 +287,20 @@ if run_bo:
 		acq = ExpectedImprovement(model=model, best_f=best_f)
 
 		bounds_cpu = bounds.to(cpu_device)
-		candidate, _ = optimize_acqf(
-			acq_function=acq,
-			bounds=bounds_cpu,
-			q=1,  # bo_batch_size,
-			num_restarts=10,
-			raw_samples=128,
-		)
+		
+		# Generate candidates by sampling and evaluating acquisition function
+		# Sample many points and select top n_bo_candidates based on acquisition value
+		n_samples = n_bo_candidates * 10  # Over-sample to get better top-k
+		random_samples = torch.rand(n_samples, bounds_cpu.shape[1], device=cpu_device)
+		random_samples = bounds_cpu[0] + (bounds_cpu[1] - bounds_cpu[0]) * random_samples
+		
+		# Evaluate acquisition function on all samples
+		with torch.no_grad():
+			acq_values = acq(random_samples.unsqueeze(-2))
+		
+		# Select top n_bo_candidates
+		top_indices = torch.topk(acq_values, min(n_bo_candidates, n_samples), dim=0).indices.squeeze()
+		candidate = random_samples[top_indices]
 
 		cand_np = candidate.detach().cpu().numpy()
 		cand_scores, cand_adaptability, cand_sensitivity, cand_precision = evaluate_energies(
