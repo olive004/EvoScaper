@@ -12,6 +12,7 @@ import os
 import warnings
 from functools import partial
 from typing import Tuple
+from datetime import datetime
 
 import diffrax as dfx
 import jax
@@ -100,7 +101,7 @@ save_steps_uselog = True
 total_steps = 20
 n_init = 5000  # Total samples in initial design
 bo_batch_size = 1  # Must be 1 for botorch optimize_acqf
-n_bo_candidates = n_init  # Number of candidates to evaluate per BO iteration
+n_bo_candidates = 500  # Number of candidates to evaluate per BO iteration
 energy_min, energy_max = -30.0, 0.0
 run_bo = True
 
@@ -279,9 +280,12 @@ if run_bo:
 		# train_y_cpu = train_y.to(cpu_device)
 		train_y_cpu = torch.ones_like(train_y)  # Free up GPU memory
 		
+		time_start_fit = datetime.now()
 		model = SingleTaskGP(train_x_cpu, train_y_cpu)
 		mll = ExactMarginalLogLikelihood(model.likelihood, model)
 		fit_gpytorch_mll(mll)
+		time_end_fit = datetime.now()
+		print(f"GP model fitted in {time_end_fit - time_start_fit}")
 
 		best_f = train_y_cpu.max()
 		acq = ExpectedImprovement(model=model, best_f=best_f)
@@ -290,14 +294,17 @@ if run_bo:
 		
 		# Generate candidates by sampling and evaluating acquisition function
 		# Sample many points and select top n_bo_candidates based on acquisition value
-		n_samples = n_bo_candidates * 10  # Over-sample to get better top-k
+		n_samples = n_bo_candidates * 1  # Over-sample to get better top-k
 		random_samples = torch.rand(n_samples, bounds_cpu.shape[1], device=cpu_device)
 		random_samples = bounds_cpu[0] + (bounds_cpu[1] - bounds_cpu[0]) * random_samples
 		
 		# Evaluate acquisition function on all samples
+		time_start = datetime.now()
 		with torch.no_grad():
 			acq_values = acq(random_samples.unsqueeze(-2))
-		
+		time_end = datetime.now()
+		print(f"Acquisition function evaluated on {n_samples} samples in {time_end - time_start}")
+
 		# Select top n_bo_candidates
 		top_indices = torch.topk(acq_values, min(n_bo_candidates, n_samples), dim=0).indices.squeeze()
 		candidate = random_samples[top_indices]
