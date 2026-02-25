@@ -100,6 +100,7 @@ def verify(params, rng, decoder,
     analytics['Log sensitivity'] = np.log10(
         analytics['sensitivity'])
     analytics['Log precision'] = np.log10(analytics['precision'])
+    analytics['Log response_time'] = np.log10(analytics['response_time'])
 
     if visualise:
         all_species = list([ii.name for ii in model_brn.species])

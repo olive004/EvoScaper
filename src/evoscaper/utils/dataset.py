@@ -104,13 +104,14 @@ def embellish_data(data: Union[pd.DataFrame, dict], transform_sensitivity_nans=T
     if 'Log ruggedness (Log sensensitivity)' in data and (type(data) == pd.DataFrame):
         data.rename(columns={'Log ruggedness (Log sensensitivity)': 'Log ruggedness (Log sensitivity'}, inplace=True)
 
-    def make_log(k, data):
+    def make_log(k, data, zero_log_replacement):
         data[f'Log {k.split("_")[0]}'] = np.where(
             data[k] != 0, np.log10(data[k]), zero_log_replacement)
         return data
 
-    data = make_log('sensitivity', data)
-    data = make_log('precision', data)
+    data = make_log('sensitivity', data, zero_log_replacement)
+    data = make_log('precision', data, zero_log_replacement)
+    data = make_log('response_time', data, np.nan)
     data['Log sensitivity > 0'] = data['Log sensitivity'] > 0
     data['Log precision > 1'] = data['Log precision'] > 1
     data['Adaptable'] = (data['Log sensitivity'] >= 0) & (data['Log precision'] >= 1)

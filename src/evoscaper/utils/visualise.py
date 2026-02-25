@@ -30,7 +30,7 @@ def save_plot():
             # Save figure
             plt.tight_layout()
             if save_path is not None:
-                plt.savefig(save_path, transparent=True, dpi=300)
+                plt.savefig(save_path, transparent=True, dpi=300, bbox_inches='tight')
 
             if show:
                 plt.show()
@@ -66,7 +66,7 @@ def vis_sampled_histplot(analytic, all_species: List[str], output_species: List[
         title_curr = title + f': species ${output_specie}$'
         idx_output = all_species.index(output_specie) if (
             output_idx is None) else output_idx
-        ax = plt.subplot(1, 2, i+1)
+        ax = plt.subplot(1, len(output_species), i+1)
 
         # Prepare dataframe for plotting
         df_s = pd.DataFrame(columns=[x_label] + [f'Conditional input {ii}' for ii in range(category_array.shape[-1])],
