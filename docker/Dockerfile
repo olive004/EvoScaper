@@ -24,9 +24,9 @@ RUN export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/
 ################################################################################
 ENV ROOT_DIR=/workdir
 ENV PYTHONPATH=/workdir
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV MNT ./..
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV MNT=./..
 WORKDIR /workdir
 # ENTRYPOINT ["/bin/bash"]
 
