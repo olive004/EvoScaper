@@ -23,7 +23,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
 
 
-def set_theme(font_scale=1.0, style='white'):
+def set_theme(font_scale=1.0, style='whitegrid'):
 
     font_path = os.path.join('..', 'notebooks', 'Harding_Regular.ttf')
     font_manager.fontManager.addfont(font_path)
